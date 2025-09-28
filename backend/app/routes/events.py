@@ -3,7 +3,7 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, case, asc, desc
 from flask_jwt_extended import jwt_required
-from backend.models import db, Event, Entrant
+from app.models import db, Event, Entrant
 import traceback
 
 bp = Blueprint("events", __name__, url_prefix="/events")
