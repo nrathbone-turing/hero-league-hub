@@ -46,6 +46,37 @@ class Event(db.Model):
         return data
 
 
+class Entrant(db.Model):
+    __tablename__ = "entrants"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    alias = db.Column(db.String(80), nullable=True)
+    event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+    dropped = db.Column(db.Boolean, default=False, nullable=False)
+
+    event = db.relationship("Event", back_populates="entrants")
+
+    def __repr__(self):
+        status = "dropped" if self.dropped else "active"
+        return f"<Entrant {self.name} ({self.alias}) - {status}>"
+
+    def soft_delete(self):
+        """Mark entrant as dropped instead of deleting."""
+        self.name = "Dropped"
+        self.alias = None
+        self.dropped = True
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "alias": self.alias,
+            "event_id": self.event_id,
+            "dropped": self.dropped,
+        }
+
+
 class Match(db.Model):
     __tablename__ = "matches"
 
