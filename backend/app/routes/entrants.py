@@ -83,7 +83,7 @@ def delete_entrant(entrant_id):
     """
     try:
         entrant = Entrant.query.get_or_404(entrant_id)
-        from backend.models import Match  # avoid circular import
+        from app.models import Match  # avoid circular import
 
         has_matches = (
             Match.query.filter(

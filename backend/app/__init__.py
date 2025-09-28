@@ -8,7 +8,7 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 
 from app.config import Config
-from app.database import db
+from app.extensions import db
 from app.routes.events import bp as events_bp
 from app.routes.entrants import bp as entrants_bp
 from app.routes.matches import bp as matches_bp
