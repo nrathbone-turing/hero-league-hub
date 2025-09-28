@@ -2,7 +2,8 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models import db, Entrant
+from app.models.models import Entrant
+from app.extensions import db
 import traceback
 
 bp = Blueprint("entrants", __name__, url_prefix="/entrants")

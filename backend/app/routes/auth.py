@@ -11,7 +11,7 @@ from flask_jwt_extended import (
     get_jwt,
 )
 from app.extensions import db
-from app.models import User
+from app.models.models import User
 from app.blocklist import jwt_blocklist
 import traceback
 
