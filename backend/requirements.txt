@@ -2,5 +2,6 @@ flask
 flask_sqlalchemy
 flask_migrate
 flask_jwt_extended
+Flask-Cors
 psycopg2-binary
 python-dotenv
