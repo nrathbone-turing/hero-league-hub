@@ -1,8 +1,9 @@
 // File: frontend/src/components/SignupForm.jsx
 // Purpose: Signup form for new users with Material UI styling.
 // Notes:
+// - Calls useAuth().signup which uses centralized apiFetch.
 // - Redirects to / after successful signup.
-// - Stores access_token via useAuth (which persists to localStorage).
+// - Displays success or error message.
 
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -28,10 +29,10 @@ export default function SignupForm() {
     e.preventDefault();
     try {
       await signup(username, email, password); // handled in AuthContext
-      setMessage(`Signed up as ${username}`);
+      setMessage(`✅ Signed up as ${username}`);
       setTimeout(() => navigate("/"), 800);
     } catch (err) {
-      setMessage(err.message || "Signup failed");
+      setMessage(err.message || "❌ Signup failed");
     }
   };
 
@@ -76,7 +77,7 @@ export default function SignupForm() {
             Sign Up
           </Button>
           {message && (
-            <Typography color="error" role="alert">
+            <Typography color={message.startsWith("✅") ? "success.main" : "error"} role="alert">
               {message}
             </Typography>
           )}

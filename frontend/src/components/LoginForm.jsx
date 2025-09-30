@@ -1,8 +1,9 @@
 // File: frontend/src/components/LoginForm.jsx
 // Purpose: Login form for existing users with Material UI styling.
 // Notes:
+// - Calls useAuth().login which uses centralized apiFetch.
 // - Redirects to / after successful login.
-// - Stores access_token via useAuth (which persists to localStorage).
+// - Displays error message on failure.
 
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -29,7 +30,7 @@ export default function LoginForm() {
       await login(email, password); // handled in AuthContext
       navigate("/");
     } catch (err) {
-      setMessage(err.message || "Login failed");
+      setMessage(err.message || "❌ Login failed");
     }
   };
 
