@@ -1,10 +1,9 @@
 // File: frontend/src/context/AuthContext.js
 // Purpose: Provides authentication context and helper functions.
 // Notes:
-// - Stores current user and JWT token.
-// - Exposes login, signup, and logout methods.
-// - Persists token in localStorage for reloads.
-// - Provides isAuthenticated flag.
+// - Stores current user and JWT token in localStorage.
+// - Uses centralized apiFetch for all API calls.
+// - Exposes signup, login, logout, and isAuthenticated.
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { apiFetch } from "../api";
@@ -19,6 +18,7 @@ export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("token"));
 
+  // keep token persisted
   useEffect(() => {
     if (token) {
       localStorage.setItem("token", token);
@@ -27,30 +27,43 @@ export default function AuthProvider({ children }) {
     }
   }, [token]);
 
+  // Signup
   const signup = async (username, email, password) => {
     const data = await apiFetch("/signup", {
       method: "POST",
       body: JSON.stringify({ username, email, password }),
     });
+
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
-    setUser({ username, email });
+
+    // if backend returns user, prefer it; else fallback
+    setUser(data.user || { username, email });
     return data;
   };
 
+  // Login
   const login = async (email, password) => {
     const data = await apiFetch("/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
-    setUser({ username: email.split("@")[0], email });
+
+    // if backend returns user, prefer it; else fallback
+    setUser(data.user || { username: email.split("@")[0], email });
     return data;
   };
 
-  const logout = () => {
+  // Logout (API + local clear)
+  const logout = async () => {
+    try {
+      await apiFetch("/logout", { method: "DELETE" });
+    } catch (err) {
+      console.warn("⚠️ Logout API failed, clearing locally:", err.message);
+    }
     setToken(null);
     setUser(null);
   };
