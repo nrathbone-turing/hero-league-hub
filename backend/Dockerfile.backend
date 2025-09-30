@@ -1,9 +1,19 @@
+# File: Dockerfile.backend
 FROM python:3.11-slim
 
+# Ensure backend is importable
+ENV PYTHONPATH=/app
+
 WORKDIR /app
+
+# Install dependencies
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend /app
+# Copy backend code
+COPY backend /app/backend
+
 EXPOSE 5500
-CMD ["python", "wsgi.py"]
+
+# Run via module so "backend" is a proper package
+CMD ["python", "-m", "backend.wsgi"]
