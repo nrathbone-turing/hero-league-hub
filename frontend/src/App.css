@@ -1,0 +1,14 @@
+/* File: frontend/src/App.css */
+/* Purpose: Base styles for App component. */
+
+.App {
+  text-align: center;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+  color: #222;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  color: #4a148c; /* deep purple for theme */
+}
