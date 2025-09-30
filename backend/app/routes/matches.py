@@ -2,8 +2,8 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models.models import Match
-from app.extensions import db
+from backend.app.models.models import Match
+from backend.app.extensions import db
 import traceback
 
 bp = Blueprint("matches", __name__, url_prefix="/matches")

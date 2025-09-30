@@ -10,9 +10,9 @@ from flask_jwt_extended import (
     get_jwt_identity,
     get_jwt,
 )
-from app.extensions import db
-from app.models.models import User
-from app.blocklist import jwt_blocklist
+from backend.app.extensions import db
+from backend.app.models.models import User
+from backend.app.blocklist import jwt_blocklist
 import traceback
 
 auth_bp = Blueprint("auth", __name__)

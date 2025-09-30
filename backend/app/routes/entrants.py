@@ -2,8 +2,8 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from app.models.models import Entrant
-from app.extensions import db
+from backend.app.models.models import Entrant
+from backend.app.extensions import db
 import traceback
 
 bp = Blueprint("entrants", __name__, url_prefix="/entrants")
@@ -84,7 +84,7 @@ def delete_entrant(entrant_id):
     """
     try:
         entrant = Entrant.query.get_or_404(entrant_id)
-        from app.models import Match  # avoid circular import
+        from backend.app.models import Match  # avoid circular import
 
         has_matches = (
             Match.query.filter(
