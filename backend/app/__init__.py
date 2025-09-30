@@ -7,13 +7,13 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 
-from app.config import Config
-from app.extensions import db
-from app.routes.events import bp as events_bp
-from app.routes.entrants import bp as entrants_bp
-from app.routes.matches import bp as matches_bp
-from app.routes.auth import auth_bp
-from app.blocklist import jwt_blocklist
+from backend.app.config import Config
+from backend.app.extensions import db
+from backend.app.routes.events import bp as events_bp
+from backend.app.routes.entrants import bp as entrants_bp
+from backend.app.routes.matches import bp as matches_bp
+from backend.app.routes.auth import auth_bp
+from backend.app.blocklist import jwt_blocklist
 
 
 def create_app(config_class=Config):

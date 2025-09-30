@@ -9,8 +9,8 @@
 import os
 import json
 from sqlalchemy.sql import text
-from app import create_app
-from app.models import db, Event, Entrant, Match, User
+from backend.app import create_app
+from backend.app.models import db, Event, Entrant, Match, User
 
 SEED_DIR = os.path.join(os.path.dirname(__file__), "..", "seeds")
 

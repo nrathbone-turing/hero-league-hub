@@ -2,7 +2,7 @@
 # Purpose: Flask CLI entrypoint for DB management and scripts.
 
 from flask.cli import FlaskGroup
-from app import create_app
+from backend.app import create_app
 
 app = create_app()
 cli = FlaskGroup(app)

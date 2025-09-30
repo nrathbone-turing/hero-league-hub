@@ -1,8 +1,8 @@
 # File: backend/scripts/clear_db.py
 # Purpose: Drop and recreate all tables.
 
-from app import create_app
-from app.models import db
+from backend.app import create_app
+from backend.app.models import db
 
 app = create_app()
 
