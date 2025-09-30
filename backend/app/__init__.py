@@ -1,19 +1,17 @@
 # backend/app/__init__.py
-# Initializes Flask app, database, and JWT
-# Registers Blueprints for API routes
+# Initializes Flask app, database, JWT, and registers Blueprints for API routes
 
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
 
-from app.config import Config
-from app.extensions import db
-from app.routes.events import bp as events_bp
-from app.routes.entrants import bp as entrants_bp
-from app.routes.matches import bp as matches_bp
-from app.routes.auth import auth_bp
-from app.blocklist import jwt_blocklist
+from backend.app.config import Config
+from backend.app.extensions import db, migrate
+from backend.app.routes.events import bp as events_bp
+from backend.app.routes.entrants import bp as entrants_bp
+from backend.app.routes.matches import bp as matches_bp
+from backend.app.routes.auth import auth_bp
+from backend.app.blocklist import jwt_blocklist
 
 
 def create_app(config_class=Config):
@@ -24,9 +22,11 @@ def create_app(config_class=Config):
     def health():
         return {"status": "ok", "service": "Hero League Hub"}
 
-    # Extensions
+    # ------------------------
+    # Initialize extensions
+    # ------------------------
     db.init_app(app)
-    Migrate(app, db)
+    migrate.init_app(app, db)
 
     # Explicit CORS config
     CORS(
@@ -40,7 +40,7 @@ def create_app(config_class=Config):
     jwt = JWTManager(app)
 
     # ------------------------
-    # Custom JWT error handlers (normalize to 401)
+    # Custom JWT error handlers
     # ------------------------
     @jwt.unauthorized_loader
     def handle_missing_token(err_str):

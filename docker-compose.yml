@@ -1,16 +1,19 @@
+# File: docker-compose.yml
+
 version: "3.9"
 services:
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile.backend
+    command: python -m backend.wsgi   # ensure backend runs as a package
     ports:
       - "5500:5500"
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend        # map code into /app/backend
     environment:
-      - FLASK_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague
+      FLASK_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/heroleague
     depends_on:
       - db
 
@@ -24,7 +27,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:5500
+      VITE_API_URL: http://localhost:5500
 
   db:
     image: postgres:15

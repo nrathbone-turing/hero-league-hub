@@ -1,0 +1,470 @@
+[
+  {
+    "id": 1,
+    "round": 1,
+    "event_id": 1,
+    "entrant1_id": 1,
+    "entrant2_id": 2,
+    "scores": "2-0",
+    "winner_id": 1
+  },
+  {
+    "id": 2,
+    "round": 1,
+    "event_id": 1,
+    "entrant1_id": 3,
+    "entrant2_id": 4,
+    "scores": "0-2",
+    "winner_id": 4
+  },
+  {
+    "id": 3,
+    "round": 1,
+    "event_id": 1,
+    "entrant1_id": 5,
+    "entrant2_id": 6,
+    "scores": "2-1",
+    "winner_id": 5
+  },
+  {
+    "id": 4,
+    "round": 1,
+    "event_id": 1,
+    "entrant1_id": 7,
+    "entrant2_id": 8,
+    "scores": "1-2",
+    "winner_id": 8
+  },
+  {
+    "id": 5,
+    "round": 1,
+    "event_id": 2,
+    "entrant1_id": 9,
+    "entrant2_id": 10,
+    "scores": "2-0",
+    "winner_id": 9
+  },
+  {
+    "id": 6,
+    "round": 1,
+    "event_id": 2,
+    "entrant1_id": 11,
+    "entrant2_id": 12,
+    "scores": "0-2",
+    "winner_id": 12
+  },
+  {
+    "id": 7,
+    "round": 1,
+    "event_id": 2,
+    "entrant1_id": 13,
+    "entrant2_id": 14,
+    "scores": "2-1",
+    "winner_id": 13
+  },
+  {
+    "id": 8,
+    "round": 1,
+    "event_id": 2,
+    "entrant1_id": 15,
+    "entrant2_id": 16,
+    "scores": "1-2",
+    "winner_id": 16
+  },
+  {
+    "id": 9,
+    "round": 2,
+    "event_id": 2,
+    "entrant1_id": 17,
+    "entrant2_id": 18,
+    "scores": "2-0",
+    "winner_id": 17
+  },
+  {
+    "id": 10,
+    "round": 2,
+    "event_id": 2,
+    "entrant1_id": 19,
+    "entrant2_id": 20,
+    "scores": "0-2",
+    "winner_id": 20
+  },
+  {
+    "id": 11,
+    "round": 2,
+    "event_id": 2,
+    "entrant1_id": 21,
+    "entrant2_id": 22,
+    "scores": "2-1",
+    "winner_id": 21
+  },
+  {
+    "id": 12,
+    "round": 2,
+    "event_id": 2,
+    "entrant1_id": 23,
+    "entrant2_id": 24,
+    "scores": "1-2",
+    "winner_id": 24
+  },
+  {
+    "id": 13,
+    "round": 1,
+    "event_id": 3,
+    "entrant1_id": 25,
+    "entrant2_id": 26,
+    "scores": "2-0",
+    "winner_id": 25
+  },
+  {
+    "id": 14,
+    "round": 1,
+    "event_id": 3,
+    "entrant1_id": 27,
+    "entrant2_id": 28,
+    "scores": "0-2",
+    "winner_id": 28
+  },
+  {
+    "id": 15,
+    "round": 1,
+    "event_id": 3,
+    "entrant1_id": 29,
+    "entrant2_id": 30,
+    "scores": "2-1",
+    "winner_id": 29
+  },
+  {
+    "id": 16,
+    "round": 1,
+    "event_id": 3,
+    "entrant1_id": 31,
+    "entrant2_id": 32,
+    "scores": "1-2",
+    "winner_id": 32
+  },
+  {
+    "id": 17,
+    "round": 2,
+    "event_id": 3,
+    "entrant1_id": 33,
+    "entrant2_id": 34,
+    "scores": "2-0",
+    "winner_id": 33
+  },
+  {
+    "id": 18,
+    "round": 2,
+    "event_id": 3,
+    "entrant1_id": 35,
+    "entrant2_id": 36,
+    "scores": "0-2",
+    "winner_id": 36
+  },
+  {
+    "id": 19,
+    "round": 2,
+    "event_id": 3,
+    "entrant1_id": 37,
+    "entrant2_id": 38,
+    "scores": "2-1",
+    "winner_id": 37
+  },
+  {
+    "id": 20,
+    "round": 2,
+    "event_id": 3,
+    "entrant1_id": 39,
+    "entrant2_id": 40,
+    "scores": "1-2",
+    "winner_id": 40
+  },
+  {
+    "id": 21,
+    "round": 1,
+    "event_id": 4,
+    "entrant1_id": 41,
+    "entrant2_id": 42,
+    "scores": "2-0",
+    "winner_id": 41
+  },
+  {
+    "id": 22,
+    "round": 1,
+    "event_id": 4,
+    "entrant1_id": 43,
+    "entrant2_id": 44,
+    "scores": "0-2",
+    "winner_id": 44
+  },
+  {
+    "id": 23,
+    "round": 1,
+    "event_id": 4,
+    "entrant1_id": 45,
+    "entrant2_id": 46,
+    "scores": "2-1",
+    "winner_id": 45
+  },
+  {
+    "id": 24,
+    "round": 1,
+    "event_id": 4,
+    "entrant1_id": 47,
+    "entrant2_id": 48,
+    "scores": "1-2",
+    "winner_id": 48
+  },
+  {
+    "id": 25,
+    "round": 1,
+    "event_id": 4,
+    "entrant1_id": 49,
+    "entrant2_id": 50,
+    "scores": "2-0",
+    "winner_id": 49
+  },
+  {
+    "id": 26,
+    "round": 2,
+    "event_id": 4,
+    "entrant1_id": 51,
+    "entrant2_id": 52,
+    "scores": "0-2",
+    "winner_id": 52
+  },
+  {
+    "id": 27,
+    "round": 2,
+    "event_id": 4,
+    "entrant1_id": 53,
+    "entrant2_id": 54,
+    "scores": "2-1",
+    "winner_id": 53
+  },
+  {
+    "id": 28,
+    "round": 2,
+    "event_id": 4,
+    "entrant1_id": 55,
+    "entrant2_id": 56,
+    "scores": "1-2",
+    "winner_id": 56
+  },
+  {
+    "id": 29,
+    "round": 2,
+    "event_id": 4,
+    "entrant1_id": 57,
+    "entrant2_id": 58,
+    "scores": "2-0",
+    "winner_id": 57
+  },
+  {
+    "id": 30,
+    "round": 2,
+    "event_id": 4,
+    "entrant1_id": 59,
+    "entrant2_id": 60,
+    "scores": "0-2",
+    "winner_id": 60
+  },
+  {
+    "id": 31,
+    "round": 3,
+    "event_id": 4,
+    "entrant1_id": 61,
+    "entrant2_id": 62,
+    "scores": "2-1",
+    "winner_id": 61
+  },
+  {
+    "id": 32,
+    "round": 3,
+    "event_id": 4,
+    "entrant1_id": 63,
+    "entrant2_id": 64,
+    "scores": "1-2",
+    "winner_id": 64
+  },
+  {
+    "id": 33,
+    "round": 3,
+    "event_id": 4,
+    "entrant1_id": 65,
+    "entrant2_id": 66,
+    "scores": "2-0",
+    "winner_id": 65
+  },
+  {
+    "id": 34,
+    "round": 3,
+    "event_id": 4,
+    "entrant1_id": 67,
+    "entrant2_id": 68,
+    "scores": "0-2",
+    "winner_id": 68
+  },
+  {
+    "id": 35,
+    "round": 3,
+    "event_id": 4,
+    "entrant1_id": 69,
+    "entrant2_id": 70,
+    "scores": "2-1",
+    "winner_id": 69
+  },
+  {
+    "id": 36,
+    "round": 4,
+    "event_id": 4,
+    "entrant1_id": 71,
+    "entrant2_id": 72,
+    "scores": "1-2",
+    "winner_id": 72
+  },
+  {
+    "id": 37,
+    "round": 1,
+    "event_id": 5,
+    "entrant1_id": 73,
+    "entrant2_id": 74,
+    "scores": "2-0",
+    "winner_id": 73
+  },
+  {
+    "id": 38,
+    "round": 1,
+    "event_id": 5,
+    "entrant1_id": 75,
+    "entrant2_id": 76,
+    "scores": "0-2",
+    "winner_id": 76
+  },
+  {
+    "id": 39,
+    "round": 1,
+    "event_id": 5,
+    "entrant1_id": 77,
+    "entrant2_id": 78,
+    "scores": "2-1",
+    "winner_id": 77
+  },
+  {
+    "id": 40,
+    "round": 1,
+    "event_id": 5,
+    "entrant1_id": 79,
+    "entrant2_id": 80,
+    "scores": "1-2",
+    "winner_id": 80
+  },
+  {
+    "id": 41,
+    "round": 1,
+    "event_id": 5,
+    "entrant1_id": 81,
+    "entrant2_id": 82,
+    "scores": "2-0",
+    "winner_id": 81
+  },
+  {
+    "id": 42,
+    "round": 2,
+    "event_id": 5,
+    "entrant1_id": 83,
+    "entrant2_id": 84,
+    "scores": "0-2",
+    "winner_id": 84
+  },
+  {
+    "id": 43,
+    "round": 2,
+    "event_id": 5,
+    "entrant1_id": 85,
+    "entrant2_id": 86,
+    "scores": "2-1",
+    "winner_id": 85
+  },
+  {
+    "id": 44,
+    "round": 2,
+    "event_id": 5,
+    "entrant1_id": 87,
+    "entrant2_id": 88,
+    "scores": "1-2",
+    "winner_id": 88
+  },
+  {
+    "id": 45,
+    "round": 2,
+    "event_id": 5,
+    "entrant1_id": 89,
+    "entrant2_id": 90,
+    "scores": "2-0",
+    "winner_id": 89
+  },
+  {
+    "id": 46,
+    "round": 2,
+    "event_id": 5,
+    "entrant1_id": 91,
+    "entrant2_id": 92,
+    "scores": "0-2",
+    "winner_id": 92
+  },
+  {
+    "id": 47,
+    "round": 3,
+    "event_id": 5,
+    "entrant1_id": 93,
+    "entrant2_id": 94,
+    "scores": "2-1",
+    "winner_id": 93
+  },
+  {
+    "id": 48,
+    "round": 3,
+    "event_id": 5,
+    "entrant1_id": 95,
+    "entrant2_id": 96,
+    "scores": "1-2",
+    "winner_id": 96
+  },
+  {
+    "id": 49,
+    "round": 3,
+    "event_id": 5,
+    "entrant1_id": 97,
+    "entrant2_id": 98,
+    "scores": "2-0",
+    "winner_id": 97
+  },
+  {
+    "id": 50,
+    "round": 3,
+    "event_id": 5,
+    "entrant1_id": 99,
+    "entrant2_id": 100,
+    "scores": "0-2",
+    "winner_id": 100
+  },
+  {
+    "id": 51,
+    "round": 3,
+    "event_id": 5,
+    "entrant1_id": 101,
+    "entrant2_id": 102,
+    "scores": "2-1",
+    "winner_id": 101
+  },
+  {
+    "id": 52,
+    "round": 4,
+    "event_id": 5,
+    "entrant1_id": 103,
+    "entrant2_id": 104,
+    "scores": "1-2",
+    "winner_id": 104
+  }
+]

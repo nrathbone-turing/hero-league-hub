@@ -24,7 +24,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 
     # CORS / other app configs
-    FRONTEND_URL = os.getenv("REACT_APP_API_URL", "http://localhost:3000")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
 class TestConfig(Config):

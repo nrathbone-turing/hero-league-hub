@@ -1,0 +1,730 @@
+[
+  {
+    "id": 1,
+    "name": "Hero 1",
+    "alias": "Alias1",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 2,
+    "name": "Hero 2",
+    "alias": "Alias2",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 3,
+    "name": "Hero 3",
+    "alias": "Alias3",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 4,
+    "name": "Hero 4",
+    "alias": "Alias4",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 5,
+    "name": "Hero 5",
+    "alias": "Alias5",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 6,
+    "name": "Hero 6",
+    "alias": "Alias6",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 7,
+    "name": "Hero 7",
+    "alias": "Alias7",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 8,
+    "name": "Hero 8",
+    "alias": "Alias8",
+    "event_id": 1,
+    "dropped": false
+  },
+  {
+    "id": 9,
+    "name": "Hero 9",
+    "alias": "Alias9",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 10,
+    "name": "Hero 10",
+    "alias": "Alias10",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 11,
+    "name": "Hero 11",
+    "alias": "Alias11",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 12,
+    "name": "Hero 12",
+    "alias": "Alias12",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 13,
+    "name": "Hero 13",
+    "alias": "Alias13",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 14,
+    "name": "Hero 14",
+    "alias": "Alias14",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 15,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 2,
+    "dropped": true
+  },
+  {
+    "id": 16,
+    "name": "Hero 16",
+    "alias": "Alias16",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 17,
+    "name": "Hero 17",
+    "alias": "Alias17",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 18,
+    "name": "Hero 18",
+    "alias": "Alias18",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 19,
+    "name": "Hero 19",
+    "alias": "Alias19",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 20,
+    "name": "Hero 20",
+    "alias": "Alias20",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 21,
+    "name": "Hero 21",
+    "alias": "Alias21",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 22,
+    "name": "Hero 22",
+    "alias": "Alias22",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 23,
+    "name": "Hero 23",
+    "alias": "Alias23",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 24,
+    "name": "Hero 24",
+    "alias": "Alias24",
+    "event_id": 2,
+    "dropped": false
+  },
+  {
+    "id": 25,
+    "name": "Hero 25",
+    "alias": "Alias25",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 26,
+    "name": "Hero 26",
+    "alias": "Alias26",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 27,
+    "name": "Hero 27",
+    "alias": "Alias27",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 28,
+    "name": "Hero 28",
+    "alias": "Alias28",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 29,
+    "name": "Hero 29",
+    "alias": "Alias29",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 30,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 3,
+    "dropped": true
+  },
+  {
+    "id": 31,
+    "name": "Hero 31",
+    "alias": "Alias31",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 32,
+    "name": "Hero 32",
+    "alias": "Alias32",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 33,
+    "name": "Hero 33",
+    "alias": "Alias33",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 34,
+    "name": "Hero 34",
+    "alias": "Alias34",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 35,
+    "name": "Hero 35",
+    "alias": "Alias35",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 36,
+    "name": "Hero 36",
+    "alias": "Alias36",
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 37,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 38,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 39,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 40,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 3,
+    "dropped": false
+  },
+  {
+    "id": 41,
+    "name": "Hero 41",
+    "alias": "Alias41",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 42,
+    "name": "Hero 42",
+    "alias": "Alias42",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 43,
+    "name": "Hero 43",
+    "alias": "Alias43",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 44,
+    "name": "Hero 44",
+    "alias": "Alias44",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 45,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 4,
+    "dropped": true
+  },
+  {
+    "id": 46,
+    "name": "Hero 46",
+    "alias": "Alias46",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 47,
+    "name": "Hero 47",
+    "alias": "Alias47",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 48,
+    "name": "Hero 48",
+    "alias": "Alias48",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 49,
+    "name": "Hero 49",
+    "alias": "Alias49",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 50,
+    "name": "Hero 50",
+    "alias": "Alias50",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 51,
+    "name": "Hero 51",
+    "alias": "Alias51",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 52,
+    "name": "Hero 52",
+    "alias": "Alias52",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 53,
+    "name": "Hero 53",
+    "alias": "Alias53",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 54,
+    "name": "Hero 54",
+    "alias": "Alias54",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 55,
+    "name": "Hero 55",
+    "alias": "Alias55",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 56,
+    "name": "Hero 56",
+    "alias": "Alias56",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 57,
+    "name": "Hero 57",
+    "alias": "Alias57",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 58,
+    "name": "Hero 58",
+    "alias": "Alias58",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 59,
+    "name": "Hero 59",
+    "alias": "Alias59",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 60,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 4,
+    "dropped": true
+  },
+  {
+    "id": 61,
+    "name": "Hero 61",
+    "alias": "Alias61",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 62,
+    "name": "Hero 62",
+    "alias": "Alias62",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 63,
+    "name": "Hero 63",
+    "alias": "Alias63",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 64,
+    "name": "Hero 64",
+    "alias": "Alias64",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 65,
+    "name": "Hero 65",
+    "alias": "Alias65",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 66,
+    "name": "Hero 66",
+    "alias": "Alias66",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 67,
+    "name": "Hero 67",
+    "alias": "Alias67",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 68,
+    "name": "Hero 68",
+    "alias": "Alias68",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 69,
+    "name": "Hero 69",
+    "alias": "Alias69",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 70,
+    "name": "Hero 70",
+    "alias": "Alias70",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 71,
+    "name": "Hero 71",
+    "alias": "Alias71",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 72,
+    "name": "Hero 72",
+    "alias": "Alias72",
+    "event_id": 4,
+    "dropped": false
+  },
+  {
+    "id": 73,
+    "name": "Hero 73",
+    "alias": "Alias73",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 74,
+    "name": "Hero 74",
+    "alias": "Alias74",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 75,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 5,
+    "dropped": true
+  },
+  {
+    "id": 76,
+    "name": "Hero 76",
+    "alias": "Alias76",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 77,
+    "name": "Hero 77",
+    "alias": "Alias77",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 78,
+    "name": "Hero 78",
+    "alias": "Alias78",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 79,
+    "name": "Hero 79",
+    "alias": "Alias79",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 80,
+    "name": "Hero 80",
+    "alias": "Alias80",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 81,
+    "name": "Hero 81",
+    "alias": "Alias81",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 82,
+    "name": "Hero 82",
+    "alias": "Alias82",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 83,
+    "name": "Hero 83",
+    "alias": "Alias83",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 84,
+    "name": "Hero 84",
+    "alias": "Alias84",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 85,
+    "name": "Hero 85",
+    "alias": "Alias85",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 86,
+    "name": "Hero 86",
+    "alias": "Alias86",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 87,
+    "name": "Hero 87",
+    "alias": "Alias87",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 88,
+    "name": "Hero 88",
+    "alias": "Alias88",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 89,
+    "name": "Hero 89",
+    "alias": "Alias89",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 90,
+    "name": "Dropped",
+    "alias": null,
+    "event_id": 5,
+    "dropped": true
+  },
+  {
+    "id": 91,
+    "name": "Hero 91",
+    "alias": "Alias91",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 92,
+    "name": "Hero 92",
+    "alias": "Alias92",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 93,
+    "name": "Hero 93",
+    "alias": "Alias93",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 94,
+    "name": "Hero 94",
+    "alias": "Alias94",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 95,
+    "name": "Hero 95",
+    "alias": "Alias95",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 96,
+    "name": "Hero 96",
+    "alias": "Alias96",
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 97,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 98,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 99,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 100,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 101,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 102,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 103,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  },
+  {
+    "id": 104,
+    "name": "BYE",
+    "alias": null,
+    "event_id": 5,
+    "dropped": false
+  }
+]
