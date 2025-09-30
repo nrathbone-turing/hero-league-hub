@@ -3,7 +3,6 @@
 // Notes:
 // - Covers signup, login, logout, and protected access.
 
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import AuthProvider, { useAuth } from "../context/AuthContext";
@@ -12,6 +11,9 @@ import SignupForm from "../components/SignupForm";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 beforeEach(() => {
+  localStorage.clear();
+  vi.resetAllMocks();
+
   global.fetch = vi.fn((url) => {
     if (url.endsWith("/signup")) {
       return Promise.resolve({
@@ -31,8 +33,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.resetAllMocks();
   localStorage.clear();
+  vi.resetAllMocks();
 });
 
 function ProtectedPage() {
