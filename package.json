@@ -3,21 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:backend": "flake8 backend",
-    "format:backend": "black backend",
-    "fix:backend": "black backend && flake8 backend",
-    "test:backend": "pytest -q --disable-warnings",
-    "db:init": "docker-compose exec backend flask --app backend/manage.py db init",
-    "db:migrate": "docker-compose exec backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
-    "db:upgrade": "docker-compose exec backend flask --app backend/manage.py db upgrade",
-    "db:clear": "docker-compose exec backend python backend/scripts/clear_db.py",
-    "db:seed": "docker-compose exec backend python backend/scripts/seed_db.py",
+    "lint:backend": "docker-compose run --rm backend flake8 /app/backend",
+    "format:backend": "docker-compose run --rm backend black /app/backend",
+    "fix:backend": "docker-compose run --rm backend black /app/backend && docker-compose run --rm backend flake8 /app/backend",
+    "test:backend": "docker-compose run --rm backend pytest -q --disable-warnings",
+
+    "db:init": "docker-compose run --rm backend flask --app backend/manage.py db init",
+    "db:migrate": "docker-compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
+    "db:upgrade": "docker-compose run --rm backend flask --app backend/manage.py db upgrade",
+    "db:clear": "docker-compose run --rm backend python backend/scripts/clear_db.py",
+    "db:seed": "docker-compose run --rm backend python backend/scripts/seed_db.py",
     "db:reset": "npm run db:clear && npm run db:upgrade && npm run db:seed",
+
     "lint:frontend": "npm --prefix frontend run lint",
     "format:frontend": "npm --prefix frontend run format",
     "fix:frontend": "npm --prefix frontend run fix",
     "test:frontend": "npm --prefix frontend run test",
     "start:frontend": "npm --prefix frontend run dev",
+
     "test": "npm run test:backend && npm run test:frontend"
   },
   "devDependencies": {
