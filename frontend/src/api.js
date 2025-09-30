@@ -1,12 +1,12 @@
 // File: frontend/src/api.js
 // Purpose: Centralize API base URL and inject JWT auth headers into fetch calls.
 // Notes:
+// - Uses Vite's import.meta.env for environment variables.
+// - Always prefixes with /api (handled by Vite proxy in dev).
 // - Wraps fetch calls with Authorization header if token exists.
 // - Adds console.error logging for failures.
-// - Exports helper for DELETE entrant (others can reuse apiFetch).
 
-export const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5500";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Get headers including Authorization if token exists
 function getAuthHeaders() {
@@ -21,7 +21,7 @@ function getAuthHeaders() {
 
 // Generic fetch wrapper
 export async function apiFetch(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_BASE_URL}/api${endpoint}`;
   console.log("🔎 apiFetch:", url, options);
 
   const res = await fetch(url, {
