@@ -61,18 +61,23 @@ export default function EventDashboard() {
   async function handleSubmit(e) {
     e.preventDefault();
     try {
-      const newEvent = await apiFetch("/events", {
+      const res = await apiFetch("/events", {
         method: "POST",
         body: JSON.stringify(formData),
       });
 
-      setEvents([...events, newEvent]);
+      if (!res || res.error) {
+        throw new Error("Failed to create event");
+      }
+
+      setEvents([...events, res]);
       setFormData({ name: "", date: "", status: "drafting" });
       setCreateError(null);
     } catch {
       setCreateError("Failed to create event");
     }
   }
+
 
   if (redirect500) return <Navigate to="/500" replace />;
 
