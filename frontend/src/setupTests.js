@@ -1,15 +1,22 @@
-// File: frontend/src/setupTests.js
-import "@testing-library/jest-dom";
+// frontend/src/setupTests.js
+// Global test setup for Vitest:
+// - Adds matchers from @testing-library/jest-dom
+// - Provides fetch mocks
+// - Swallows noisy console logs/warnings/errors during tests
 
-process.env.REACT_APP_API_URL = "http://localhost:3001";
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
+
+// Use Vite-style env variable
+process.env.VITE_API_URL = "http://localhost:3001";
 
 // Default fetch mock
 beforeEach(() => {
-  global.fetch = jest.fn();
+  global.fetch = vi.fn();
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 // Helpers

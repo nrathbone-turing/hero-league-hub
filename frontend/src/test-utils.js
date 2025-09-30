@@ -1,7 +1,8 @@
-// Purpose: Custom render utilities for tests
+// frontend/src/test-utils.js
+// Purpose: Custom render utilities for Vitest.
 // Notes:
 // - Wraps components in MemoryRouter so <Link>/<Route> always have context.
-// - Extend this later with more providers (Redux, Context, etc).
+// - Extend later with more providers (Redux, Context, etc).
 
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
