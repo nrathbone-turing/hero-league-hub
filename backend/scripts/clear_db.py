@@ -2,7 +2,7 @@
 # Purpose: Drop and recreate all tables.
 
 from backend.app import create_app
-from backend.app.models import db
+from backend.app.extensions import db
 
 app = create_app()
 
