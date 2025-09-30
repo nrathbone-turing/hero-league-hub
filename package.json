@@ -6,7 +6,7 @@
     "lint:backend": "docker-compose run --rm backend flake8 /app/backend",
     "format:backend": "docker-compose run --rm backend black /app/backend",
     "fix:backend": "docker-compose run --rm backend black /app/backend && docker-compose run --rm backend flake8 /app/backend",
-    "test:backend": "docker-compose run --rm backend pytest -q --disable-warnings",
+    "test:backend": "docker-compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
 
     "db:init": "docker-compose run --rm backend flask --app backend/manage.py db init",
     "db:migrate": "docker-compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
