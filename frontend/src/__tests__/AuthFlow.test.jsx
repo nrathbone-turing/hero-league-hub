@@ -5,7 +5,7 @@
 // - Mocks login/signup/events responses.
 
 import { screen, fireEvent } from "@testing-library/react";
-import { renderWithRouter } from "../test-utils.js";
+import { renderWithRouter } from "../test-utils.jsx";
 import App from "../App";
 
 beforeEach(() => {

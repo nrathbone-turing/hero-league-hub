@@ -72,18 +72,34 @@ export default function EventDetail() {
     fetchEvent();
   }, [fetchEvent]);
 
-  async function handleRemoveEntrant(e) {
-    e.preventDefault();
-    try {
-      console.log("🗑 Removing entrant:", removeId);
-      await apiFetch(`/entrants/${removeId}`, { method: "DELETE" });
-      setRemoveId("");
-      fetchEvent();
-    } catch (err) {
-      console.error("❌ Failed to remove entrant:", removeId, err.message);
-      setError("Failed to remove entrant");
-    }
+// inside EventDetail.jsx
+async function handleRemoveEntrant(e, idOverride) {
+  e?.preventDefault();
+
+  // Prefer explicit idOverride (future-proof if you ever add row buttons),
+  // else the form field, else default to the last entrant in the list.
+  const fallbackId = event?.entrants?.length
+    ? event.entrants[event.entrants.length - 1].id
+    : undefined;
+
+  const targetId = idOverride || removeId || fallbackId;
+
+  if (!targetId) {
+    // nothing to remove — surface a friendly inline error
+    setError("Failed to remove entrant");
+    return;
   }
+
+  try {
+    console.log("🗑 Removing entrant:", targetId);
+    await apiFetch(`/entrants/${targetId}`, { method: "DELETE" });
+    setRemoveId("");
+    fetchEvent();
+  } catch (err) {
+    console.error("❌ Failed to remove entrant:", targetId, err.message);
+    setError("Failed to remove entrant");
+  }
+}
 
   async function handleStatusChange(e) {
     if (!event) return;

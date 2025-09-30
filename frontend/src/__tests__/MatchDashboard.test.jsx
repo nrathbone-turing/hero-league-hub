@@ -18,7 +18,7 @@ describe("MatchDashboard", () => {
   });
 
   test("submits new match with numeric IDs", async () => {
-    const mockOnAdded = jest.fn();
+    const mockOnAdded = vi.fn();
     mockFetchSuccess({
       id: 99,
       round: 1,

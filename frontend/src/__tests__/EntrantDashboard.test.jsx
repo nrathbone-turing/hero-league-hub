@@ -19,7 +19,7 @@ describe("EntrantDashboard", () => {
   });
 
   test("submits new entrant and triggers callback", async () => {
-    const mockOnAdded = jest.fn();
+    const mockOnAdded = vi.fn();
     mockFetchSuccess({
       id: 3,
       name: "Wonder Woman",
@@ -62,7 +62,7 @@ describe("EntrantDashboard - edge cases", () => {
   });
 
   test("ignores duplicate submission (double click)", async () => {
-    const mockOnAdded = jest.fn();
+    const mockOnAdded = vi.fn();
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 10, name: "Flash", alias: "Barry" }),
@@ -72,14 +72,21 @@ describe("EntrantDashboard - edge cases", () => {
       <EntrantDashboard eventId={1} onEntrantAdded={mockOnAdded} />,
       { route: "/" },
     );
+
     await userEvent.type(screen.getByLabelText(/name/i), "Flash");
     await userEvent.type(screen.getByLabelText(/alias/i), "Barry");
 
     const button = screen.getByRole("button", { name: /add entrant/i });
+
+    // First click triggers submitting state
     await userEvent.click(button);
-    expect(
-      await screen.findByRole("button", { name: /adding.../i }),
-    ).toBeDisabled();
+
+    // Wait for React to re-render disabled button
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /adding.../i })).toBeDisabled(),
+    );
+
+    // Ensure callback only fired once
     expect(mockOnAdded).toHaveBeenCalledTimes(1);
   });
 });

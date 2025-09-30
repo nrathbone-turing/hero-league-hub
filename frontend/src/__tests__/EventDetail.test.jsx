@@ -19,11 +19,11 @@ function LocationSpy() {
 
 beforeEach(() => {
   localStorage.setItem("token", "fake-jwt-token"); // bypass ProtectedRoute
-  global.fetch = jest.fn();
+  global.fetch = vi.fn();
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   localStorage.clear();
 });
 
@@ -80,7 +80,7 @@ describe("EventDetail", () => {
       entrants: [{ id: 3, name: "Ironman", alias: "Tony" }],
       matches: [],
     });
-    mockFetchSuccess({});
+    mockFetchSuccess({}); // DELETE /entrants/3
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -96,11 +96,17 @@ describe("EventDetail", () => {
     await userEvent.type(screen.getByLabelText(/alias/i), "Tony");
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
 
-    expect(await screen.findByText(/Ironman/)).toBeInTheDocument();
+    // Added entrant is visible
+    await screen.findByText(/Ironman/);
 
+    // Remove via the Entrant ID form in the left panel
+    const idInput = await screen.findByLabelText(/entrant id/i);
+    await userEvent.clear(idInput);
+    await userEvent.type(idInput, "3");
     await userEvent.click(
-      await screen.findByRole("button", { name: /remove/i }),
+      screen.getByRole("button", { name: /remove entrant/i }),
     );
+
     await waitFor(() =>
       expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument(),
     );
@@ -192,11 +198,14 @@ describe("EventDetail - edge cases", () => {
           matches: [],
         }),
       })
-      .mockResolvedValueOnce({ ok: false });
+      .mockResolvedValueOnce({ ok: false }); // DELETE /entrants/5 fails
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
+
+    const idInput = await screen.findByLabelText(/entrant id/i);
+    await userEvent.type(idInput, "5");
     await userEvent.click(
-      await screen.findByRole("button", { name: /remove/i }),
+      screen.getByRole("button", { name: /remove entrant/i }),
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(

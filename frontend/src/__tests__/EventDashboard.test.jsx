@@ -87,18 +87,24 @@ describe("EventDashboard - edge cases", () => {
 
   test("shows error message when create event fails", async () => {
     global.fetch
-      .mockResolvedValueOnce({ ok: false }) // fetch events
-      .mockResolvedValueOnce({ ok: false }); // create event
+      // first GET: return empty list
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      // POST: simulate failure
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Failed to create event" }),
+      });
 
     renderWithRouter(<EventDashboard />, { route: "/" });
     await userEvent.type(screen.getByLabelText(/event name/i), "Broken Event");
+    await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
     await userEvent.click(
       screen.getByRole("button", { name: /create event/i }),
     );
 
-    const alerts = await screen.findAllByRole("alert");
-    expect(
-      alerts.some((el) => /failed to create event/i.test(el.textContent)),
-    ).toBe(true);
+    // should render the error message
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /failed to create event/i,
+    );
   });
 });
