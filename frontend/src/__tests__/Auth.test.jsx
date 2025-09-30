@@ -1,5 +1,5 @@
 // File: frontend/src/__tests__/Auth.test.jsx
-// Purpose: Tests frontend authentication with AuthContext + forms.
+// Purpose: Tests frontend authentication with AuthContext + forms (Vitest).
 // Notes:
 // - Covers signup, login, logout, and protected access.
 
@@ -11,9 +11,8 @@ import LoginForm from "../components/LoginForm";
 import SignupForm from "../components/SignupForm";
 import ProtectedRoute from "../components/ProtectedRoute";
 
-// Mock fetch
 beforeEach(() => {
-  global.fetch = jest.fn((url) => {
+  global.fetch = vi.fn((url) => {
     if (url.endsWith("/signup")) {
       return Promise.resolve({
         ok: true,
@@ -30,7 +29,11 @@ beforeEach(() => {
     return Promise.reject(new Error("Unknown endpoint"));
   });
 });
-afterEach(() => jest.resetAllMocks());
+
+afterEach(() => {
+  vi.resetAllMocks();
+  localStorage.clear();
+});
 
 function ProtectedPage() {
   const { user } = useAuth();

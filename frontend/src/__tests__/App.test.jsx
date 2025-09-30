@@ -1,9 +1,8 @@
 // File: frontend/src/__tests__/App.test.jsx
-// Purpose: Routing tests for App component.
+// Purpose: Routing tests for App component with Vitest.
 // Notes:
-// - Relies on global fetch mock from setupTests.js.
-// - Explicitly mocks /events before navigation.
-// - Covers success, 404, and 500 flows.
+// - Uses global fetch mock from setupTests.js.
+// - Covers navbar, dashboard, event detail, and error routes.
 
 import { screen, waitFor, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -36,23 +35,20 @@ describe("App routing (auth happy path)", () => {
 
   afterEach(() => {
     localStorage.clear();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   test("renders EventDashboard with events when authenticated", async () => {
-    // mock /events
     mockFetchSuccess([
       { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
     ]);
 
     renderWithRouter(<App />, { route: "/" });
 
-    // assert the event appears (we're past the login page now)
     expect(await screen.findByText(/Hero Cup/i)).toBeInTheDocument();
   });
 
   test("navigates Dashboard → EventDetail when authenticated", async () => {
-    // initial dashboard list
     mockFetchSuccess([
       { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
     ]);
@@ -60,7 +56,6 @@ describe("App routing (auth happy path)", () => {
     renderWithRouter(<App />, { route: "/" });
     expect(await screen.findByText(/Hero Cup/i)).toBeInTheDocument();
 
-    // queue detail fetch before clicking
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -70,10 +65,8 @@ describe("App routing (auth happy path)", () => {
       matches: [],
     });
 
-    // click the visible text in the list item
     await userEvent.click(screen.getByText(/Hero Cup/i));
 
-    // confirm detail heading renders
     expect(
       await screen.findByText(/Hero Cup — 2025-09-12/i),
     ).toBeInTheDocument();
@@ -83,11 +76,11 @@ describe("App routing (auth happy path)", () => {
 describe("App - error handling", () => {
   beforeEach(() => {
     localStorage.setItem("token", "fake-jwt-token"); // bypass ProtectedRoute
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     localStorage.clear();
   });
 

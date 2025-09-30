@@ -1,15 +1,15 @@
 // File: frontend/src/__tests__/AuthFlow.test.jsx
-// Purpose: Tests authentication flow and protected routes.
+// Purpose: Tests authentication flow and protected routes with Vitest.
 // Notes:
 // - Uses renderWithRouter for navigation simulation.
-// - Mocks login/signup responses with global.fetch.
+// - Mocks login/signup/events responses.
 
 import { screen, fireEvent } from "@testing-library/react";
 import { renderWithRouter } from "../test-utils.js";
 import App from "../App";
 
 beforeEach(() => {
-  global.fetch = jest.fn((url, options) => {
+  global.fetch = vi.fn((url, options) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
         ok: true,
@@ -35,7 +35,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   localStorage.clear();
 });
 
