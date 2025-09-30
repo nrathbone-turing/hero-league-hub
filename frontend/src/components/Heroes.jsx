@@ -2,8 +2,8 @@
 // Purpose: Dynamic hero pool browser with search, pagination, and filters.
 // Notes:
 // - Fetches from /api/heroes (backend proxy).
-// - Provides search input and displays hero cards in a grid.
-// - Pagination + advanced filters come later.
+// - Includes search input and pagination controls.
+// - Pagination UI is scaffolded; backend integration comes later.
 
 import { useState, useEffect } from "react";
 import {
@@ -14,8 +14,8 @@ import {
   CardContent,
   CardMedia,
   TextField,
-  CircularProgress,
   Box,
+  Button,
 } from "@mui/material";
 import { apiFetch } from "../api";
 
@@ -28,14 +28,18 @@ export default function Heroes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  async function fetchHeroes(query = "") {
+  async function fetchHeroes(query = "", pageNum = 1) {
     setLoading(true);
     try {
       const data = await apiFetch(
-        query ? `/heroes?search=${encodeURIComponent(query)}` : "/heroes",
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum}`,
       );
-      setHeroes(data);
+      // Assume backend returns { results: [], totalPages: n }
+      setHeroes(data.results || []);
+      setTotalPages(data.totalPages || 1);
       setError(null);
     } catch (err) {
       setError("Failed to fetch heroes");
@@ -46,13 +50,13 @@ export default function Heroes() {
   }
 
   useEffect(() => {
-    fetchHeroes();
-  }, []);
+    fetchHeroes(search, page);
+  }, [search, page]);
 
   function handleSearchChange(e) {
     const value = e.target.value;
     setSearch(value);
-    fetchHeroes(value);
+    setPage(1); // reset to first page when searching
   }
 
   return (
@@ -129,6 +133,34 @@ export default function Heroes() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <Box
+          sx={{
+            mt: 3,
+            display: "flex",
+            justifyContent: "center",
+            gap: 2,
+          }}
+        >
+          <Button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            Previous
+          </Button>
+          <Typography variant="body1" sx={{ alignSelf: "center" }}>
+            Page {page} of {totalPages}
+          </Typography>
+          <Button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next
+          </Button>
+        </Box>
+      )}
     </Container>
   );
 }

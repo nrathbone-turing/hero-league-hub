@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Heroes from "../components/Heroes";
 import * as api from "../api";
+import { mockFetchSuccess } from "../setupTests";
 
 vi.mock("../api");
 
@@ -62,5 +63,50 @@ describe("Heroes", () => {
     await waitFor(() => expect(api.apiFetch).toHaveBeenCalledWith("/heroes?search=Batman"));
 
     expect(await screen.findByText(/Batman/)).toBeInTheDocument();
+  });
+});
+
+describe("Heroes - Pagination", () => {
+  test("renders pagination controls when multiple pages", async () => {
+    mockFetchSuccess({
+      results: [{ id: 1, name: "Superman" }],
+      totalPages: 3,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    expect(
+      await screen.findByText(/Page 1 of 3/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
+  });
+
+  test("navigates to next and previous page", async () => {
+    // Page 1
+    mockFetchSuccess({
+      results: [{ id: 1, name: "Superman" }],
+      totalPages: 2,
+    });
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    expect(await screen.findByText(/superman/i)).toBeInTheDocument();
+
+    // Simulate clicking next
+    mockFetchSuccess({
+      results: [{ id: 2, name: "Batman" }],
+      totalPages: 2,
+    });
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(await screen.findByText(/batman/i)).toBeInTheDocument();
+
+    // Simulate clicking previous
+    mockFetchSuccess({
+      results: [{ id: 1, name: "Superman" }],
+      totalPages: 2,
+    });
+    await userEvent.click(screen.getByRole("button", { name: /previous/i }));
+
+    expect(await screen.findByText(/superman/i)).toBeInTheDocument();
   });
 });
