@@ -1,0 +1,26 @@
+{
+  "name": "hero-league-hub",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "lint:backend": "flake8 backend",
+    "format:backend": "black backend",
+    "fix:backend": "black backend && flake8 backend",
+    "test:backend": "pytest -q --disable-warnings",
+    "db:init": "cd backend && flask db init",
+    "db:migrate": "cd backend && flask db migrate -m \"Auto migration\"",
+    "db:upgrade": "cd backend && flask db upgrade",
+    "db:clear": "docker-compose exec backend python scripts/clear_db.py",
+    "db:seed": "docker-compose exec backend python scripts/seed_db.py",
+    "db:reset": "npm run db:clear && npm run db:upgrade && npm run db:seed",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "format:frontend": "npm --prefix frontend run format",
+    "fix:frontend": "npm --prefix frontend run fix",
+    "test:frontend": "npm --prefix frontend run test",
+    "start:frontend": "npm --prefix frontend run dev",
+    "test": "npm run test:backend && npm run test:frontend"
+  },
+  "devDependencies": {
+    "history": "^5.3.0"
+  }
+}
