@@ -1,0 +1,16 @@
+/* File: frontend/src/index.css */
+/* Purpose: Global resets and base styles for Hero Tournament Manager. */
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #fafafa;
+  color: #333;
+}
