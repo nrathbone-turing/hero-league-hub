@@ -19,11 +19,11 @@ function LocationSpy() {
 
 beforeEach(() => {
   localStorage.setItem("token", "fake-jwt-token"); // bypass ProtectedRoute
-  global.fetch = jest.fn();
+  global.fetch = vi.fn();
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   localStorage.clear();
 });
 

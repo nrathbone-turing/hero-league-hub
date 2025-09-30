@@ -47,7 +47,7 @@ function renderWithRouter(initialEntries = ["/"], onAuthReady = () => {}) {
 
 beforeEach(() => {
   // Mock fetch for /login and /signup
-  global.fetch = jest.fn((url) => {
+  global.fetch = vi.fn((url) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
         ok: true,
@@ -66,7 +66,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   localStorage.clear();
 });
 

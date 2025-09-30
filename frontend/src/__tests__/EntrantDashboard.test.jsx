@@ -19,7 +19,7 @@ describe("EntrantDashboard", () => {
   });
 
   test("submits new entrant and triggers callback", async () => {
-    const mockOnAdded = jest.fn();
+    const mockOnAdded = vi.fn();
     mockFetchSuccess({
       id: 3,
       name: "Wonder Woman",
@@ -62,7 +62,7 @@ describe("EntrantDashboard - edge cases", () => {
   });
 
   test("ignores duplicate submission (double click)", async () => {
-    const mockOnAdded = jest.fn();
+    const mockOnAdded = vi.fn();
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ id: 10, name: "Flash", alias: "Barry" }),
