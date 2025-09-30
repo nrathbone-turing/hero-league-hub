@@ -1,9 +1,18 @@
+# File: Dockerfile.frontend
 FROM node:20-alpine
 
 WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm install
 
-COPY frontend /app
+# Copy package.json and package-lock.json for dependency install
+COPY frontend/package.json frontend/package-lock.json* ./
+
+# Clean install (ensures lockfile respected if present)
+RUN npm install --legacy-peer-deps
+
+# Copy the rest of the frontend source
+COPY frontend/ /app
+
 EXPOSE 3000
+
+# Run vite dev server
 CMD ["npm", "run", "dev", "--", "--host"]
