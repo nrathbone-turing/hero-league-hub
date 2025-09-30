@@ -9,9 +9,8 @@
 import os
 import json
 from sqlalchemy.sql import text
-from app import create_app
-from app.extensions import db
-from app.models.models import Event, Entrant, Match, User
+from backend.app import create_app
+from backend.app.models import db, Event, Entrant, Match, User
 
 SEED_DIR = os.path.join(os.path.dirname(__file__), "..", "seeds")
 
@@ -70,7 +69,7 @@ def run():
 
         db.session.commit()
 
-        # Reset sequences so autoincrement picks up after max IDs
+        # Reset sequences
         for table in ["events", "entrants", "matches"]:
             seq_sql = text(
                 f"""
