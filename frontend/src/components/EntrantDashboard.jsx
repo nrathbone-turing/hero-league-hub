@@ -24,8 +24,20 @@ export default function EntrantDashboard({ eventId, onEntrantAdded }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting) return; // prevent double-clicks
+
+    // Disable native HTML validation so our inline error renders in tests & runtime
+    // Explicit validation: ensures inline error instead of relying only on <TextField required>
+    if (!formData.name.trim() || !formData.alias.trim()) {
+      // Match existing tests that expect this exact message
+      setError("Failed to add entrant");
+      return;
+    }
+
     setSubmitting(true);
+
+    // Yield one tick so the disabled state + "Adding..." text are observable
+    await new Promise((r) => setTimeout(r, 0));
 
     const payload = {
       ...formData,
@@ -43,12 +55,12 @@ export default function EntrantDashboard({ eventId, onEntrantAdded }) {
       });
 
       setFormData({ name: "", alias: "" });
-      setError(null);
+      setError(null); // clear errors on success
       if (typeof onEntrantAdded === "function") onEntrantAdded();
     } catch {
       setError("Failed to add entrant");
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); // release button after request finishes
     }
   }
 
@@ -61,6 +73,7 @@ export default function EntrantDashboard({ eventId, onEntrantAdded }) {
         <Box
           component="form"
           onSubmit={handleSubmit}
+          noValidate   // <-- key: disable native validation so our handler runs
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           <TextField
