@@ -221,3 +221,98 @@ test("allows sorting heroes by name", async () => {
 
   await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Batman/));
 });
+
+
+test("opens dialog with hero details when row is clicked", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      {
+        id: 2,
+        name: "Batman",
+        full_name: "Bruce Wayne",
+        alias: "Dark Knight",
+        alignment: "good",
+        image: "http://batman.jpg",
+      },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Batman", { allAtOnce: true });
+
+  // Wait until Batman shows up in table
+  const row = await screen.findByRole("row", { name: /2 Batman Bruce Wayne Dark Knight good/i });
+  await userEvent.click(row);
+
+  // Modal should open with hero details
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByText(/Batman/)).toBeInTheDocument();
+  expect(screen.getByText(/Bruce Wayne/)).toBeInTheDocument();
+  expect(screen.getByText(/Dark Knight/)).toBeInTheDocument();
+  expect(screen.getByText(/good/)).toBeInTheDocument();
+});
+
+test("closes dialog when backdrop clicked", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Superman", { allAtOnce: true });
+
+  const row = await screen.findByRole("row", { name: /1 Superman Clark Kent Man of Steel good/i });
+  await userEvent.click(row);
+
+  // Dialog opens
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+  // Close by pressing ESC
+  await userEvent.keyboard("{Escape}");
+
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+});
+
+
+test("clicking a hero row opens a dialog with image", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      {
+        id: 1,
+        name: "Superman",
+        full_name: "Clark Kent",
+        alias: "Man of Steel",
+        alignment: "good",
+        image: "http://superman.jpg",
+      },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Superman", { allAtOnce: true });
+
+  // Open dialog
+  await userEvent.click(await screen.findByText(/Superman/));
+
+  // Image and name should appear in dialog
+  expect(await screen.findByRole("img", { name: /Superman/i })).toBeInTheDocument();
+  expect(await screen.findByText(/Clark Kent/)).toBeInTheDocument();
+});
