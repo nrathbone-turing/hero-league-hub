@@ -57,7 +57,7 @@ test("successful login redirects to dashboard", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: /log in/i }));
 
-  expect(await screen.findByText(/events dashboard/i)).toBeInTheDocument();
+  expect(await screen.findByText(/Welcome, test/i)).toBeInTheDocument();
 });
 
 test("navbar shows signup/login when logged out", async () => {
