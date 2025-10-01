@@ -1,7 +1,7 @@
 // File: frontend/src/__tests__/Auth.test.jsx
 // Purpose: Tests frontend authentication with AuthContext + forms (Vitest).
 // Notes:
-// - Covers signup, login, logout, and protected access.
+// - Covers signup, login, logout, protected access, and persistence.
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
@@ -48,7 +48,7 @@ test("signup form creates user", async () => {
       <MemoryRouter>
         <SignupForm />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   fireEvent.change(screen.getByLabelText(/username/i), {
@@ -71,7 +71,7 @@ test("login form logs in", async () => {
       <MemoryRouter>
         <LoginForm />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   fireEvent.change(screen.getByLabelText(/email/i), {
@@ -85,8 +85,8 @@ test("login form logs in", async () => {
   await waitFor(() =>
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/login"),
-      expect.any(Object),
-    ),
+      expect.any(Object)
+    )
   );
 });
 
@@ -106,7 +106,7 @@ test("unauthenticated user redirected from ProtectedRoute", async () => {
           />
         </Routes>
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   expect(await screen.findByText(/login page/i)).toBeInTheDocument();
@@ -124,7 +124,7 @@ test("authenticated user sees protected content", async () => {
       <MemoryRouter>
         <Harness />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   await waitFor(() => expect(authApi).toBeDefined());
@@ -146,7 +146,7 @@ test("logout clears token and user", async () => {
       <MemoryRouter>
         <Harness />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   await authApi.login("test@example.com", "pw123");
@@ -170,7 +170,7 @@ test("signup defaults to non-admin user", async () => {
       <MemoryRouter>
         <Harness />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   await authApi.signup("regular", "reg@example.com", "pw123");
@@ -180,7 +180,7 @@ test("signup defaults to non-admin user", async () => {
       username: "regular",
       email: "reg@example.com",
       is_admin: false,
-    }),
+    })
   );
 });
 
@@ -190,7 +190,7 @@ test("login falls back to non-admin user if backend omits is_admin", async () =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({ access_token: "token-123" }),
-    }),
+    })
   );
 
   let authApi;
@@ -204,7 +204,7 @@ test("login falls back to non-admin user if backend omits is_admin", async () =>
       <MemoryRouter>
         <Harness />
       </MemoryRouter>
-    </AuthProvider>,
+    </AuthProvider>
   );
 
   await authApi.login("user@example.com", "pw123");
@@ -214,6 +214,34 @@ test("login falls back to non-admin user if backend omits is_admin", async () =>
       username: "user",
       email: "user@example.com",
       is_admin: false,
-    }),
+    })
   );
+});
+
+test("persists user and token in localStorage after login", async () => {
+  let authApi;
+  function Harness() {
+    authApi = useAuth();
+    return null;
+  }
+
+  render(
+    <AuthProvider>
+      <Harness />
+    </AuthProvider>
+  );
+
+  await authApi.login("persist@example.com", "pw123");
+
+  // Wait for AuthContext useEffect to persist user + token
+  await waitFor(() => {
+    const savedUser = JSON.parse(localStorage.getItem("user"));
+    expect(savedUser).toMatchObject({
+      email: "persist@example.com",
+      is_admin: false,
+    });
+
+    const savedToken = localStorage.getItem("token");
+    expect(savedToken).toBe("fake-jwt-token");
+  });
 });
