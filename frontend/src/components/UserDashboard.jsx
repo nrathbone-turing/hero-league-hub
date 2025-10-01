@@ -14,7 +14,7 @@ export default function UserDashboard() {
   const navigate = useNavigate();
 
   return (
-    <Container sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }} data-testid="user-dashboard">
       <Typography variant="h4" gutterBottom>
         Welcome, {user?.username || "Participant"}
       </Typography>
