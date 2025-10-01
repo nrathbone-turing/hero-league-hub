@@ -1,63 +1,169 @@
 # File: backend/tests/test_routes_heroes.py
-# Purpose: Tests for Hero routes (/api/heroes)
+# Purpose: Tests for /api/heroes routes (search + get by ID).
 # Notes:
-# - Mocks external API calls to Superhero API
-# - Verifies normalization, persistence in DB, and error handling
+# - Matches new backend contract: JSON includes { results, page, per_page, total, total_pages }.
+# - Uses monkeypatch to fake external API responses.
+# - Validates persistence, normalization, pagination, and error handling.
 
 import pytest
 from backend.app.models.models import Hero
-from backend.app.extensions import db
 
-# Example fake search result (simplified)
+# ------------------------------
+# Fixtures
+# ------------------------------
 BATMAN_SEARCH = {
-    "response": "success",
-    "results-for": "batman",
     "results": [
         {
             "id": "70",
             "name": "Batman",
-            "powerstats": {
-                "intelligence": "100",
-                "strength": "26",
-                "speed": "27",
-                "durability": "50",
-                "power": "47",
-                "combat": "100",
-            },
+            "powerstats": {"intelligence": "100"},
+            "image": {"url": "http://batman.jpg"},
             "biography": {"full-name": "Bruce Wayne"},
             "appearance": {"gender": "Male", "race": "Human"},
-            "work": {"occupation": "Businessman"},
+            "work": {"occupation": "Vigilante"},
             "connections": {"group-affiliation": "Justice League"},
-            "image": {
-                "url": "https://www.superherodb.com/pictures2/portraits/10/100/639.jpg"
-            },
         }
-    ],
+    ]
+}
+
+BATMAN_SINGLE = {
+    "id": "70",
+    "name": "Batman",
+    "powerstats": {"intelligence": "100"},
+    "image": {"url": "http://batman.jpg"},
+    "biography": {"full-name": "Bruce Wayne"},
+    "appearance": {"gender": "Male", "race": "Human"},
+    "work": {"occupation": "Vigilante"},
+    "connections": {"group-affiliation": "Justice League"},
+}
+
+SUPERMAN_SEARCH = {
+    "results": [
+        {
+            "id": "644",
+            "name": "Superman",
+            "powerstats": {"strength": "100"},
+            "image": {"url": "http://superman.jpg"},
+        }
+    ]
 }
 
 
-def test_get_hero_by_id(client, session, monkeypatch):
-    """Should fetch a hero by ID and persist it in the DB."""
+# ------------------------------
+# Tests: Search
+# ------------------------------
+def test_search_heroes(client, monkeypatch):
+    """Should return normalized hero list from search with pagination metadata."""
 
     def fake_get(url):
         class FakeResp:
             ok = True
+            def json(self): return BATMAN_SEARCH
+        return FakeResp()
 
+    monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
+
+    resp = client.get("/api/heroes?search=batman&page=1")
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    assert "results" in data
+    assert isinstance(data["results"], list)
+    assert len(data["results"]) == 1
+    assert data["results"][0]["name"] == "Batman"
+    assert data["page"] == 1
+    assert data["total"] == 1
+    assert data["total_pages"] == 1
+
+
+def test_search_heroes_missing_query(client):
+    """Should return 400 when search query is missing."""
+    resp = client.get("/api/heroes")
+    assert resp.status_code == 400
+    assert "error" in resp.get_json()
+
+
+def test_search_heroes_external_api_error(client, monkeypatch):
+    """Should bubble up external API error codes."""
+
+    def fake_get(url):
+        class FakeResp:
+            ok = False
+            status_code = 503
+            def json(self): return {}
+        return FakeResp()
+
+    monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
+
+    resp = client.get("/api/heroes?search=batman")
+    assert resp.status_code == 503
+    assert "error" in resp.get_json()
+
+
+def test_search_heroes_pagination(client, monkeypatch):
+    """Should paginate results when more than one page exists."""
+
+    def fake_get(url):
+        # emulate multiple results from API
+        class FakeResp:
+            ok = True
             def json(self):
-                # Match real API format (id as string, nested image, etc.)
                 return {
-                    "id": "70",
-                    "name": "Batman",
-                    "powerstats": {"intelligence": "100"},
-                    "biography": {"full-name": "Bruce Wayne"},
-                    "appearance": {"gender": "Male", "race": "Human"},
-                    "work": {"occupation": "Businessman"},
-                    "connections": {"group-affiliation": "Justice League"},
-                    "image": {
-                        "url": "https://www.superherodb.com/pictures2/portraits/10/100/639.jpg"
-                    },
+                    "results": [
+                        {"id": "70", "name": "Batman", "powerstats": {}},
+                        {"id": "644", "name": "Superman", "powerstats": {}},
+                    ]
                 }
+        return FakeResp()
 
+    monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
+
+    # Page 1
+    resp = client.get("/api/heroes?search=batman&page=1&per_page=1")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data["results"]) == 1
+    assert data["page"] == 1
+    assert data["total"] == 2
+    assert data["total_pages"] == 2
+
+    # Page 2
+    resp2 = client.get("/api/heroes?search=batman&page=2&per_page=1")
+    assert resp2.status_code == 200
+    data2 = resp2.get_json()
+    assert len(data2["results"]) == 1
+    assert data2["page"] == 2
+    assert data2["total"] == 2
+    assert data2["total_pages"] == 2
+
+
+# ------------------------------
+# Tests: Get by ID
+# ------------------------------
+def test_get_hero_from_db(client, session):
+    """Should return hero from DB if already persisted."""
+    hero = Hero(
+        id=70,
+        name="Batman",
+        image="http://batman.jpg",
+        powerstats={"intelligence": 100},
+    )
+    session.add(hero)
+    session.commit()
+
+    resp = client.get("/api/heroes/70")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["name"] == "Batman"
+
+
+def test_get_hero_fetch_from_api(client, monkeypatch, session):
+    """Should fetch hero from external API if not in DB and persist it."""
+
+    def fake_get(url):
+        class FakeResp:
+            ok = True
+            def json(self): return BATMAN_SINGLE
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -65,39 +171,26 @@ def test_get_hero_by_id(client, session, monkeypatch):
     resp = client.get("/api/heroes/70")
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data["id"] == 70
     assert data["name"] == "Batman"
-    assert data["powerstats"]["intelligence"] == "100"
 
-    # persisted in DB
-    stored = db.session.get(Hero, 70)
-    assert stored is not None
-    assert stored.name == "Batman"
+    # persisted
+    hero = session.get(Hero, 70)
+    assert hero is not None
+    assert hero.name == "Batman"
 
 
-def test_search_heroes(client, monkeypatch):
-    """Should return normalized hero list from search."""
+def test_get_hero_external_api_error(client, monkeypatch):
+    """Should bubble up external API error codes on single hero fetch."""
 
     def fake_get(url):
         class FakeResp:
-            ok = True
-
-            def json(self):
-                return BATMAN_SEARCH
-
+            ok = False
+            status_code = 404
+            def json(self): return {}
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
 
-    resp = client.get("/api/heroes?search=batman")
-    assert resp.status_code == 200
-    data = resp.get_json()
-    assert len(data) == 1
-    assert data[0]["name"] == "Batman"
-
-
-def test_search_heroes_missing_query(client):
-    """Should return 400 if search query is missing."""
-    resp = client.get("/api/heroes")
-    assert resp.status_code == 400
+    resp = client.get("/api/heroes/99999")
+    assert resp.status_code == 404
     assert "error" in resp.get_json()

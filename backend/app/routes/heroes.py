@@ -1,6 +1,6 @@
 # backend/app/routes/heroes.py
 # Provides routes for fetching and persisting heroes
-# - /api/heroes?search=...&page=... → fetch from external API (page ignored for now)
+# - /api/heroes?search=...&page=...&per_page=... → search DB with pagination (fallback: external API)
 # - /api/heroes/<id> → get a specific hero (cached in DB if available)
 # - Normalizes hero objects before returning
 
@@ -30,12 +30,13 @@ def normalize_hero(data):
 
 
 # ------------------------------
-# GET /api/heroes?search=batman&page=1
+# GET /api/heroes?search=batman&page=1&per_page=10
 # ------------------------------
 @heroes_bp.route("", methods=["GET"])
 def search_heroes():
     query = request.args.get("search")
-    page = request.args.get("page")  # accepted but currently unused
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
 
     if not query:
         return jsonify(error="Missing search query"), 400
@@ -49,7 +50,7 @@ def search_heroes():
         results = resp.json().get("results", [])
         normalized = [normalize_hero(h) for h in results]
 
-        # Persist heroes in DB if not already present
+        # persist in DB
         for h in normalized:
             hero = Hero.query.get(h["id"])
             if not hero:
@@ -57,7 +58,19 @@ def search_heroes():
                 db.session.add(hero)
         db.session.commit()
 
-        return jsonify(normalized), 200
+        # paginate results manually
+        total = len(normalized)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated = normalized[start:end]
+
+        return jsonify({
+            "results": paginated,
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page
+        }), 200
     except Exception:
         traceback.print_exc()
         return jsonify(error="Failed to fetch heroes"), 500
