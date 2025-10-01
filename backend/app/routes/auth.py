@@ -93,7 +93,7 @@ def logout():
 def protected():
     try:
         user_id = get_jwt_identity()
-        user = User.query.get(int(user_id))
+        user = db.session.get(int(user_id))
         return jsonify(message=f"Hello {user.username}!"), 200
     except Exception as e:
         traceback.print_exc()
