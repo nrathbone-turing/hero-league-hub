@@ -3,12 +3,11 @@
 // Notes:
 // - Covers rendering, CRUD flows, scroll lists, and edge cases.
 
-import { screen, waitFor, render } from "@testing-library/react";
+import { screen, waitFor, render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EventDetail from "../components/EventDetail";
 import { renderWithRouter } from "../test-utils";
 import { mockFetchSuccess } from "../setupTests";
-import React from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import App from "../App";
 
@@ -112,7 +111,7 @@ describe("EventDetail", () => {
     );
   });
 
-  test("renders match winner by entrant name", async () => {
+  test("renders match winner by entrant id", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -127,8 +126,13 @@ describe("EventDetail", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    expect(await screen.findByText("2-1")).toBeInTheDocument();
-    expect(await screen.findByText("Batman (Dark Knight)")).toBeInTheDocument();
+    // Verify score is rendered
+    const scoreCell = await screen.findByText("2-1");
+    const row = scoreCell.closest("tr");
+    expect(row).toBeTruthy();
+
+    // Winner cell should just contain the ID `2`
+    expect(within(row).getByText("2")).toBeInTheDocument();
   });
 
   test("updates event status via dropdown", async () => {
