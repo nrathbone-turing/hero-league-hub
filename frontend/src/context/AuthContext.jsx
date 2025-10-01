@@ -4,6 +4,7 @@
 // - Stores current user and JWT token in localStorage.
 // - Uses centralized apiFetch for all API calls.
 // - Exposes signup, login, logout, and isAuthenticated.
+// - Supports is_admin flag for routing to dashboards.
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { apiFetch } from "../api";
@@ -37,8 +38,15 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    // if backend returns user, prefer it; else fallback
-    setUser(data.user || { username, email });
+    // prefer backend user object, else fallback with default is_admin = false
+    setUser(
+      data.user || {
+        username,
+        email,
+        is_admin: false,
+      },
+    );
+
     return data;
   };
 
@@ -52,8 +60,15 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    // if backend returns user, prefer it; else fallback
-    setUser(data.user || { username: email.split("@")[0], email });
+    // prefer backend user object, else fallback with default is_admin = false
+    setUser(
+      data.user || {
+        username: email.split("@")[0],
+        email,
+        is_admin: false,
+      },
+    );
+
     return data;
   };
 
