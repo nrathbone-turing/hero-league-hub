@@ -4,7 +4,6 @@
 // - Stores current user and JWT token in localStorage.
 // - Uses centralized apiFetch for all API calls.
 // - Exposes signup, login, logout, and isAuthenticated.
-// - Supports is_admin flag for routing to dashboards.
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { apiFetch } from "../api";
@@ -19,7 +18,7 @@ export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("token"));
 
-  // keep token persisted
+  // persist token
   useEffect(() => {
     if (token) {
       localStorage.setItem("token", token);
@@ -38,15 +37,9 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    // prefer backend user object, else fallback with default is_admin = false
-    setUser(
-      data.user || {
-        username,
-        email,
-        is_admin: false,
-      },
-    );
-
+    // default is_admin to false if backend omits it
+    const userData = data.user || { username, email };
+    setUser({ ...userData, is_admin: userData.is_admin ?? false });
     return data;
   };
 
@@ -60,19 +53,12 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    // prefer backend user object, else fallback with default is_admin = false
-    setUser(
-      data.user || {
-        username: email.split("@")[0],
-        email,
-        is_admin: false,
-      },
-    );
-
+    const userData = data.user || { username: email.split("@")[0], email };
+    setUser({ ...userData, is_admin: userData.is_admin ?? false });
     return data;
   };
 
-  // Logout (API + local clear)
+  // Logout
   const logout = async () => {
     try {
       await apiFetch("/logout", { method: "DELETE" });
@@ -93,5 +79,7 @@ export default function AuthProvider({ children }) {
     isAuthenticated: !!token,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  );
 }
