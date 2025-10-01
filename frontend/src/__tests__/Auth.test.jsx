@@ -157,3 +157,61 @@ test("logout clears token and user", async () => {
   await waitFor(() => expect(authApi.token).toBe(null));
   expect(screen.getByText(/welcome guest/i)).toBeInTheDocument();
 });
+
+test("signup defaults to non-admin user", async () => {
+  let authApi;
+  function Harness() {
+    authApi = useAuth();
+    return <ProtectedPage />;
+  }
+
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <Harness />
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+
+  await waitFor(() => expect(authApi).toBeDefined());
+  await authApi.signup("regular", "reg@example.com", "pw123");
+
+  expect(authApi.user).toMatchObject({
+    username: "regular",
+    email: "reg@example.com",
+    is_admin: false,
+  });
+});
+
+test("login falls back to non-admin user if backend omits is_admin", async () => {
+  // Override fetch to simulate login with no is_admin field
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ access_token: "token-123" }),
+    }),
+  );
+
+  let authApi;
+  function Harness() {
+    authApi = useAuth();
+    return <ProtectedPage />;
+  }
+
+  render(
+    <AuthProvider>
+      <MemoryRouter>
+        <Harness />
+      </MemoryRouter>
+    </AuthProvider>,
+  );
+
+  await waitFor(() => expect(authApi).toBeDefined());
+  await authApi.login("user@example.com", "pw123");
+
+  expect(authApi.user).toMatchObject({
+    username: "user",
+    email: "user@example.com",
+    is_admin: false,
+  });
+});
