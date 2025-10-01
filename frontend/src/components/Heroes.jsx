@@ -4,68 +4,73 @@
 // - Fetches from /api/heroes (backend proxy).
 // - Skips API calls if search is empty (prevents 400 errors).
 // - Includes search input and pagination controls.
-
+// - Displays results in a MUI table (consistent with EventDetail).
 
 import { useState, useEffect } from "react";
 import {
   Container,
   Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
   TextField,
   Box,
-  Button,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import { apiFetch } from "../api";
-
-function capitalize(word) {
-  return word.charAt(0).toUpperCase() + word.slice(1);
-}
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  async function fetchHeroes(query = "", pageNum = 1) {
+  // MUI TablePagination is 0-indexed
+  const [page, setPage] = useState(0);
+
+  // Per your request: rows-per-page options 25, 50, 100. Default 25.
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  // Total count from backend
+  const [total, setTotal] = useState(0);
+
+  async function fetchHeroes(query = "", pageNum = 0, perPage = 25) {
     if (!query) {
       // Skip API call if query is empty
       setHeroes([]);
       setError(null);
-      setTotalPages(1); // reset pagination UI
+      setTotal(0);
       return;
     }
 
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum}`,
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
       );
-      // Assume backend returns { results: [], totalPages: n }
+      // Backend returns { results, total, page, per_page, total_pages }
       setHeroes(data.results || []);
-      setTotalPages(data.totalPages || 1);
+      setTotal(data.total || 0);
       setError(null);
     } catch {
       setError("Failed to fetch heroes");
       setHeroes([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchHeroes(search, page);
-  }, [search, page]);
+    fetchHeroes(search, page, rowsPerPage);
+  }, [search, page, rowsPerPage]);
 
   function handleSearchChange(e) {
-    const value = e.target.value;
-    setSearch(value);
-    setPage((p) => (p === 1 ? 1 : 1));
+    setSearch(e.target.value);
+    setPage(0);
   }
 
   return (
@@ -89,9 +94,10 @@ export default function Heroes() {
       </Box>
 
       {loading && (
-        <Typography align="center" sx={{ mt: 2 }}>
-          Loading heroes...
-        </Typography>
+        <Box sx={{ textAlign: "center", mt: 2 }}>
+          <CircularProgress />
+          <Typography>Loading heroes...</Typography>
+        </Box>
       )}
 
       {error && (
@@ -106,68 +112,47 @@ export default function Heroes() {
         </Typography>
       )}
 
-      <Grid container spacing={2} justifyContent="center" sx={{ marginTop: 2 }}>
-        {heroes.map((hero) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={hero.id}>
-            <Card
-              data-testid={`hero-card-${hero.id}`}
-              sx={{
-                maxWidth: 300,
-                margin: "auto",
-                display: "flex",
-                flexDirection: "column",
-                height: "100%",
-              }}
-            >
-              {hero.image && (
-                <CardMedia
-                  component="img"
-                  sx={{ height: 250, objectFit: "cover" }}
-                  image={hero.image}
-                  alt={hero.name}
-                />
-              )}
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" component="h3">
-                  {hero.name}
-                </Typography>
-                {hero.powerstats &&
-                  Object.entries(hero.powerstats).map(([key, val]) => (
-                    <Typography key={key} variant="body2">
-                      {capitalize(key)}: {val}
-                    </Typography>
-                  ))}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {heroes.length > 0 && (
+        <Box>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Image</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {heroes.map((hero) => (
+                <TableRow key={hero.id}>
+                  <TableCell>{hero.id}</TableCell>
+                  <TableCell>{hero.name}</TableCell>
+                  <TableCell>
+                    {hero.image && (
+                      <img
+                        src={hero.image}
+                        alt={hero.name}
+                        style={{ width: 50, height: 50, objectFit: "cover" }}
+                      />
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <Box
-          sx={{
-            mt: 3,
-            display: "flex",
-            justifyContent: "center",
-            gap: 2,
-          }}
-        >
-          <Button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            Previous
-          </Button>
-          <Typography variant="body1" sx={{ alignSelf: "center" }}>
-            Page {page} of {totalPages}
-          </Typography>
-          <Button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-          </Button>
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[25, 50, 100]}
+          />
         </Box>
       )}
     </Container>
