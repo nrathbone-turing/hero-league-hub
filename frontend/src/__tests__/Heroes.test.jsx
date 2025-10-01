@@ -54,22 +54,36 @@ describe("Heroes", () => {
   });
 
   test("search updates fetch call", async () => {
-    api.apiFetch
-      .mockResolvedValueOnce({ results: [], totalPages: 1 }) // initial
-      .mockResolvedValueOnce({
-        results: [{ id: 2, name: "Batman", powerstats: { intelligence: 100 } }],
-        totalPages: 1,
-      });
+    // Return empty list by default, Batman when search=Batman
+    api.apiFetch.mockImplementation((url) => {
+      if (url.startsWith("/heroes?")) {
+        const qs = url.split("?")[1] || "";
+        const params = new URLSearchParams(qs);
+        const q = params.get("search") || "";
+        if (q === "Batman") {
+          return Promise.resolve({
+            results: [{ id: 2, name: "Batman", powerstats: { intelligence: 100 } }],
+            totalPages: 1,
+          });
+        }
+        return Promise.resolve({ results: [], totalPages: 1 });
+      }
+      return Promise.resolve({ results: [], totalPages: 1 });
+    });
 
     renderWithRouter(<Heroes />, { route: "/heroes" });
+
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
 
-    await userEvent.type(input, "Batman");
+    // Single change event (avoids spam calls) — still safe with mockImplementation
+    await userEvent.clear(input);
+    await userEvent.type(input, "Batman", { allAtOnce: true });
+
     await waitFor(() =>
       expect(api.apiFetch).toHaveBeenCalledWith("/heroes?search=Batman&page=1"),
     );
 
-    expect(await screen.findByText(/Batman/)).toBeInTheDocument();
+    expect(await screen.findByText(/Batman/i)).toBeInTheDocument();
   });
 });
 
