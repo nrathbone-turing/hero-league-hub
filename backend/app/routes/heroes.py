@@ -1,12 +1,12 @@
 # backend/app/routes/heroes.py
 # Provides routes for fetching and persisting heroes
-# - /api/heroes?search=...&page=...&per_page=... → search external API with pagination (DB persistence disabled for now)
-# - /api/heroes/<id> → get a specific hero (fallback: external API, DB persistence disabled for now)
+# - /api/heroes?search=...&page=...&per_page=... → search external API with pagination (persists heroes in DB)
+# - /api/heroes/<id> → get a specific hero (cached in DB if available, otherwise fetched from API)
 # - Normalizes hero objects before returning
 
 from flask import Blueprint, request, jsonify
-# from backend.app.extensions import db       # 🔹 DB persistence disabled for now
-# from backend.app.models.models import Hero  # 🔹 DB persistence disabled for now
+from backend.app.extensions import db
+from backend.app.models.models import Hero
 from backend.app.config import Config
 import requests
 import traceback
@@ -50,13 +50,17 @@ def search_heroes():
         results = resp.json().get("results", [])
         normalized = [normalize_hero(h) for h in results]
 
-        # 🔹 Skip DB persistence for now (uncomment later)
-        # for h in normalized:
-        #     hero = Hero.query.get(h["id"])
-        #     if not hero:
-        #         hero = Hero(**h)
-        #         db.session.add(hero)
-        # db.session.commit()
+        # Persist heroes in DB (skip if already exists)
+        for h in normalized:
+            try:
+                hero = Hero.query.get(h["id"])
+                if not hero:
+                    print(f"Persisting hero {h['id']} - {h['name']}")
+                    hero = Hero(**h)
+                    db.session.add(hero)
+            except Exception as e:
+                print(f"⚠️ Failed to persist hero {h['id']}: {e}")
+        db.session.commit()
 
         # Manual pagination
         total = len(normalized)
@@ -82,12 +86,12 @@ def search_heroes():
 @heroes_bp.route("/<int:hero_id>", methods=["GET"])
 def get_hero(hero_id):
     try:
-        # 🔹 Skip DB lookup for now
-        # hero = Hero.query.get(hero_id)
-        # if hero:
-        #     return jsonify(hero.to_dict()), 200
+        # 🔹 First try DB
+        hero = Hero.query.get(hero_id)
+        if hero:
+            return jsonify(hero.to_dict()), 200
 
-        # fallback → always fetch from API
+        # fallback → fetch from API
         url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
         resp = requests.get(url)
         if not resp.ok:
@@ -95,12 +99,12 @@ def get_hero(hero_id):
 
         data = normalize_hero(resp.json())
 
-        # 🔹 Skip DB persistence for now (uncomment later)
-        # hero = Hero(**data)
-        # db.session.add(hero)
-        # db.session.commit()
+        # persist in DB
+        hero = Hero(**data)
+        db.session.add(hero)
+        db.session.commit()
 
-        return jsonify(data), 200
+        return jsonify(hero.to_dict()), 200
     except Exception:
         traceback.print_exc()
         return jsonify(error="Failed to fetch hero"), 500
