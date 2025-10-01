@@ -27,10 +27,10 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(email, password); // handled in AuthContext
+      await login(email, password);
       navigate("/");
     } catch (err) {
-      setMessage(err.message || "❌ Login failed");
+      setMessage("❌ Login failed — please check your credentials");
     }
   };
 
