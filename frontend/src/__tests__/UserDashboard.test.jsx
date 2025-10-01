@@ -4,6 +4,7 @@
 // - Uses AuthProvider directly instead of manually mocking AuthContext.
 // - Verifies welcome message and hero selection button render.
 
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AuthProvider, { useAuth } from "../context/AuthContext";
