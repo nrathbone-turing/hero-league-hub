@@ -1,10 +1,11 @@
 // File: frontend/src/components/Heroes.jsx
-// Purpose: Dynamic hero pool browser with search, pagination, and filters.
+// Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
 // - Fetches from /api/heroes (backend proxy).
 // - Skips API calls if search is empty (prevents 400 errors).
-// - Includes search input and pagination controls.
-// - Displays results in a MUI table (consistent with EventDetail).
+// - Adds client-side sorting with TableSortLabel.
+// - Removes inline image column; image can be shown in modal later.
+// - Adds Full Name, Alias, Alignment columns.
 
 import { useState, useEffect } from "react";
 import {
@@ -19,6 +20,7 @@ import {
   TableBody,
   TablePagination,
   CircularProgress,
+  TableSortLabel,
 } from "@mui/material";
 import { apiFetch } from "../api";
 
@@ -28,18 +30,17 @@ export default function Heroes() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
 
-  // MUI TablePagination is 0-indexed
+  // Pagination
   const [page, setPage] = useState(0);
-
-  // Per your request: rows-per-page options 25, 50, 100. Default 25.
   const [rowsPerPage, setRowsPerPage] = useState(25);
-
-  // Total count from backend
   const [total, setTotal] = useState(0);
+
+  // Sorting
+  const [orderBy, setOrderBy] = useState("id");
+  const [order, setOrder] = useState("asc");
 
   async function fetchHeroes(query = "", pageNum = 0, perPage = 25) {
     if (!query) {
-      // Skip API call if query is empty
       setHeroes([]);
       setError(null);
       setTotal(0);
@@ -51,7 +52,6 @@ export default function Heroes() {
       const data = await apiFetch(
         `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
       );
-      // Backend returns { results, total, page, per_page, total_pages }
       setHeroes(data.results || []);
       setTotal(data.total || 0);
       setError(null);
@@ -72,6 +72,25 @@ export default function Heroes() {
     setSearch(e.target.value);
     setPage(0);
   }
+
+  // Sorting helpers
+  const sortData = (array, orderBy, order) => {
+    return [...array].sort((a, b) => {
+      const valA = a[orderBy] ?? "";
+      const valB = b[orderBy] ?? "";
+      if (valA < valB) return order === "asc" ? -1 : 1;
+      if (valA > valB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const handleSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const sortedHeroes = sortData(heroes, orderBy, order);
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -117,25 +136,29 @@ export default function Heroes() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Image</TableCell>
+                {["id", "name", "full_name", "alias", "alignment"].map((col) => (
+                  <TableCell key={col} sortDirection={orderBy === col ? order : false}>
+                    <TableSortLabel
+                      active={orderBy === col}
+                      direction={orderBy === col ? order : "asc"}
+                      onClick={() => handleSort(col)}
+                    >
+                      {col
+                        .replace("_", " ")
+                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </TableSortLabel>
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {heroes.map((hero) => (
+              {sortedHeroes.map((hero) => (
                 <TableRow key={hero.id}>
                   <TableCell>{hero.id}</TableCell>
                   <TableCell>{hero.name}</TableCell>
-                  <TableCell>
-                    {hero.image && (
-                      <img
-                        src={hero.image}
-                        alt={hero.name}
-                        style={{ width: 50, height: 50, objectFit: "cover" }}
-                      />
-                    )}
-                  </TableCell>
+                  <TableCell>{hero.full_name || "-"}</TableCell>
+                  <TableCell>{hero.alias || "-"}</TableCell>
+                  <TableCell>{hero.alignment || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
