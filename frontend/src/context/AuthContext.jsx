@@ -21,7 +21,7 @@ export default function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // persist token + user
+  // persist token
   useEffect(() => {
     if (token) {
       localStorage.setItem("token", token);
@@ -30,6 +30,7 @@ export default function AuthProvider({ children }) {
     }
   }, [token]);
 
+  // persist user
   useEffect(() => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
