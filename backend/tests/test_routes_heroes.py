@@ -71,6 +71,9 @@ def test_search_heroes(client, monkeypatch):
     assert isinstance(data["results"], list)
     assert len(data["results"]) == 1
     assert data["results"][0]["name"] == "Batman"
+    assert data["results"][0]["full_name"] == "Bruce Wayne"
+    assert "alias" in data["results"][0]
+    assert "alignment" in data["results"][0]
     assert data["page"] == 1
     assert data["total"] == 1
     assert data["total_pages"] == 1
@@ -194,3 +197,31 @@ def test_get_hero_external_api_error(client, monkeypatch):
     resp = client.get("/api/heroes/99999")
     assert resp.status_code == 404
     assert "error" in resp.get_json()
+
+
+def test_normalize_hero_alignment_mapping(client, monkeypatch):
+    """Should map API alignment values to canonical ones (hero/villain/antihero/unknown)."""
+
+    mock_result = {
+        "id": "123",
+        "name": "Test Hero",
+        "biography": {"full-name": "Testy McTest", "alignment": "bad"},
+        "image": {"url": "http://test.jpg"},
+    }
+
+    def fake_get(url):
+        class FakeResp:
+            ok = True
+            def json(self): return {"results": [mock_result]}
+        return FakeResp()
+
+    monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
+
+    resp = client.get("/api/heroes?search=test")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    hero = data["results"][0]
+
+    assert hero["alignment"] == "villain"   # "bad" → "villain"
+    assert hero["full_name"] == "Testy McTest"
+
