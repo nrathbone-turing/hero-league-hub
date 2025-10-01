@@ -1,30 +1,47 @@
 // File: frontend/src/__tests__/UserDashboard.test.jsx
-// Purpose: Baseline tests for UserDashboard routing + rendering.
+// Purpose: Tests UserDashboard with AuthProvider and routing.
+// Notes:
+// - Uses AuthProvider directly instead of manually mocking AuthContext.
+// - Verifies welcome message and hero selection button render.
 
-import { screen } from "@testing-library/react";
-import { renderWithRouter } from "../test-utils";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import AuthProvider, { useAuth } from "../context/AuthContext";
 import UserDashboard from "../components/UserDashboard";
-import { AuthContext } from "../context/AuthContext";
 
-function renderWithUser(user) {
-  return renderWithRouter(
-    <AuthContext.Provider value={{ user, isAuthenticated: true }}>
-      <UserDashboard />
-    </AuthContext.Provider>,
-    { route: "/dashboard" }
-  );
+function Harness() {
+  const { setUser } = useAuth();
+
+  // Simulate a logged-in user
+  React.useEffect(() => {
+    setUser({ username: "player1", email: "player1@example.com", is_admin: false });
+  }, [setUser]);
+
+  return <UserDashboard />;
 }
 
 describe("UserDashboard", () => {
-  test("renders welcome message with username", () => {
-    renderWithUser({ username: "player1" });
-    expect(screen.getByText(/welcome, player1/i)).toBeInTheDocument();
+  test("renders welcome message with username", async () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/dashboard"]}>
+          <Harness />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    expect(await screen.findByText(/welcome, player1/i)).toBeInTheDocument();
   });
 
-  test("renders choose heroes button", () => {
-    renderWithUser({ username: "player1" });
-    expect(
-      screen.getByRole("button", { name: /choose heroes/i })
-    ).toBeInTheDocument();
+  test("renders choose heroes button", async () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/dashboard"]}>
+          <Harness />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    expect(await screen.findByRole("button", { name: /choose heroes/i })).toBeInTheDocument();
   });
 });
