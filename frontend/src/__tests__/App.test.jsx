@@ -4,7 +4,7 @@
 // - Uses global fetch mock from setupTests.js.
 // - Covers navbar, dashboard, event detail, and error routes.
 
-import { screen, waitFor, render } from "@testing-library/react";
+import { screen, waitFor, render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App";
 import { renderWithRouter } from "../test-utils";
@@ -28,48 +28,82 @@ describe("App routing", () => {
 });
 
 describe("App routing (auth happy path)", () => {
-  beforeEach(() => {
-    // bypass ProtectedRoute
-    localStorage.setItem("token", "fake-jwt-token");
-  });
-
   afterEach(() => {
     localStorage.clear();
     vi.resetAllMocks();
   });
 
-  test("renders EventDashboard with events when authenticated", async () => {
-    mockFetchSuccess([
-      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
-    ]);
-
-    renderWithRouter(<App />, { route: "/" });
-
-    expect(await screen.findByText(/Hero Cup/i)).toBeInTheDocument();
-  });
-
-  test("navigates Dashboard → EventDetail when authenticated", async () => {
-    mockFetchSuccess([
-      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
-    ]);
-
-    renderWithRouter(<App />, { route: "/" });
-    expect(await screen.findByText(/Hero Cup/i)).toBeInTheDocument();
-
-    mockFetchSuccess({
-      id: 1,
-      name: "Hero Cup",
-      date: "2025-09-12",
-      status: "published",
-      entrants: [],
-      matches: [],
+  describe("non-admin users", () => {
+    beforeEach(() => {
+      localStorage.setItem("token", "fake-jwt-token");
+      // simulate backend returning a non-admin user
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username: "participant", email: "p@example.com", is_admin: false })
+      );
     });
 
-    await userEvent.click(screen.getByText(/Hero Cup/i));
+  test("redirects / to UserDashboard", async () => {
+    renderWithRouter(<App />, { route: "/" });
+
+    const dashboard = await screen.findByTestId("user-dashboard");
 
     expect(
-      await screen.findByText(/Hero Cup — 2025-09-12/i),
+      within(dashboard).getByText(/welcome, participant/i)
     ).toBeInTheDocument();
+
+    expect(
+      within(dashboard).getByRole("button", { name: /choose heroes/i })
+    ).toBeInTheDocument();
+  });
+});
+
+  describe("admin users", () => {
+    beforeEach(() => {
+      localStorage.setItem("token", "fake-jwt-token");
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ username: "admin", email: "admin@example.com", is_admin: true })
+      );
+    });
+
+    test("redirects / to EventDashboard", async () => {
+      mockFetchSuccess([
+        { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+      ]);
+
+      renderWithRouter(<App />, { route: "/" });
+
+      const dashboard = await screen.findByTestId("event-dashboard");
+      expect(dashboard).toBeInTheDocument();
+
+      // Verify event list contains "Hero Cup" by testid
+      expect(await screen.findByTestId("event-name")).toHaveTextContent("Hero Cup");
+    });
+
+    test("navigates from EventDashboard → EventDetail", async () => {
+      mockFetchSuccess([
+        { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+      ]);
+
+      renderWithRouter(<App />, { route: "/events" });
+
+      const eventName = await screen.findByTestId("event-name");
+      expect(eventName).toHaveTextContent("Hero Cup");
+
+      mockFetchSuccess({
+        id: 1,
+        name: "Hero Cup",
+        date: "2025-09-12",
+        status: "published",
+        entrants: [],
+        matches: [],
+      });
+
+      await userEvent.click(eventName);
+
+      expect(await screen.findByText(/Hero Cup — 2025-09-12/i)).toBeInTheDocument();
+    });
   });
 });
 
