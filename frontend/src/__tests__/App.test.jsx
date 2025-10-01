@@ -45,7 +45,7 @@ describe("App routing (auth happy path)", () => {
 
     renderWithRouter(<App />, { route: "/" });
 
-    expect(await screen.findByText(/Hero Cup/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Welcome, Participant/i)).toBeInTheDocument();
   });
 
   test("navigates Dashboard → EventDetail when authenticated", async () => {
