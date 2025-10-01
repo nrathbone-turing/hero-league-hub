@@ -164,6 +164,7 @@ class Hero(db.Model):
     __tablename__ = "heroes"
 
     id = db.Column(db.Integer, primary_key=True)  # external API ID
+    full_name = db.Column(db.String(128))
     name = db.Column(db.String(128), nullable=False)
     image = db.Column(db.String(256))
     powerstats = db.Column(JSON)
@@ -178,12 +179,13 @@ class Hero(db.Model):
         return {
             "id": self.id,
             "name": self.name,
+            "full_name": self.full_name,
+            "alias": self.alias,
+            "alignment": self.alignment,
             "image": self.image,
             "powerstats": self.powerstats,
             "biography": self.biography,
             "appearance": self.appearance,
             "work": self.work,
             "connections": self.connections,
-            "alias": self.alias,
-            "alignment": self.alignment,
         }
