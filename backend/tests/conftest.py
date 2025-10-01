@@ -4,7 +4,7 @@
 # - app: Flask app created via factory (uses TestConfig)
 # - client: Flask test client for API requests
 # - session: SQLAlchemy session scoped to test context
-# - Helpers: create_event, seed_event_with_entrants, auth_header
+# - Helpers: create_event, seed_event_with_entrants, auth_header, mock_hero_api
 
 import pytest
 from backend.app import create_app
@@ -12,6 +12,7 @@ from backend.app.models import Event, Entrant
 from backend.app.extensions import db
 from backend.app.config import TestConfig
 from flask_jwt_extended import create_access_token
+from unittest.mock import patch
 
 
 # ------------------------------
@@ -90,3 +91,46 @@ def auth_header(app):
     with app.app_context():
         token = create_access_token(identity="testuser")
         return {"Authorization": f"Bearer {token}"}
+
+
+# ------------------------------
+# API mocking helpers
+# ------------------------------
+@pytest.fixture
+def mock_hero_api():
+    """
+    Monkeypatch requests.get to return a fake Superhero API response.
+    Useful for testing /api/heroes routes without hitting the real API.
+    """
+    fake_response = {
+        "response": "success",
+        "results": [
+            {
+                "id": "70",
+                "name": "Batman",
+                "powerstats": {
+                    "intelligence": "100",
+                    "strength": "26",
+                    "speed": "27",
+                    "durability": "50",
+                    "power": "47",
+                    "combat": "100",
+                },
+                "biography": {"full-name": "Bruce Wayne"},
+                "appearance": {"gender": "Male", "race": "Human"},
+                "work": {"occupation": "Businessman"},
+                "connections": {"group-affiliation": "Justice League"},
+                "image": {"url": "https://www.superherodb.com/pictures2/portraits/10/100/639.jpg"},
+            }
+        ],
+    }
+
+    class DummyResp:
+        ok = True
+        status_code = 200
+
+        def json(self):
+            return fake_response
+
+    with patch("backend.app.routes.heroes.requests.get", return_value=DummyResp()):
+        yield

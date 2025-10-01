@@ -26,6 +26,8 @@ class Config:
     # CORS / other app configs
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+    # External API
+    SUPERHERO_API_KEY = os.getenv("API_KEY")  # Required for SuperHero API proxy
 
 class TestConfig(Config):
     TESTING = True
@@ -33,3 +35,6 @@ class TestConfig(Config):
     SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}}
     JWT_SECRET_KEY = "test-secret"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=1)
+
+    # No external calls in tests
+    SUPERHERO_API_KEY = "test-key"

@@ -12,6 +12,7 @@ from backend.app.routes.entrants import bp as entrants_bp
 from backend.app.routes.matches import bp as matches_bp
 from backend.app.routes.auth import auth_bp
 from backend.app.blocklist import jwt_blocklist
+from backend.app.routes.heroes import heroes_bp
 
 
 def create_app(config_class=Config):
@@ -69,6 +70,7 @@ def create_app(config_class=Config):
     app.register_blueprint(entrants_bp, url_prefix="/api/entrants")
     app.register_blueprint(matches_bp, url_prefix="/api/matches")
     app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(heroes_bp, url_prefix="/api/heroes")
 
     return app
 

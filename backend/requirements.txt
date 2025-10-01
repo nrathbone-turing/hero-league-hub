@@ -25,6 +25,7 @@ pyflakes==3.2.0
 Pygments==2.19.2
 pytest==8.4.2
 python-dotenv==1.1.1
+requests
 SQLAlchemy==2.0.43
 typing_extensions==4.15.0
 Werkzeug==3.1.3

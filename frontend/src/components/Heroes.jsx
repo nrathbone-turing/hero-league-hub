@@ -2,8 +2,9 @@
 // Purpose: Dynamic hero pool browser with search, pagination, and filters.
 // Notes:
 // - Fetches from /api/heroes (backend proxy).
+// - Skips API calls if search is empty (prevents 400 errors).
 // - Includes search input and pagination controls.
-// - Pagination UI is scaffolded; backend integration comes later.
+
 
 import { useState, useEffect } from "react";
 import {
@@ -25,13 +26,21 @@ function capitalize(word) {
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   async function fetchHeroes(query = "", pageNum = 1) {
+    if (!query) {
+      // Skip API call if query is empty
+      setHeroes([]);
+      setError(null);
+      setTotalPages(1); // reset pagination UI
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await apiFetch(
@@ -41,7 +50,7 @@ export default function Heroes() {
       setHeroes(data.results || []);
       setTotalPages(data.totalPages || 1);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch heroes");
       setHeroes([]);
     } finally {
@@ -56,7 +65,7 @@ export default function Heroes() {
   function handleSearchChange(e) {
     const value = e.target.value;
     setSearch(value);
-    setPage(1); // reset to first page when searching
+    setPage((p) => (p === 1 ? 1 : 1));
   }
 
   return (
@@ -91,7 +100,7 @@ export default function Heroes() {
         </Typography>
       )}
 
-      {!loading && !error && heroes.length === 0 && (
+      {!loading && !error && heroes.length === 0 && search && (
         <Typography align="center" sx={{ mt: 2 }}>
           No heroes found
         </Typography>
