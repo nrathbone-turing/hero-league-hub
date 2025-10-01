@@ -1,6 +1,6 @@
 # backend/app/routes/entrants.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required
 from backend.app.models.models import Entrant
 from backend.app.extensions import db
@@ -61,7 +61,9 @@ def get_entrants():
 def update_entrant(entrant_id):
     """Update an Entrant by ID."""
     try:
-        entrant = Entrant.query.get_or_404(entrant_id)
+        entrant = db.session.get(Entrant, entrant_id)
+        if not entrant:
+            abort(404)
         data = request.get_json() or {}
         for key, value in data.items():
             setattr(entrant, key, value)
@@ -83,7 +85,9 @@ def delete_entrant(entrant_id):
     - Soft delete (mark dropped) if referenced in matches
     """
     try:
-        entrant = Entrant.query.get_or_404(entrant_id)
+        entrant = db.session.get(Entrant, entrant_id)
+        if not entrant:
+            abort(404)
         from backend.app.models import Match  # avoid circular import
 
         has_matches = (
