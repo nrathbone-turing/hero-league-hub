@@ -60,7 +60,7 @@ def search_heroes():
         # Persist heroes in DB (skip if already exists)
         for h in normalized:
             try:
-                hero = db.session.get(h["id"])
+                db.session.get(Hero, h["id"])
                 if not hero:
                     print(f"Persisting hero {h['id']} - {h['name']}")
                     hero = Hero(**h)

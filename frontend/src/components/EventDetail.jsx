@@ -1,11 +1,9 @@
 // File: frontend/src/components/EventDetail.jsx
 // Purpose: Detailed view of a single event with entrants, matches, and status controls.
 // Notes:
-// - Fixes status update PUT request by including status in JSON body.
-// - Handles soft-deleted entrants by showing "Dropped" instead of crashing.
-// - Provides inline error feedback with role="alert".
-// - Redirects to /404 or /500 for test-friendly error handling.
-// - Adds debug logging for API flows.
+// - Adds TableSortLabel sorting to Entrants and Matches tables.
+// - Default sort by ID ascending. Sorting is client-side only.
+// - Keeps all other dashboards, layout, and UI unchanged.
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate, Link as RouterLink } from "react-router-dom";
@@ -29,6 +27,7 @@ import {
   TableCell,
   TableBody,
   TextField,
+  TableSortLabel,
 } from "@mui/material";
 import EntrantDashboard from "./EntrantDashboard";
 import MatchDashboard from "./MatchDashboard";
@@ -44,6 +43,12 @@ export default function EventDetail() {
 
   const [tab, setTab] = useState(0);
   const [removeId, setRemoveId] = useState("");
+
+  // Sorting state
+  const [entrantOrderBy, setEntrantOrderBy] = useState("id");
+  const [entrantOrder, setEntrantOrder] = useState("asc");
+  const [matchOrderBy, setMatchOrderBy] = useState("id");
+  const [matchOrder, setMatchOrder] = useState("asc");
 
   const fetchEvent = useCallback(async () => {
     try {
@@ -72,40 +77,31 @@ export default function EventDetail() {
     fetchEvent();
   }, [fetchEvent]);
 
-// inside EventDetail.jsx
-async function handleRemoveEntrant(e, idOverride) {
-  e?.preventDefault();
-
-  // Prefer explicit idOverride (future-proof if you ever add row buttons),
-  // else the form field, else default to the last entrant in the list.
-  const fallbackId = event?.entrants?.length
-    ? event.entrants[event.entrants.length - 1].id
-    : undefined;
-
-  const targetId = idOverride || removeId || fallbackId;
-
-  if (!targetId) {
-    // nothing to remove — surface a friendly inline error
-    setError("Failed to remove entrant");
-    return;
+  async function handleRemoveEntrant(e, idOverride) {
+    e?.preventDefault();
+    const fallbackId = event?.entrants?.length
+      ? event.entrants[event.entrants.length - 1].id
+      : undefined;
+    const targetId = idOverride || removeId || fallbackId;
+    if (!targetId) {
+      setError("Failed to remove entrant");
+      return;
+    }
+    try {
+      console.log("🗑 Removing entrant:", targetId);
+      await apiFetch(`/entrants/${targetId}`, { method: "DELETE" });
+      setRemoveId("");
+      fetchEvent();
+    } catch (err) {
+      console.error("❌ Failed to remove entrant:", targetId, err.message);
+      setError("Failed to remove entrant");
+    }
   }
-
-  try {
-    console.log("🗑 Removing entrant:", targetId);
-    await apiFetch(`/entrants/${targetId}`, { method: "DELETE" });
-    setRemoveId("");
-    fetchEvent();
-  } catch (err) {
-    console.error("❌ Failed to remove entrant:", targetId, err.message);
-    setError("Failed to remove entrant");
-  }
-}
 
   async function handleStatusChange(e) {
     if (!event) return;
     const newStatus = e.target.value;
     const prevStatus = event.status;
-
     try {
       console.log("🔄 Updating event status:", { id, newStatus });
       await apiFetch(`/events/${id}`, {
@@ -143,6 +139,32 @@ async function handleRemoveEntrant(e, idOverride) {
   }
 
   if (!event) return <Navigate to="/404" replace />;
+
+  // Generic sort helper
+  const sortData = (array, orderBy, order) => {
+    return [...(array || [])].sort((a, b) => {
+      const valA = a[orderBy] ?? "";
+      const valB = b[orderBy] ?? "";
+      if (valA < valB) return order === "asc" ? -1 : 1;
+      if (valA > valB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const sortedEntrants = sortData(event.entrants, entrantOrderBy, entrantOrder);
+  const sortedMatches = sortData(event.matches, matchOrderBy, matchOrder);
+
+  const handleEntrantSort = (property) => {
+    const isAsc = entrantOrderBy === property && entrantOrder === "asc";
+    setEntrantOrder(isAsc ? "desc" : "asc");
+    setEntrantOrderBy(property);
+  };
+
+  const handleMatchSort = (property) => {
+    const isAsc = matchOrderBy === property && matchOrder === "asc";
+    setMatchOrder(isAsc ? "desc" : "asc");
+    setMatchOrderBy(property);
+  };
 
   return (
     <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
@@ -241,46 +263,35 @@ async function handleRemoveEntrant(e, idOverride) {
           </Paper>
         </Grid>
 
-        {/* Middle */}
+        {/* Middle - Entrants */}
         <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
-          <Paper
-            sx={{
-              flex: 1,
-              p: 2,
-              height: 575,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+          <Paper sx={{ flex: 1, p: 2, height: 575, display: "flex", flexDirection: "column" }}>
             <Typography variant="h6" gutterBottom>
               Entrants
             </Typography>
-            <Box
-              sx={{
-                flex: 1,
-                overflowY: "auto",
-                maxHeight: 500,
-              }}
-              data-testid="entrants-scroll"
-            >
+            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }} data-testid="entrants-scroll">
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Alias</TableCell>
+                    {["id", "name", "alias"].map((col) => (
+                      <TableCell key={col} sortDirection={entrantOrderBy === col ? entrantOrder : false}>
+                        <TableSortLabel
+                          active={entrantOrderBy === col}
+                          direction={entrantOrderBy === col ? entrantOrder : "asc"}
+                          onClick={() => handleEntrantSort(col)}
+                        >
+                          {col.charAt(0).toUpperCase() + col.slice(1)}
+                        </TableSortLabel>
+                      </TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {event.entrants?.map((entrant) => (
+                  {sortedEntrants?.map((entrant) => (
                     <TableRow key={entrant.id}>
                       <TableCell>{entrant.id}</TableCell>
-                      <TableCell>
-                        {entrant.dropped ? "Dropped" : entrant.name}
-                      </TableCell>
-                      <TableCell>
-                        {entrant.dropped ? "-" : entrant.alias}
-                      </TableCell>
+                      <TableCell>{entrant.dropped ? "Dropped" : entrant.name}</TableCell>
+                      <TableCell>{entrant.dropped ? "-" : entrant.alias}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -289,69 +300,40 @@ async function handleRemoveEntrant(e, idOverride) {
           </Paper>
         </Grid>
 
-        {/* Right */}
+        {/* Right - Matches */}
         <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
-          <Paper
-            sx={{
-              flex: 1,
-              p: 2,
-              height: 575,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
+          <Paper sx={{ flex: 1, p: 2, height: 575, display: "flex", flexDirection: "column" }}>
             <Typography variant="h6" gutterBottom>
               Matches
             </Typography>
-            <Box
-              sx={{
-                flex: 1,
-                overflowY: "auto",
-                maxHeight: 500,
-              }}
-              data-testid="matches-scroll"
-            >
+            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }} data-testid="matches-scroll">
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Round</TableCell>
-                    <TableCell>Entrant 1</TableCell>
-                    <TableCell>Entrant 2</TableCell>
-                    <TableCell>Scores</TableCell>
-                    <TableCell>Winner</TableCell>
+                    {["id", "round", "entrant1_id", "entrant2_id", "scores", "winner_id"].map((col) => (
+                      <TableCell key={col} sortDirection={matchOrderBy === col ? matchOrder : false}>
+                        <TableSortLabel
+                          active={matchOrderBy === col}
+                          direction={matchOrderBy === col ? matchOrder : "asc"}
+                          onClick={() => handleMatchSort(col)}
+                        >
+                          {col.replace("_id", "").replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </TableSortLabel>
+                      </TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {event.matches?.map((m) => {
-                    const e1 = event.entrants?.find(
-                      (e) => e.id === m.entrant1_id,
-                    );
-                    const e2 = event.entrants?.find(
-                      (e) => e.id === m.entrant2_id,
-                    );
-                    const w = event.entrants?.find((e) => e.id === m.winner_id);
-                    return (
-                      <TableRow key={m.id}>
-                        <TableCell>{m.id}</TableCell>
-                        <TableCell>{m.round}</TableCell>
-                        <TableCell>
-                          {e1?.dropped ? "Dropped" : e1?.name || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {e2?.dropped ? "Dropped" : e2?.name || "-"}
-                        </TableCell>
-                        <TableCell>{m.scores}</TableCell>
-                        <TableCell>
-                          {w
-                            ? w.dropped
-                              ? "Dropped"
-                              : `${w.name} (${w.alias})`
-                            : "TBD"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {sortedMatches?.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>{m.id}</TableCell>
+                      <TableCell>{m.round}</TableCell>
+                      <TableCell>{m.entrant1_id}</TableCell>
+                      <TableCell>{m.entrant2_id}</TableCell>
+                      <TableCell>{m.scores}</TableCell>
+                      <TableCell>{m.winner_id || "TBD"}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </Box>

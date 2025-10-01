@@ -5,7 +5,7 @@
 // - Empty state only shows when search is non-empty and results are empty.
 // - Pagination tests now assume rowsPerPage=25 by default and mock totals large enough to enable Next.
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Heroes from "../components/Heroes";
@@ -173,4 +173,130 @@ describe("Heroes - Pagination", () => {
     await userEvent.click(screen.getByRole("button", { name: /go to previous page/i }));
     await waitFor(() => expect(screen.getByText(/Superman/)).toBeInTheDocument());
   });
+});
+
+
+test("displays hero full_name, alias, and alignment in table", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Batman", { allAtOnce: true });
+
+  expect(await screen.findByText(/Bruce Wayne/)).toBeInTheDocument();
+  expect(screen.getByText(/Dark Knight/)).toBeInTheDocument();
+  expect(screen.getByText(/good/)).toBeInTheDocument();
+});
+
+test("allows sorting heroes by name", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 2,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Test", { allAtOnce: true });
+
+  // Default sort is by id asc → Superman before Batman
+  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Superman/));
+
+  // Click "Name" header to sort → Batman before Superman
+  const nameHeader = screen.getByRole("button", { name: /^Name$/i });
+  await userEvent.click(nameHeader);
+  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Batman/));
+});
+
+
+test("opens dialog with hero details when row is clicked", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Batman", { allAtOnce: true });
+
+  // Click row
+  await userEvent.click(await screen.findByText(/Batman/));
+
+  // Modal should open with hero details
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByText(/Batman/)).toBeInTheDocument();
+  expect(within(dialog).getByText(/Bruce Wayne/)).toBeInTheDocument();
+  expect(within(dialog).getByText(/Dark Knight/)).toBeInTheDocument();
+});
+
+
+test("closes dialog when backdrop clicked", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Superman", { allAtOnce: true });
+
+  const row = await screen.findByRole("row", { name: /1 Superman Clark Kent Man of Steel good/i });
+  await userEvent.click(row);
+
+  // Dialog opens
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+  // Close by pressing ESC
+  await userEvent.keyboard("{Escape}");
+
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+});
+
+
+test("clicking a hero row opens a dialog with image", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good", image: "superman.jpg" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Superman", { allAtOnce: true });
+
+  // Click row
+  await userEvent.click(await screen.findByText(/Superman/));
+
+  const dialog = await screen.findByRole("dialog");
+  expect(within(dialog).getByRole("img", { name: /Superman/i })).toBeInTheDocument();
+  expect(within(dialog).getByText(/Clark Kent/)).toBeInTheDocument();
 });
