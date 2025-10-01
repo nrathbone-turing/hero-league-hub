@@ -82,7 +82,7 @@ export default function EventDashboard() {
   if (redirect500) return <Navigate to="/500" replace />;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 6 }}>
+    <Container maxWidth="lg" sx={{ mt: 6 }} data-testid="event-dashboard">
       <Typography variant="h4" gutterBottom align="center">
         Events Dashboard
       </Typography>
