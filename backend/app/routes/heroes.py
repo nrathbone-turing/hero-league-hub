@@ -50,12 +50,16 @@ def search_heroes():
         results = resp.json().get("results", [])
         normalized = [normalize_hero(h) for h in results]
 
-        # 🔹 Persist heroes in DB (skip if already exists)
+        # Persist heroes in DB (skip if already exists)
         for h in normalized:
-            hero = Hero.query.get(h["id"])
-            if not hero:
-                hero = Hero(**h)
-                db.session.add(hero)
+            try:
+                hero = Hero.query.get(h["id"])
+                if not hero:
+                    print(f"Persisting hero {h['id']} - {h['name']}")
+                    hero = Hero(**h)
+                    db.session.add(hero)
+            except Exception as e:
+                print(f"⚠️ Failed to persist hero {h['id']}: {e}")
         db.session.commit()
 
         # Manual pagination
