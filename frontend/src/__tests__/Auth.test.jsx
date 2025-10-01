@@ -173,14 +173,15 @@ test("signup defaults to non-admin user", async () => {
     </AuthProvider>,
   );
 
-  await waitFor(() => expect(authApi).toBeDefined());
   await authApi.signup("regular", "reg@example.com", "pw123");
 
-  expect(authApi.user).toMatchObject({
-    username: "regular",
-    email: "reg@example.com",
-    is_admin: false,
-  });
+  await waitFor(() =>
+    expect(authApi.user).toMatchObject({
+      username: "regular",
+      email: "reg@example.com",
+      is_admin: false,
+    }),
+  );
 });
 
 test("login falls back to non-admin user if backend omits is_admin", async () => {
@@ -206,12 +207,13 @@ test("login falls back to non-admin user if backend omits is_admin", async () =>
     </AuthProvider>,
   );
 
-  await waitFor(() => expect(authApi).toBeDefined());
   await authApi.login("user@example.com", "pw123");
 
-  expect(authApi.user).toMatchObject({
-    username: "user",
-    email: "user@example.com",
-    is_admin: false,
-  });
+  await waitFor(() =>
+    expect(authApi.user).toMatchObject({
+      username: "user",
+      email: "user@example.com",
+      is_admin: false,
+    }),
+  );
 });
