@@ -13,7 +13,7 @@ from sqlalchemy import select
 def test_create_entrant(client, create_event, auth_header):
     event = create_event()
     response = client.post(
-        "/entrants",
+        "/api/entrants",
         json={"name": "Spiderman", "alias": "Webslinger", "event_id": event.id},
         headers=auth_header,
     )
@@ -29,7 +29,7 @@ def test_get_entrants(client, create_event, session):
     session.add(entrant)
     session.commit()
 
-    response = client.get("/entrants")
+    response = client.get("/api/entrants")
     assert response.status_code == 200
     data = response.get_json()
     assert any(ent["name"] == "Batman" for ent in data)
@@ -42,7 +42,7 @@ def test_update_entrant(client, create_event, session, auth_header):
     session.commit()
 
     response = client.put(
-        f"/entrants/{entrant.id}", json={"alias": "Updated Alias"}, headers=auth_header
+        f"/api/entrants/{entrant.id}", json={"alias": "Updated Alias"}, headers=auth_header
     )
     assert response.status_code == 200
     assert response.get_json()["alias"] == "Updated Alias"
@@ -57,7 +57,7 @@ def test_delete_entrant_hard_delete_when_no_matches(client, create_event, sessio
     session.add(entrant)
     session.commit()
 
-    response = client.delete(f"/entrants/{entrant.id}", headers=auth_header)
+    response = client.delete(f"/api/entrants/{entrant.id}", headers=auth_header)
     assert response.status_code == 204
     assert db.session.get(Entrant, entrant.id) is None
 
@@ -75,7 +75,7 @@ def test_delete_entrant_soft_delete_when_in_match(client, seed_event_with_entran
     session.add(match)
     session.commit()
 
-    response = client.delete(f"/entrants/{e1.id}", headers=auth_header)
+    response = client.delete(f"/api/entrants/{e1.id}", headers=auth_header)
     assert response.status_code == 200
     data = response.get_json()
     assert data["dropped"] is True
@@ -89,5 +89,5 @@ def test_delete_entrant_soft_delete_when_in_match(client, seed_event_with_entran
 
 def test_create_entrant_requires_auth(client, create_event):
     event = create_event()
-    resp = client.post("/entrants", json={"name": "Fail", "event_id": event.id})
+    resp = client.post("/api/entrants", json={"name": "Fail", "event_id": event.id})
     assert resp.status_code == 401

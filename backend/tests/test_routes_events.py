@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 def test_create_event(client, auth_header):
     response = client.post(
-        "/events",
+        "/api/events",
         json={
             "name": "Hero Cup",
             "date": "2025-09-12",
@@ -34,7 +34,7 @@ def test_get_events_with_counts(client, create_event, session):
     session.add_all([e1, e2])
     session.commit()
 
-    response = client.get("/events")
+    response = client.get("/api/events")
     assert response.status_code == 200
     data = response.get_json()
     seed_event = next(ev for ev in data if ev["name"] == "Seed Event")
@@ -44,7 +44,7 @@ def test_get_events_with_counts(client, create_event, session):
 def test_update_event(client, create_event, auth_header):
     event = create_event(status="drafting")
     response = client.put(
-        f"/events/{event.id}", json={"status": "cancelled"}, headers=auth_header
+        f"/api/events/{event.id}", json={"status": "cancelled"}, headers=auth_header
     )
     assert response.status_code == 200
     assert response.get_json()["status"] == "cancelled"
@@ -55,7 +55,7 @@ def test_update_event(client, create_event, auth_header):
 
 def test_delete_event(client, create_event, auth_header):
     event = create_event(status="drafting")
-    response = client.delete(f"/events/{event.id}", headers=auth_header)
+    response = client.delete(f"/api/events/{event.id}", headers=auth_header)
     assert response.status_code == 204
     assert (
         db.session.execute(select(Event).filter_by(id=event.id)).scalar_one_or_none()
@@ -65,7 +65,7 @@ def test_delete_event(client, create_event, auth_header):
 
 def test_create_event_requires_auth(client):
     resp = client.post(
-        "/events",
+        "/api/events",
         json={
             "name": "Fail Cup",
             "date": "2025-09-21",
@@ -78,16 +78,16 @@ def test_create_event_requires_auth(client):
 
 def test_get_events_sort_order(client, session):
     # Status order priority mapping: published > drafting > completed > cancelled
-    e1 = Event(name="Alpha", date="2025-09-10", status="drafting")   # older date
-    e2 = Event(name="Beta", date="2025-09-12", status="published")  # newer, high status
-    e3 = Event(name="Gamma", date="2025-09-12", status="completed") # same date, lower
-    e4 = Event(name="Delta", date="2025-09-12", status="drafting")  # same date
-    e5 = Event(name="Zeta", date="2025-09-12", status="drafting")   # tie → name asc
+    e1 = Event(name="Alpha", date="2025-09-10", status="drafting")
+    e2 = Event(name="Beta", date="2025-09-12", status="published")
+    e3 = Event(name="Gamma", date="2025-09-12", status="completed")
+    e4 = Event(name="Delta", date="2025-09-12", status="drafting")
+    e5 = Event(name="Zeta", date="2025-09-12", status="drafting")
 
     session.add_all([e1, e2, e3, e4, e5])
     session.commit()
 
-    resp = client.get("/events")
+    resp = client.get("/api/events")
     assert resp.status_code == 200
     events = resp.get_json()
     names = [e["name"] for e in events]

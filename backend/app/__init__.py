@@ -65,10 +65,10 @@ def create_app(config_class=Config):
     # ------------------------
     # Register Blueprints
     # ------------------------
-    app.register_blueprint(events_bp)
-    app.register_blueprint(entrants_bp)
-    app.register_blueprint(matches_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(events_bp, url_prefix="/api/events")
+    app.register_blueprint(entrants_bp, url_prefix="/api/entrants")
+    app.register_blueprint(matches_bp, url_prefix="/api/matches")
+    app.register_blueprint(auth_bp, url_prefix="/api")
 
     return app
 

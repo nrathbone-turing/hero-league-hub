@@ -1,4 +1,4 @@
-# backend/app/routes/auth.py
+# File: backend/app/routes/auth.py
 # Provides signup, login, logout, and protected routes
 # Uses JWT for token-based authentication
 # Logout revokes tokens by adding their JTI to a global blocklist
@@ -21,7 +21,9 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json() or {}
-    print("DEBUG signup payload:", data)
+    # redact password before logging
+    safe_data = {k: v for k, v in data.items() if k != "password"}
+    print("DEBUG signup payload:", safe_data)
 
     try:
         username = data.get("username")
@@ -51,7 +53,9 @@ def signup():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json() or {}
-    print("DEBUG login payload:", data)
+    # redact password before logging
+    safe_data = {k: v for k, v in data.items() if k != "password"}
+    print("DEBUG login payload:", safe_data)
 
     try:
         email = data.get("email")
