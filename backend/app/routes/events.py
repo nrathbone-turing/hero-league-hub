@@ -1,6 +1,6 @@
 # File: backend/app/routes/events.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 from sqlalchemy import func, case, asc, desc
 from flask_jwt_extended import jwt_required
 from backend.app.models.models import Event, Entrant
@@ -92,7 +92,9 @@ def get_events():
 @bp.route("/<int:event_id>", methods=["GET"])
 def get_event(event_id):
     try:
-        event = Event.query.get_or_404(event_id)
+        event = db.session.get(Event, event_id)
+        if not event:
+            abort(404)
         data = event.to_dict(include_related=True)
         data["matches"] = [m.to_dict(include_names=True) for m in event.matches]
         return jsonify(data), 200
@@ -106,7 +108,9 @@ def get_event(event_id):
 @jwt_required()
 def update_event(event_id):
     try:
-        event = Event.query.get_or_404(event_id)
+        event = db.session.get(Event, event_id)
+        if not event:
+            abort(404)
         data = request.get_json() or {}
         for key, value in data.items():
             setattr(event, key, value)
@@ -124,7 +128,9 @@ def update_event(event_id):
 @jwt_required()
 def delete_event(event_id):
     try:
-        event = Event.query.get_or_404(event_id)
+        event = db.session.get(Event, event_id)
+        if not event:
+            abort(404)
         db.session.delete(event)
         db.session.commit()
         print(f"✅ Deleted event {event_id}")
