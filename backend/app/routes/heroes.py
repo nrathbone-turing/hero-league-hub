@@ -16,10 +16,18 @@ heroes_bp = Blueprint("heroes", __name__)
 # ------------------------------
 # Utility: normalize API response
 # ------------------------------
+from backend.app.models.models import API_ALIGNMENT_MAP
+
 def normalize_hero(data):
+    raw_alignment = data.get("biography", {}).get("alignment")
+    alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
+
     return {
         "id": int(data.get("id")),
         "name": data.get("name"),
+        "full_name": data.get("biography", {}).get("full-name"),
+        "alias": None,  # placeholder for now
+        "alignment": alignment,
         "image": data.get("image", {}).get("url"),
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
@@ -27,7 +35,6 @@ def normalize_hero(data):
         "work": data.get("work"),
         "connections": data.get("connections"),
     }
-
 
 # ------------------------------
 # GET /api/heroes?search=batman&page=1&per_page=10
