@@ -154,7 +154,11 @@ class Hero(db.Model):
     id = db.Column(db.Integer, primary_key=True)  # external API ID
     name = db.Column(db.String(128), nullable=False)
     image = db.Column(db.String(256))
-    powerstats = db.Column(JSON)  # store full dict of stats
+    powerstats = db.Column(JSON)
+    biography = db.Column(JSON)
+    appearance = db.Column(JSON)
+    work = db.Column(JSON)
+    connections = db.Column(JSON)
 
     def to_dict(self):
         return {
@@ -162,4 +166,8 @@ class Hero(db.Model):
             "name": self.name,
             "image": self.image,
             "powerstats": self.powerstats,
+            "biography": self.biography,
+            "appearance": self.appearance,
+            "work": self.work,
+            "connections": self.connections,
         }
