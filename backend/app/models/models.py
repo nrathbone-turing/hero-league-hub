@@ -8,6 +8,18 @@ from sqlalchemy.dialects.postgresql import JSON
 # Allowed event statuses
 EVENT_STATUSES = ("drafting", "published", "cancelled", "completed")
 
+# Possible alignments (canonical values used in this app)
+HERO_ALIGNMENTS = ("hero", "villain", "antihero", "unknown")
+
+# Mapping from API raw values to the canonical values
+API_ALIGNMENT_MAP = {
+    "good": "hero",
+    "bad": "villain",
+    "neutral": "antihero",
+    None: "unknown",
+    "": "unknown"
+}
+
 
 class Event(db.Model):
     __tablename__ = "events"
@@ -152,6 +164,7 @@ class Hero(db.Model):
     __tablename__ = "heroes"
 
     id = db.Column(db.Integer, primary_key=True)  # external API ID
+    full_name = db.Column(db.String(128))
     name = db.Column(db.String(128), nullable=False)
     image = db.Column(db.String(256))
     powerstats = db.Column(JSON)
@@ -159,11 +172,16 @@ class Hero(db.Model):
     appearance = db.Column(JSON)
     work = db.Column(JSON)
     connections = db.Column(JSON)
+    alias = db.Column(db.String(128))
+    alignment = db.Column(db.String(20))
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
+            "full_name": self.full_name,
+            "alias": self.alias,
+            "alignment": self.alignment,
             "image": self.image,
             "powerstats": self.powerstats,
             "biography": self.biography,

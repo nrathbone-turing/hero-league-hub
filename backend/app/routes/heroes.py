@@ -4,7 +4,7 @@
 # - /api/heroes/<id> → get a specific hero (cached in DB if available, otherwise fetched from API)
 # - Normalizes hero objects before returning
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 from backend.app.extensions import db
 from backend.app.models.models import Hero
 from backend.app.config import Config
@@ -16,10 +16,18 @@ heroes_bp = Blueprint("heroes", __name__)
 # ------------------------------
 # Utility: normalize API response
 # ------------------------------
+from backend.app.models.models import API_ALIGNMENT_MAP
+
 def normalize_hero(data):
+    raw_alignment = data.get("biography", {}).get("alignment")
+    alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
+
     return {
         "id": int(data.get("id")),
         "name": data.get("name"),
+        "full_name": data.get("biography", {}).get("full-name"),
+        "alias": None,  # placeholder for now
+        "alignment": alignment,
         "image": data.get("image", {}).get("url"),
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
@@ -27,7 +35,6 @@ def normalize_hero(data):
         "work": data.get("work"),
         "connections": data.get("connections"),
     }
-
 
 # ------------------------------
 # GET /api/heroes?search=batman&page=1&per_page=10
@@ -53,7 +60,7 @@ def search_heroes():
         # Persist heroes in DB (skip if already exists)
         for h in normalized:
             try:
-                hero = Hero.query.get(h["id"])
+                hero = db.session.get(h["id"])
                 if not hero:
                     print(f"Persisting hero {h['id']} - {h['name']}")
                     hero = Hero(**h)
@@ -86,20 +93,17 @@ def search_heroes():
 @heroes_bp.route("/<int:hero_id>", methods=["GET"])
 def get_hero(hero_id):
     try:
-        # 🔹 First try DB
-        hero = Hero.query.get(hero_id)
+        hero = db.session.get(Hero, hero_id)   # modern API
         if hero:
             return jsonify(hero.to_dict()), 200
 
-        # fallback → fetch from API
+        # fallback: external API
         url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
         resp = requests.get(url)
         if not resp.ok:
             return jsonify(error="External API error"), resp.status_code
 
         data = normalize_hero(resp.json())
-
-        # persist in DB
         hero = Hero(**data)
         db.session.add(hero)
         db.session.commit()

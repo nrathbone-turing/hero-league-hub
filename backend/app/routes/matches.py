@@ -1,6 +1,6 @@
 # backend/app/routes/matches.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required
 from backend.app.models.models import Match
 from backend.app.extensions import db
@@ -64,7 +64,9 @@ def get_matches():
 @jwt_required()
 def update_match(match_id):
     try:
-        match = Match.query.get_or_404(match_id)
+        match = db.session.get(Match, match_id)
+        if not match:
+            abort(404)
         data = request.get_json() or {}
         for key, value in data.items():
             setattr(match, key, value)
@@ -82,7 +84,9 @@ def update_match(match_id):
 @jwt_required()
 def delete_match(match_id):
     try:
-        match = Match.query.get_or_404(match_id)
+        match = db.session.get(Match, match_id)
+        if not match:
+            abort(404)
         db.session.delete(match)
         db.session.commit()
         print(f"✅ Deleted match {match_id}")
