@@ -4,7 +4,7 @@
 // - Fetches from /api/heroes (backend proxy).
 // - Skips API calls if search is empty (prevents 400 errors).
 // - Adds client-side sorting with TableSortLabel.
-// - Removes inline image column; image can be shown in modal later.
+// - Removes inline image column; image shown in modal dialog instead.
 // - Adds Full Name, Alias, Alignment columns.
 
 import { useState, useEffect } from "react";
@@ -21,6 +21,9 @@ import {
   TablePagination,
   CircularProgress,
   TableSortLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import { apiFetch } from "../api";
 
@@ -38,6 +41,9 @@ export default function Heroes() {
   // Sorting
   const [orderBy, setOrderBy] = useState("id");
   const [order, setOrder] = useState("asc");
+
+  // Modal
+  const [selectedHero, setSelectedHero] = useState(null);
 
   async function fetchHeroes(query = "", pageNum = 0, perPage = 25) {
     if (!query) {
@@ -153,7 +159,12 @@ export default function Heroes() {
             </TableHead>
             <TableBody>
               {sortedHeroes.map((hero) => (
-                <TableRow key={hero.id}>
+                <TableRow
+                  key={hero.id}
+                  hover
+                  onClick={() => setSelectedHero(hero)}
+                  sx={{ cursor: "pointer" }}
+                >
                   <TableCell>{hero.id}</TableCell>
                   <TableCell>{hero.name}</TableCell>
                   <TableCell>{hero.full_name || "-"}</TableCell>
@@ -178,6 +189,25 @@ export default function Heroes() {
           />
         </Box>
       )}
+
+      {/* Hero detail dialog */}
+      <Dialog open={!!selectedHero} onClose={() => setSelectedHero(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>{selectedHero?.name}</DialogTitle>
+        <DialogContent>
+          {selectedHero?.image && (
+            <Box textAlign="center" mb={2}>
+              <img
+                src={selectedHero.image}
+                alt={selectedHero.name}
+                style={{ maxWidth: "100%", height: "auto" }}
+              />
+            </Box>
+          )}
+          <Typography><strong>Full Name:</strong> {selectedHero?.full_name || "-"}</Typography>
+          <Typography><strong>Alias:</strong> {selectedHero?.alias || "-"}</Typography>
+          <Typography><strong>Alignment:</strong> {selectedHero?.alignment || "-"}</Typography>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 }
