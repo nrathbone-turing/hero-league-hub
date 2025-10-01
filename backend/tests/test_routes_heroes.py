@@ -225,3 +225,20 @@ def test_normalize_hero_alignment_mapping(client, monkeypatch):
     assert hero["alignment"] == "villain"   # "bad" → "villain"
     assert hero["full_name"] == "Testy McTest"
 
+
+def test_search_heroes_includes_alias(client, monkeypatch):
+    """Search results should include alias key (even if None)."""
+
+    def fake_get(url):
+        class FakeResp:
+            ok = True
+            def json(self): return BATMAN_SEARCH
+        return FakeResp()
+
+    monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
+
+    resp = client.get("/api/heroes?search=batman")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "alias" in data["results"][0]
+    assert data["results"][0]["alias"] is None
