@@ -60,7 +60,7 @@ def search_heroes():
         # Persist heroes in DB (skip if already exists)
         for h in normalized:
             try:
-                hero = Hero.query.get(h["id"])
+                hero = db.session.get(h["id"])
                 if not hero:
                     print(f"Persisting hero {h['id']} - {h['name']}")
                     hero = Hero(**h)
@@ -94,7 +94,7 @@ def search_heroes():
 def get_hero(hero_id):
     try:
         # 🔹 First try DB
-        hero = Hero.query.get(hero_id)
+        hero = db.session.get(hero_id)
         if hero:
             return jsonify(hero.to_dict()), 200
 
