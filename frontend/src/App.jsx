@@ -16,6 +16,7 @@ import LoginForm from "./components/LoginForm";
 import SignupForm from "./components/SignupForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import UserDashboard from "./components/UserDashboard";
+import Heroes from "./components/Heroes"; 
 
 function RootRoutes() {
   const { user, isAuthenticated } = useAuth();
@@ -37,6 +38,7 @@ function RootRoutes() {
         }
       />
       <Route path="/dashboard" element={<UserDashboard />} />
+      <Route path="/heroes" element={<Heroes />} />
       <Route
         path="/events"
         element={
