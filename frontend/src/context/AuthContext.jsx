@@ -15,10 +15,13 @@ export function useAuth() {
 }
 
 export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  // persist token
+  // persist token + user
   useEffect(() => {
     if (token) {
       localStorage.setItem("token", token);
@@ -26,6 +29,14 @@ export default function AuthProvider({ children }) {
       localStorage.removeItem("token");
     }
   }, [token]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, [user]);
 
   // Signup
   const signup = async (username, email, password) => {
@@ -37,9 +48,10 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    // default is_admin to false if backend omits it
     const userData = data.user || { username, email };
-    setUser({ ...userData, is_admin: userData.is_admin ?? false });
+    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    setUser(normalized);
+
     return data;
   };
 
@@ -54,7 +66,9 @@ export default function AuthProvider({ children }) {
     if (newToken) setToken(newToken);
 
     const userData = data.user || { username: email.split("@")[0], email };
-    setUser({ ...userData, is_admin: userData.is_admin ?? false });
+    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    setUser(normalized);
+
     return data;
   };
 
