@@ -28,11 +28,11 @@ export default function SignupForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await signup(username, email, password); // handled in AuthContext
+      await signup(username, email, password);
       setMessage(`✅ Signed up as ${username}`);
-      setTimeout(() => navigate("/"), 800);
-    } catch (err) {
-      setMessage(err.message || "❌ Signup failed");
+      setTimeout(() => navigate("/"), 1000);
+    } catch {
+      setMessage("❌ Signup failed — please try again");
     }
   };
 
@@ -77,7 +77,10 @@ export default function SignupForm() {
             Sign Up
           </Button>
           {message && (
-            <Typography color={message.startsWith("✅") ? "success.main" : "error"} role="alert">
+            <Typography
+              color={message.startsWith("✅") ? "success.main" : "error"}
+              role="alert"
+            >
               {message}
             </Typography>
           )}
