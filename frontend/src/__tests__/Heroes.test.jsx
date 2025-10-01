@@ -174,3 +174,50 @@ describe("Heroes - Pagination", () => {
     await waitFor(() => expect(screen.getByText(/Superman/)).toBeInTheDocument());
   });
 });
+
+
+test("displays hero full_name, alias, and alignment in table", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 1,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Batman", { allAtOnce: true });
+
+  expect(await screen.findByText(/Bruce Wayne/)).toBeInTheDocument();
+  expect(screen.getByText(/Dark Knight/)).toBeInTheDocument();
+  expect(screen.getByText(/good/)).toBeInTheDocument();
+});
+
+test("allows sorting heroes by name", async () => {
+  api.apiFetch.mockResolvedValue({
+    results: [
+      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+    ],
+    page: 1,
+    per_page: 25,
+    total: 2,
+    total_pages: 1,
+  });
+
+  renderWithRouter(<Heroes />, { route: "/heroes" });
+  const input = await screen.findByRole("textbox", { name: /search heroes/i });
+  await userEvent.type(input, "Test", { allAtOnce: true });
+
+  // Default sort is by id asc → Superman before Batman
+  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Superman/));
+
+  // Click "Name" header to sort → Batman before Superman
+  const nameHeader = screen.getByRole("button", { name: /name/i });
+  await userEvent.click(nameHeader);
+
+  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Batman/));
+});
