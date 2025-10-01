@@ -3,6 +3,7 @@
 from sqlalchemy import Enum, CheckConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app.extensions import db
+from sqlalchemy.dialects.postgresql import JSON
 
 # Allowed event statuses
 EVENT_STATUSES = ("drafting", "published", "cancelled", "completed")
@@ -144,4 +145,21 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "is_admin": self.is_admin,
+        }
+
+
+class Hero(db.Model):
+    __tablename__ = "heroes"
+
+    id = db.Column(db.Integer, primary_key=True)  # external API ID
+    name = db.Column(db.String(128), nullable=False)
+    image = db.Column(db.String(256))
+    powerstats = db.Column(JSON)  # store full dict of stats
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "image": self.image,
+            "powerstats": self.powerstats,
         }
