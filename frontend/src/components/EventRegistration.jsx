@@ -55,11 +55,16 @@ export default function EventRegistration({ chosenHeroes = [] }) {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setError(null);
+
     try {
       await apiFetch("/entrants", {
         method: "POST",
@@ -67,25 +72,27 @@ export default function EventRegistration({ chosenHeroes = [] }) {
         body: JSON.stringify({
           name: formData.name,
           alias: formData.username,
-          event_id: formData.event_id,
-          hero_id: formData.hero_id,
+          event_id: Number(formData.event_id), // ✅ ensure numeric
+          hero_id: Number(formData.hero_id),   // ✅ ensure numeric
           notes: formData.notes,
         }),
       });
       navigate("/dashboard");
     } catch (err) {
-      setError(err.message || "Registration failed");
+      // Handle both thrown Error and { error: "..."} objects
+      const msg = err?.error || err?.message || "Registration failed";
+      setError(msg);
     }
   }
 
   return (
-    <Container sx={{ mt: 4 }} maxWidth="sm">
+    <Container sx={{ mt: 4 }} maxWidth="sm" data-testid="event-registration">
       <Typography variant="h4" gutterBottom>
         Register for an Event
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" role="alert" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
