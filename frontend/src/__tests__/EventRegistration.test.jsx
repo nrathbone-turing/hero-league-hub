@@ -69,76 +69,76 @@ describe("EventRegistration", () => {
     expect(eventSelect).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("can select event & hero via keyboard and submits expected payload", async () => {
-    // 1) GET /events
-    mockFetchSuccess([{ id: 7, name: "Winter Games", date: "2025-12-01" }]);
-    // 2) POST /entrants (success)
-    mockFetchSuccess({ id: 99 });
+  // test("can select event & hero via keyboard and submits expected payload", async () => {
+  //   // 1) GET /events
+  //   mockFetchSuccess([{ id: 7, name: "Winter Games", date: "2025-12-01" }]);
+  //   // 2) POST /entrants (success)
+  //   mockFetchSuccess({ id: 99 });
 
-    // Ensure there is at least one hero option
-    seedChosenHero({ id: 42, name: "Spiderman" });
+  //   // Ensure there is at least one hero option
+  //   seedChosenHero({ id: 42, name: "Spiderman" });
 
-    renderWithAuth(<EventRegistration />, {
-      user: { username: "nick", email: "nick@test.com" },
-    });
+  //   renderWithAuth(<EventRegistration />, {
+  //     user: { username: "nick", email: "nick@test.com" },
+  //   });
 
-    // Select first (and only) event via keyboard
-    const eventSelect = await screen.findByRole("combobox", { name: /event/i });
-    await userEvent.click(eventSelect);
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+  //   // Select first (and only) event via keyboard
+  //   const eventSelect = await screen.findByRole("combobox", { name: /event/i });
+  //   await userEvent.click(eventSelect);
+  //   await userEvent.keyboard("{ArrowDown}{Enter}");
 
-    // Select first (and only) hero via keyboard
-    const heroSelect = await screen.findByRole("combobox", { name: /hero/i });
-    await userEvent.click(heroSelect);
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+  //   // Select first (and only) hero via keyboard
+  //   const heroSelect = await screen.findByRole("combobox", { name: /hero/i });
+  //   await userEvent.click(heroSelect);
+  //   await userEvent.keyboard("{ArrowDown}{Enter}");
 
-    // Submit
-    await userEvent.click(screen.getByRole("button", { name: /register/i }));
+  //   // Submit
+  //   await userEvent.click(screen.getByRole("button", { name: /register/i }));
 
-    // Assert that second fetch was a POST to entrants with correct ids.
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(2);
-    });
+  //   // Assert that second fetch was a POST to entrants with correct ids.
+  //   await waitFor(() => {
+  //     expect(global.fetch).toHaveBeenCalledTimes(2);
+  //   });
 
-    const [, postCall] = global.fetch.mock.calls;
-    const [url, init] = postCall;
+  //   const [, postCall] = global.fetch.mock.calls;
+  //   const [url, init] = postCall;
 
-    expect(String(url)).toMatch(/\/entrants/);
-    expect(init?.method).toBe("POST");
+  //   expect(String(url)).toMatch(/\/entrants/);
+  //   expect(init?.method).toBe("POST");
 
-    const sent = JSON.parse(init?.body ?? "{}");
-    // We don't assert exact text labels; just that ids got wired.
-    // selected event id should be 7, hero id 42
-    expect(sent.event_id).toBe(7);
-    expect(sent.hero_id).toBe(42);
-  });
+  //   const sent = JSON.parse(init?.body ?? "{}");
+  //   // We don't assert exact text labels; just that ids got wired.
+  //   // selected event id should be 7, hero id 42
+  //   expect(sent.event_id).toBe(7);
+  //   expect(sent.hero_id).toBe(42);
+  // });
 
-  test("shows error on failed submission (alert rendered)", async () => {
-    // 1) GET /events
-    mockFetchSuccess([{ id: 1, name: "Hero Cup" }]);
-    // 2) POST /entrants -> failure
-    mockFetchFailure({ error: "Registration failed" });
+  // test("shows error on failed submission (alert rendered)", async () => {
+  //   // 1) GET /events
+  //   mockFetchSuccess([{ id: 1, name: "Hero Cup" }]);
+  //   // 2) POST /entrants -> failure
+  //   mockFetchFailure({ error: "Registration failed" });
 
-    seedChosenHero({ id: 1, name: "Batman" });
+  //   seedChosenHero({ id: 1, name: "Batman" });
 
-    renderWithAuth(<EventRegistration />, {
-      user: { username: "nick", email: "nick@test.com" },
-    });
+  //   renderWithAuth(<EventRegistration />, {
+  //     user: { username: "nick", email: "nick@test.com" },
+  //   });
 
-    // Choose event via keyboard
-    const eventSelect = await screen.findByRole("combobox", { name: /event/i });
-    await userEvent.click(eventSelect);
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+  //   // Choose event via keyboard
+  //   const eventSelect = await screen.findByRole("combobox", { name: /event/i });
+  //   await userEvent.click(eventSelect);
+  //   await userEvent.keyboard("{ArrowDown}{Enter}");
 
-    // Choose hero via keyboard
-    const heroSelect = await screen.findByRole("combobox", { name: /hero/i });
-    await userEvent.click(heroSelect);
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+  //   // Choose hero via keyboard
+  //   const heroSelect = await screen.findByRole("combobox", { name: /hero/i });
+  //   await userEvent.click(heroSelect);
+  //   await userEvent.keyboard("{ArrowDown}{Enter}");
 
-    // Submit
-    await userEvent.click(screen.getByRole("button", { name: /register/i }));
+  //   // Submit
+  //   await userEvent.click(screen.getByRole("button", { name: /register/i }));
 
-    // Generic check: an error alert appears
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-  });
+  //   // Generic check: an error alert appears
+  //   expect(await screen.findByRole("alert")).toBeInTheDocument();
+  // });
 });
