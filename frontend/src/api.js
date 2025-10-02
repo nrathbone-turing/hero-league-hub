@@ -9,14 +9,13 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Get headers including Authorization if token exists
-function getAuthHeaders() {
+function getAuthHeaders(customHeaders = {}) {
   const token = localStorage.getItem("token"); // matches AuthContext localStorage key
-  return token
-    ? {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      }
-    : { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...customHeaders,
+  };
 }
 
 // Generic fetch wrapper
@@ -26,10 +25,7 @@ export async function apiFetch(endpoint, options = {}) {
 
   const res = await fetch(url, {
     ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...(options.headers || {}),
-    },
+    headers: getAuthHeaders(options.headers),
   });
 
   if (!res.ok) {
