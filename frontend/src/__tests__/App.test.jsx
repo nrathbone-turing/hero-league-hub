@@ -2,7 +2,7 @@
 // Purpose: Routing tests for App component with Vitest.
 // Notes:
 // - Uses global fetch mock from setupTests.js.
-// - Covers navbar, dashboard, event detail, and error routes.
+// - Covers navbar, dashboard, event detail, error routes, and event registration.
 
 import { screen, waitFor, render, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -36,27 +36,32 @@ describe("App routing (auth happy path)", () => {
   describe("non-admin users", () => {
     beforeEach(() => {
       localStorage.setItem("token", "fake-jwt-token");
-      // simulate backend returning a non-admin user
       localStorage.setItem(
         "user",
         JSON.stringify({ username: "participant", email: "p@example.com", is_admin: false })
       );
     });
 
-  test("redirects / to UserDashboard", async () => {
-    renderWithRouter(<App />, { route: "/" });
+    test("redirects / to UserDashboard", async () => {
+      renderWithRouter(<App />, { route: "/" });
 
-    const dashboard = await screen.findByTestId("user-dashboard");
+      const dashboard = await screen.findByTestId("user-dashboard");
+      expect(
+        within(dashboard).getByText(/welcome, participant/i)
+      ).toBeInTheDocument();
 
-    expect(
-      within(dashboard).getByText(/welcome, participant/i)
-    ).toBeInTheDocument();
+      expect(
+        within(dashboard).getByRole("button", { name: /choose hero/i })
+      ).toBeInTheDocument();
+    });
 
-    expect(
-      within(dashboard).getByRole("button", { name: /choose heroes/i })
-    ).toBeInTheDocument();
+    test("navigates to EventRegistration page", async () => {
+      renderWithRouter(<App />, { route: "/register-event" });
+
+      expect(await screen.findByTestId("event-registration")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /event registration/i })).toBeInTheDocument();
+    });
   });
-});
 
   describe("admin users", () => {
     beforeEach(() => {
@@ -76,8 +81,6 @@ describe("App routing (auth happy path)", () => {
 
       const dashboard = await screen.findByTestId("event-dashboard");
       expect(dashboard).toBeInTheDocument();
-
-      // Verify event list contains "Hero Cup" by testid
       expect(await screen.findByTestId("event-name")).toHaveTextContent("Hero Cup");
     });
 
@@ -101,7 +104,6 @@ describe("App routing (auth happy path)", () => {
       });
 
       await userEvent.click(eventName);
-
       expect(await screen.findByText(/Hero Cup — 2025-09-12/i)).toBeInTheDocument();
     });
   });
