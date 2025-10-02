@@ -13,6 +13,7 @@ import {
   Typography,
   TextField,
   Box,
+  Button,
   Table,
   TableHead,
   TableRow,
@@ -191,21 +192,54 @@ export default function Heroes() {
       )}
 
       {/* Hero detail dialog */}
-      <Dialog open={!!selectedHero} onClose={() => setSelectedHero(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={!!selectedHero}
+        onClose={() => setSelectedHero(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{selectedHero?.name}</DialogTitle>
         <DialogContent>
-          {selectedHero?.image && (
+          {selectedHero?.image ? (
             <Box textAlign="center" mb={2}>
-              <img
-                src={selectedHero.image}
-                alt={selectedHero.name}
-                style={{ maxWidth: "100%", height: "auto" }}
-              />
+            <img
+              src={`/api/heroes/${selectedHero.id}/image`}
+              alt={selectedHero.name}
+              style={{
+                maxWidth: "100%",
+                height: "auto",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+              }}
+            />
             </Box>
+          ) : (
+            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
+              No image available
+            </Typography>
           )}
-          <Typography><strong>Full Name:</strong> {selectedHero?.full_name || "-"}</Typography>
-          <Typography><strong>Alias:</strong> {selectedHero?.alias || "-"}</Typography>
-          <Typography><strong>Alignment:</strong> {selectedHero?.alignment || "-"}</Typography>
+          <Typography>
+            <strong>Full Name:</strong> {selectedHero?.full_name || "-"}
+          </Typography>
+          <Typography>
+            <strong>Alias:</strong> {selectedHero?.alias || "-"}
+          </Typography>
+          <Typography>
+            <strong>Alignment:</strong> {selectedHero?.alignment || "-"}
+          </Typography>
+          <Box sx={{ mt: 3, textAlign: "center" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                // TODO: wire up hero selection + analytics later
+                console.log("Choose Hero:", selectedHero?.id);
+                setSelectedHero(null);
+              }}
+            >
+              Choose Hero
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
     </Container>

@@ -22,13 +22,15 @@ def normalize_hero(data):
     raw_alignment = data.get("biography", {}).get("alignment")
     alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
 
+    hero_id = int(data.get("id"))
+
     return {
         "id": int(data.get("id")),
         "name": data.get("name"),
         "full_name": data.get("biography", {}).get("full-name"),
         "alias": None,  # placeholder for now
         "alignment": alignment,
-        "image": data.get("image", {}).get("url"),
+        "image": f"/api/heroes/{hero_id}/image",
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
         "appearance": data.get("appearance"),
@@ -128,3 +130,27 @@ def get_hero(hero_id):
         db.session.rollback()
         traceback.print_exc()
         return jsonify(error="Failed to fetch hero"), 500
+
+
+# ------------------------------
+# GET /api/heroes/<id>/image
+# ------------------------------
+@heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
+def hero_image(hero_id):
+    try:
+        hero = db.session.get(Hero, hero_id)
+        if not hero or not hero.image:
+            abort(404)
+
+        resp = requests.get(hero.image, stream=True)
+        if not resp.ok:
+            abort(502)
+
+        from flask import Response
+        # Guess mime type from URL (jpg/png fallback)
+        mime = "image/jpeg" if hero.image.endswith(".jpg") else "image/png"
+        return Response(resp.content, mimetype=mime)
+
+    except Exception as e:
+        traceback.print_exc()
+        abort(500)
