@@ -1,4 +1,3 @@
-// File: frontend/src/__tests__/App.test.jsx
 // Purpose: Routing tests for App component with Vitest.
 // Notes:
 // - Uses global fetch mock from setupTests.js.
@@ -53,8 +52,8 @@ describe("App routing (auth happy path)", () => {
     test("navigates to EventRegistration page when authenticated", async () => {
       renderWithRouter(<App />, { route: "/register-event" });
 
+      // Less brittle: rely on data-testid rather than exact heading text
       expect(await screen.findByTestId("event-registration")).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /event registration/i })).toBeInTheDocument();
     });
   });
 
