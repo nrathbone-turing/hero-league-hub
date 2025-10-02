@@ -1,12 +1,8 @@
 // File: frontend/src/components/Heroes.jsx
 // Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
-// - Fetches from /api/heroes (backend proxy).
-// - Adds fallback: prefer proxy_image, fallback to image if missing.
-// - Skips API calls if search is empty (prevents 400 errors).
-// - Adds client-side sorting with TableSortLabel.
-// - Removes inline image column; image shown in modal dialog instead.
-// - Adds Full Name, Alias, Alignment columns.
+// - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
+// - Uses absolute backend origin for images to bypass Vite proxy quirks.
 
 import { useState, useEffect } from "react";
 import {
@@ -28,6 +24,9 @@ import {
   DialogContent,
 } from "@mui/material";
 import { apiFetch } from "../api";
+
+const BACKEND_ORIGIN =
+  import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:5500";
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
@@ -54,7 +53,6 @@ export default function Heroes() {
       setTotal(0);
       return;
     }
-
     setLoading(true);
     try {
       const data = await apiFetch(
@@ -99,6 +97,15 @@ export default function Heroes() {
   };
 
   const sortedHeroes = sortData(heroes, orderBy, order);
+
+  // Compute dialog image src:
+  // Prefer backend proxy (absolute), fall back to external URL if present.
+  const dialogImgSrc = (h) => {
+    if (!h) return null;
+    if (h.proxy_image) return `${BACKEND_ORIGIN}${h.proxy_image}`;
+    if (h.image) return h.image; // last resort (may be hotlinked/blocked)
+    return null;
+    }
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -199,10 +206,10 @@ export default function Heroes() {
       >
         <DialogTitle>{selectedHero?.name}</DialogTitle>
         <DialogContent>
-          {selectedHero?.proxy_image || selectedHero?.image ? (
+          {dialogImgSrc(selectedHero) ? (
             <Box textAlign="center" mb={2}>
               <img
-                src={selectedHero.proxy_image || selectedHero.image}
+                src={dialogImgSrc(selectedHero)}
                 alt={selectedHero.name}
                 style={{
                   maxWidth: "100%",
@@ -231,7 +238,6 @@ export default function Heroes() {
               variant="contained"
               color="primary"
               onClick={() => {
-                // TODO: wire up hero selection + analytics later
                 console.log("Choose Hero:", selectedHero?.id);
                 setSelectedHero(null);
               }}
