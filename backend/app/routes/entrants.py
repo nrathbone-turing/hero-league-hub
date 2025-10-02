@@ -1,21 +1,71 @@
-# backend/app/routes/entrants.py
+# File: backend/app/routes/entrants.py
+# Purpose: Entrant management (admin CRUD) + user registration for events.
+# Notes:
+# - Admins: can create/update/delete entrants freely.
+# - Users: register themselves + hero into an event (one entrant per user/event).
+# - Expanded GET supports filtering by event_id and user_id.
 
 from flask import Blueprint, request, jsonify, abort
-from flask_jwt_extended import jwt_required
-from backend.app.models.models import Entrant
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from backend.app.models.models import Entrant, Match, Hero, User
 from backend.app.extensions import db
 import traceback
 
 bp = Blueprint("entrants", __name__, url_prefix="/entrants")
 
 
+# ------------------------
+# USER-FACING REGISTRATION
+# ------------------------
+@bp.route("/register", methods=["POST"])
+@jwt_required()
+def register_user_for_event():
+    """User registers themselves + hero for an event."""
+    data = request.get_json() or {}
+    try:
+        user_id = data.get("user_id")
+        event_id = data.get("event_id")
+        hero_id = data.get("hero_id")
+
+        if not user_id or not event_id or not hero_id:
+            return jsonify(error="user_id, event_id, and hero_id are required"), 400
+
+        # Prevent duplicate registration
+        existing = Entrant.query.filter_by(user_id=user_id, event_id=event_id).first()
+        if existing:
+            return jsonify(error="User already registered for this event"), 400
+
+        # Minimal hero validation
+        hero = db.session.get(Hero, hero_id)
+        if not hero:
+            return jsonify(error="Hero not found"), 404
+
+        entrant = Entrant(
+            name=hero.name,
+            alias=hero.full_name or hero.alias,
+            event_id=int(event_id),
+            user_id=int(user_id),
+            hero_id=int(hero_id),
+            dropped=False,
+        )
+        db.session.add(entrant)
+        db.session.commit()
+        return jsonify(entrant.to_dict()), 201
+
+    except Exception as e:
+        db.session.rollback()
+        traceback.print_exc()
+        return jsonify(error=f"Failed to register entrant: {str(e)}"), 500
+
+
+# ------------------------
+# ADMIN CRUD ENDPOINTS
+# ------------------------
 @bp.route("", methods=["POST"])
 @jwt_required()
 def create_entrant():
-    """Create a new Entrant."""
+    """Admin: Create entrant manually."""
     data = request.get_json() or {}
-    print("DEBUG create_entrant payload:", data)
-
     try:
         name = data.get("name")
         event_id = data.get("event_id")
@@ -27,39 +77,43 @@ def create_entrant():
             alias=data.get("alias"),
             event_id=int(event_id),
             dropped=bool(data.get("dropped", False)),
+            user_id=data.get("user_id"),
+            hero_id=data.get("hero_id"),
         )
         db.session.add(entrant)
         db.session.commit()
-
-        print(f"✅ Created entrant {entrant.id} for event {event_id}")
         return jsonify(entrant.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        print(f"❌ Error creating entrant: {e}")
         return jsonify(error="Failed to create entrant"), 500
 
 
 @bp.route("", methods=["GET"])
+@jwt_required(optional=True)
 def get_entrants():
-    """Retrieve all Entrants (optionally filter by event_id)."""
+    """Retrieve entrants. Supports ?event_id=X&user_id=Y filters."""
     try:
         event_id = request.args.get("event_id", type=int)
+        user_id = request.args.get("user_id", type=int)
+
         query = Entrant.query
         if event_id:
             query = query.filter_by(event_id=event_id)
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+
         entrants = query.all()
         return jsonify([e.to_dict() for e in entrants]), 200
     except Exception as e:
         traceback.print_exc()
-        print(f"❌ Error fetching entrants: {e}")
         return jsonify(error="Failed to fetch entrants"), 500
 
 
 @bp.route("/<int:entrant_id>", methods=["PUT"])
 @jwt_required()
 def update_entrant(entrant_id):
-    """Update an Entrant by ID."""
+    """Admin: Update entrant fields."""
     try:
         entrant = db.session.get(Entrant, entrant_id)
         if not entrant:
@@ -68,27 +122,24 @@ def update_entrant(entrant_id):
         for key, value in data.items():
             setattr(entrant, key, value)
         db.session.commit()
-        print(f"✅ Updated entrant {entrant_id}")
         return jsonify(entrant.to_dict()), 200
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        print(f"❌ Error updating entrant {entrant_id}: {e}")
         return jsonify(error="Failed to update entrant"), 500
 
 
 @bp.route("/<int:entrant_id>", methods=["DELETE"])
 @jwt_required()
 def delete_entrant(entrant_id):
-    """Delete an Entrant by ID.
-    - Hard delete if not referenced in matches
-    - Soft delete (mark dropped) if referenced in matches
+    """Admin: Delete entrant.
+    - Hard delete if not in matches
+    - Soft delete if in matches
     """
     try:
         entrant = db.session.get(Entrant, entrant_id)
         if not entrant:
             abort(404)
-        from backend.app.models import Match  # avoid circular import
 
         has_matches = (
             Match.query.filter(
@@ -102,15 +153,12 @@ def delete_entrant(entrant_id):
         if has_matches:
             entrant.soft_delete()
             db.session.commit()
-            print(f"⚠️ Entrant {entrant_id} marked as dropped (still in matches)")
             return jsonify(entrant.to_dict()), 200
         else:
             db.session.delete(entrant)
             db.session.commit()
-            print(f"✅ Entrant {entrant_id} fully deleted (no matches)")
             return "", 204
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        print(f"❌ Error deleting entrant {entrant_id}: {e}")
         return jsonify(error="Failed to delete entrant"), 500
