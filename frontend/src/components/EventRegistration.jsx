@@ -61,8 +61,7 @@ export default function EventRegistration() {
   useEffect(() => {
     async function fetchHeroes() {
       try {
-        const data = await apiFetch("/heroes?search=a&page=1&per_page=100"); 
-        // using "a" ensures results come back from API
+        const data = await apiFetch("/heroes?search=a&page=1&per_page=100");
         setHeroes(data.results || []);
         setLoadingHeroes(false);
       } catch (err) {
@@ -83,7 +82,6 @@ export default function EventRegistration() {
     try {
       await apiFetch("/entrants", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           alias: formData.username,
