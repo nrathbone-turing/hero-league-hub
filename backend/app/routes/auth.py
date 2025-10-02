@@ -53,7 +53,6 @@ def signup():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json() or {}
-    # redact password before logging
     safe_data = {k: v for k, v in data.items() if k != "password"}
     print("DEBUG login payload:", safe_data)
 
@@ -67,7 +66,7 @@ def login():
 
         token = create_access_token(identity=str(user.id))
         print(f"✅ Login success for {email}")
-        return jsonify(access_token=token), 200
+        return jsonify(access_token=token, user=user.to_dict()), 200
     except Exception as e:
         traceback.print_exc()
         print(f"❌ Error during login: {e}")
