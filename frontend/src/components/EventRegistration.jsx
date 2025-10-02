@@ -1,10 +1,9 @@
 // File: frontend/src/components/EventRegistration.jsx
-// Purpose: Allow logged-in users to register for an event with prefilled info.
+// Purpose: Register logged-in users for an event with hero selection.
 // Notes:
-// - Auto-fills name, username, email from auth context.
-// - Dropdowns for event selection and hero selection (searchable with limit).
-// - Submits to /api/entrants.
-// - Displays confirmation on success.
+// - Auto-fills user fields from AuthContext.
+// - Event + hero dropdowns (hero searchable, paginated).
+// - On success, persists entrant and redirects to /dashboard.
 
 import { useState, useEffect } from "react";
 import {
@@ -35,37 +34,37 @@ export default function EventRegistration() {
 
   const [formData, setFormData] = useState({
     name: user?.username || "",
-    username: user?.username || "",
+    alias: user?.username || "",
     email: user?.email || "",
     event_id: "",
     hero_id: "",
     notes: "",
   });
 
-  // Load events on mount
+  // Load events
   useEffect(() => {
     async function fetchEvents() {
       try {
         const data = await apiFetch("/events");
         setEvents(data);
-        setLoadingEvents(false);
-      } catch (err) {
+      } catch {
         setError("Failed to load events");
+      } finally {
         setLoadingEvents(false);
       }
     }
     fetchEvents();
   }, []);
 
-  // Load heroes (first page, limit 100 for now)
+  // Load heroes
   useEffect(() => {
     async function fetchHeroes() {
       try {
         const data = await apiFetch("/heroes?search=a&page=1&per_page=100");
         setHeroes(data.results || []);
-        setLoadingHeroes(false);
-      } catch (err) {
+      } catch {
         setError("Failed to load heroes");
+      } finally {
         setLoadingHeroes(false);
       }
     }
@@ -80,16 +79,14 @@ export default function EventRegistration() {
   async function handleSubmit(e) {
     e.preventDefault();
     try {
-      await apiFetch("/entrants", {
+      const entrant = await apiFetch("/entrants", {
         method: "POST",
-        body: JSON.stringify({
-          name: formData.name,
-          alias: formData.username,
-          event_id: formData.event_id,
-          hero_id: formData.hero_id,
-          notes: formData.notes,
-        }),
+        body: JSON.stringify(formData),
       });
+
+      // store entrant in localStorage for dashboard
+      localStorage.setItem("entrant", JSON.stringify(entrant));
+
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -119,8 +116,8 @@ export default function EventRegistration() {
         />
         <TextField
           label="Username"
-          name="username"
-          value={formData.username}
+          name="alias"
+          value={formData.alias}
           fullWidth
           margin="normal"
           onChange={handleChange}
@@ -135,7 +132,7 @@ export default function EventRegistration() {
         />
 
         {loadingEvents ? (
-          <Box sx={{ textAlign: "center", mt: 2 }}>
+          <Box textAlign="center" mt={2}>
             <CircularProgress />
           </Box>
         ) : (
@@ -158,7 +155,7 @@ export default function EventRegistration() {
         )}
 
         {loadingHeroes ? (
-          <Box sx={{ textAlign: "center", mt: 2 }}>
+          <Box textAlign="center" mt={2}>
             <CircularProgress />
           </Box>
         ) : (
