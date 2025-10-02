@@ -3,8 +3,8 @@
 // Notes:
 // - Displays welcome + selected hero card styled like battle page.
 // - Shows powerstats + alignment prominently.
-// - Includes "Choose Another Hero" button.
-// - Prompts for Event Registration if no hero selected.
+// - Includes "Choose Another Hero" + "Register for Event" buttons.
+// - Saves chosenHero in localStorage as an array for consistency with EventRegistration.
 // - Placeholder parallel card for future analytics.
 
 import { useAuth } from "../context/AuthContext";
@@ -29,12 +29,28 @@ export default function UserDashboard() {
     const stored = localStorage.getItem("chosenHero");
     if (stored) {
       try {
-        setChosenHero(JSON.parse(stored));
+        // Allow for backward compatibility (object or array in storage)
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setChosenHero(parsed[0] || null);
+        } else {
+          setChosenHero(parsed);
+          // Normalize into array format going forward
+          localStorage.setItem("chosenHero", JSON.stringify([parsed]));
+        }
       } catch {
         setChosenHero(null);
       }
     }
   }, []);
+
+  function handleChooseAnotherHero() {
+    navigate("/heroes");
+  }
+
+  function handleRegisterEvent() {
+    navigate("/register-event");
+  }
 
   return (
     <Container sx={{ mt: 4 }} data-testid="user-dashboard">
@@ -85,13 +101,28 @@ export default function UserDashboard() {
                       </Typography>
                     ))}
                 </Box>
-                <Box sx={{ mt: 3, textAlign: "center" }}>
+                <Box
+                  sx={{
+                    mt: 3,
+                    textAlign: "center",
+                    display: "flex",
+                    gap: 2,
+                    justifyContent: "center",
+                  }}
+                >
                   <Button
                     variant="outlined"
                     color="secondary"
-                    onClick={() => navigate("/heroes")}
+                    onClick={handleChooseAnotherHero}
                   >
                     Choose Another Hero
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleRegisterEvent}
+                  >
+                    Register for Event
                   </Button>
                 </Box>
               </CardContent>
@@ -106,14 +137,14 @@ export default function UserDashboard() {
                   <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => navigate("/heroes")}
+                    onClick={handleChooseAnotherHero}
                   >
                     Choose Hero
                   </Button>
                   <Button
                     variant="outlined"
                     color="secondary"
-                    onClick={() => navigate("/register-event")}
+                    onClick={handleRegisterEvent}
                   >
                     Register for Event
                   </Button>
