@@ -4,6 +4,7 @@
 // - Displays welcome + selected hero card styled like battle page.
 // - Shows powerstats + alignment prominently.
 // - Includes "Choose Another Hero" button.
+// - Prompts for Event Registration if no hero selected.
 // - Placeholder parallel card for future analytics.
 
 import { useAuth } from "../context/AuthContext";
@@ -42,7 +43,7 @@ export default function UserDashboard() {
       </Typography>
 
       <Grid container spacing={4} justifyContent="center">
-        {/* Hero card */}
+        {/* Hero card OR registration prompt */}
         <Grid item xs={12} md={6}>
           {chosenHero ? (
             <Card sx={{ p: 2 }}>
@@ -99,15 +100,24 @@ export default function UserDashboard() {
             <Card sx={{ p: 2 }}>
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography variant="body1" gutterBottom>
-                  You haven’t selected your hero yet.
+                  You haven’t selected your hero or registered for an event yet.
                 </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate("/heroes")}
-                >
-                  Choose Hero
-                </Button>
+                <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate("/heroes")}
+                  >
+                    Choose Hero
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => navigate("/register-event")}
+                  >
+                    Register for Event
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           )}
