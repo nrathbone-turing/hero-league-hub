@@ -24,14 +24,15 @@ def normalize_hero(data):
     alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
     hero_id = int(data.get("id"))
 
+    external_url = data.get("image", {}).get("url")
+
     return {
         "id": hero_id,
         "name": data.get("name"),
         "full_name": data.get("biography", {}).get("full-name"),
         "alias": None,
         "alignment": alignment,
-        # always point to backend proxy route
-        "image": f"/api/heroes/{hero_id}/image",
+        "image": external_url,   # store actual external image URL
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
         "appearance": data.get("appearance"),
@@ -91,6 +92,12 @@ def search_heroes():
         end = start + per_page
         paginated = normalized[start:end]
 
+        results = []
+        for hero in normalized:
+            h = hero.copy()
+            h["proxy_image"] = f"/api/heroes/{h['id']}/image"
+            results.append(h)
+
         return jsonify({
             "results": paginated,
             "page": page,
@@ -126,6 +133,9 @@ def get_hero(hero_id):
         db.session.add(hero)
         db.session.commit()
 
+        hero_dict = hero.to_dict()
+        hero_dict["proxy_image"] = f"/api/heroes/{hero.id}/image"
+        
         return jsonify(hero.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -136,8 +146,6 @@ def get_hero(hero_id):
 # ------------------------------
 # GET /api/heroes/<id>/image
 # ------------------------------
-from flask import send_file
-import io
 
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
 def get_hero_image(hero_id):
