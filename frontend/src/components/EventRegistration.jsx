@@ -2,6 +2,7 @@
 // Purpose: Unified event + hero registration form.
 // Notes:
 // - Auto-fills user info from auth context.
+// - Loads events and heroes from backend API.
 // - Dropdowns for event + hero.
 // - Preview card renders below hero dropdown after selection.
 // - Small help text with link to /heroes for browsing info.
@@ -25,12 +26,14 @@ import { apiFetch } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export default function EventRegistration({ availableHeroes = [] }) {
+export default function EventRegistration() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [events, setEvents] = useState([]);
+  const [heroes, setHeroes] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingHeroes, setLoadingHeroes] = useState(true);
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -44,7 +47,7 @@ export default function EventRegistration({ availableHeroes = [] }) {
 
   const [selectedHero, setSelectedHero] = useState(null);
 
-  // Load events on mount
+  // Load events
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -59,15 +62,30 @@ export default function EventRegistration({ availableHeroes = [] }) {
     fetchEvents();
   }, []);
 
-  // Update hero preview when hero_id changes
+  // Load heroes
+  useEffect(() => {
+    async function fetchHeroes() {
+      try {
+        const data = await apiFetch("/heroes/browse");
+        setHeroes(data.results || []);
+      } catch (err) {
+        setError("Failed to load heroes");
+      } finally {
+        setLoadingHeroes(false);
+      }
+    }
+    fetchHeroes();
+  }, []);
+
+  // Update hero preview
   useEffect(() => {
     if (formData.hero_id) {
-      const hero = availableHeroes.find((h) => String(h.id) === String(formData.hero_id));
+      const hero = heroes.find((h) => String(h.id) === String(formData.hero_id));
       setSelectedHero(hero || null);
     } else {
       setSelectedHero(null);
     }
-  }, [formData.hero_id, availableHeroes]);
+  }, [formData.hero_id, heroes]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -156,26 +174,32 @@ export default function EventRegistration({ availableHeroes = [] }) {
           </TextField>
         )}
 
-        <TextField
-          select
-          label="Hero"
-          name="hero_id"
-          value={formData.hero_id}
-          onChange={handleChange}
-          fullWidth
-          margin="normal"
-          required
-        >
-          {availableHeroes.length === 0 ? (
-            <MenuItem value="">No heroes available</MenuItem>
-          ) : (
-            availableHeroes.map((hero) => (
-              <MenuItem key={hero.id} value={hero.id}>
-                {hero.name} ({hero.alias || "No alias"})
-              </MenuItem>
-            ))
-          )}
-        </TextField>
+        {loadingHeroes ? (
+          <Box sx={{ textAlign: "center", mt: 2 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <TextField
+            select
+            label="Hero"
+            name="hero_id"
+            value={formData.hero_id}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            required
+          >
+            {heroes.length === 0 ? (
+              <MenuItem value="">No heroes available</MenuItem>
+            ) : (
+              heroes.map((hero) => (
+                <MenuItem key={hero.id} value={hero.id}>
+                  {hero.name} ({hero.alias || "No alias"})
+                </MenuItem>
+              ))
+            )}
+          </TextField>
+        )}
 
         {/* Help text under hero dropdown */}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
