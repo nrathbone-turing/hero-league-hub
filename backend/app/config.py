@@ -1,12 +1,13 @@
 # backend/app/config.py
-# Loads environment variables from .env
+# Loads environment variables from root .env
 # Defaults provided for dev/testing
 
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from datetime import timedelta
 
-load_dotenv()
+# Load .env from project root (works inside and outside Docker)
+load_dotenv(find_dotenv())
 
 
 class Config:
@@ -29,6 +30,7 @@ class Config:
     # External API
     SUPERHERO_API_KEY = os.getenv("API_KEY")  # Required for SuperHero API proxy
 
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
@@ -36,5 +38,5 @@ class TestConfig(Config):
     JWT_SECRET_KEY = "test-secret"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=1)
 
-    # No external calls in tests
+    # Disable external API in tests
     SUPERHERO_API_KEY = "test-key"

@@ -1,20 +1,21 @@
-# File: docker-compose.yml
-
 version: "3.9"
+
 services:
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile.backend
-    command: python -m backend.wsgi   # ensure backend runs as a package
+    command: python -m backend.wsgi
     ports:
       - "5500:5500"
     volumes:
-      - ./backend:/app/backend        # map code into /app/backend
+      - ./backend:/app/backend
     environment:
       FLASK_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/heroleague
+      DATABASE_URL: ${DATABASE_URL}
       API_KEY: ${API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
     depends_on:
       - db
 
@@ -28,7 +29,8 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://localhost:5500
+      # passed into Vite at build/run time
+      VITE_BACKEND_ORIGIN: http://backend:5500
 
   db:
     image: postgres:15
