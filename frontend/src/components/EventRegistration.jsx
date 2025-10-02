@@ -166,14 +166,19 @@ export default function EventRegistration() {
             <Autocomplete
               options={heroes}
               getOptionLabel={(option) =>
-                `${option.name} (${option.alias || "No alias"})`
+                option?.name
+                  ? `${option.name}${option.alias ? ` (${option.alias})` : ""}`
+                  : ""
               }
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  {option.name} ({option.alias || "No alias"})
+                </li>
+              )}
               filterOptions={(options, state) =>
                 options
                   .filter((h) =>
-                    h.name
-                      .toLowerCase()
-                      .includes(state.inputValue.toLowerCase())
+                    h.name.toLowerCase().includes(state.inputValue.toLowerCase())
                   )
                   .slice(0, 25)
               }
