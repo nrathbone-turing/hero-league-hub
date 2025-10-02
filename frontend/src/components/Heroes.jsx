@@ -203,7 +203,7 @@ export default function Heroes() {
           {selectedHero?.image ? (
             <Box textAlign="center" mb={2}>
             <img
-              src={selectedHero.image}
+              src={selectedHero.proxy_image}
               alt={selectedHero.name}
               style={{
                 maxWidth: "100%",
