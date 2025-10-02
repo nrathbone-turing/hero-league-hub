@@ -55,7 +55,7 @@ describe("App routing (auth happy path)", () => {
       ).toBeInTheDocument();
     });
 
-    test("navigates to EventRegistration page", async () => {
+    test("navigates to EventRegistration page when authenticated", async () => {
       renderWithRouter(<App />, { route: "/register-event" });
 
       expect(await screen.findByTestId("event-registration")).toBeInTheDocument();
