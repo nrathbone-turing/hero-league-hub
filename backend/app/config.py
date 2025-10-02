@@ -6,9 +6,9 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from datetime import timedelta
 
-# Load .env from project root (works inside and outside Docker)
-load_dotenv(find_dotenv())
-
+# Only load .env if running outside Docker (no DATABASE_URL provided)
+if not os.getenv("DATABASE_URL"):
+    load_dotenv(find_dotenv())
 
 class Config:
     # Database
