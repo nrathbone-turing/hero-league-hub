@@ -4,12 +4,13 @@
 # - /api/heroes/<id> → get a specific hero (cached in DB if available, otherwise fetched from API)
 # - Normalizes hero objects before returning
 
-from flask import Blueprint, request, jsonify, abort, Response
+from flask import Blueprint, request, jsonify, abort, Response, send_file
 from backend.app.extensions import db
 from backend.app.models.models import Hero
 from backend.app.config import Config
 import requests
 import traceback
+import io
 
 heroes_bp = Blueprint("heroes", __name__)
 
@@ -135,6 +136,9 @@ def get_hero(hero_id):
 # ------------------------------
 # GET /api/heroes/<id>/image
 # ------------------------------
+from flask import send_file
+import io
+
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
 def get_hero_image(hero_id):
     try:
@@ -142,7 +146,7 @@ def get_hero_image(hero_id):
         if hero and hero.image:
             image_url = hero.image
         else:
-            # Fetch from API if not cached
+            # fetch from external API if not cached
             url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
             resp = requests.get(url)
             if not resp.ok:
@@ -161,16 +165,15 @@ def get_hero_image(hero_id):
                 db.session.add(hero)
             db.session.commit()
 
-        # Proxy the image bytes back
+        # download the image
         proxied = requests.get(image_url, stream=True)
         if not proxied.ok:
-            return jsonify(error="Failed to load external image"), 502
+            return jsonify(error="Failed to fetch external image"), 502
 
-        return Response(
-            proxied.content,
-            mimetype=proxied.headers.get("Content-Type", "image/jpeg")
+        return send_file(
+            io.BytesIO(proxied.content),
+            mimetype=proxied.headers.get("Content-Type", "image/jpeg"),
         )
-
     except Exception as e:
         traceback.print_exc()
-        return jsonify(error=f"Failed to fetch image: {str(e)}"), 500
+        return jsonify(error=f"Failed to fetch hero image: {str(e)}"), 500
