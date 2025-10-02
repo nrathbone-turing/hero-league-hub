@@ -239,9 +239,13 @@ export default function Heroes() {
               variant="contained"
               color="primary"
               onClick={() => {
-                console.log("Choose Hero:", selectedHero?.id);
+                if (selectedHero) {
+                  // persist to localStorage
+                  localStorage.setItem("chosenHero", JSON.stringify(selectedHero));
+                  console.log("✅ Hero saved:", selectedHero.id, selectedHero.name);
+                }
                 setSelectedHero(null);
-              }}
+              }}            
             >
               Choose Hero
             </Button>
