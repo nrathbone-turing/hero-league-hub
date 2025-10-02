@@ -4,9 +4,9 @@
 # - /api/heroes/<id> → get a specific hero (cached in DB if available, otherwise fetched from API)
 # - Normalizes hero objects before returning
 
-from flask import Blueprint, request, jsonify, abort, Response, send_file
+from flask import Blueprint, request, jsonify, send_file
 from backend.app.extensions import db
-from backend.app.models.models import Hero
+from backend.app.models.models import Hero, API_ALIGNMENT_MAP
 from backend.app.config import Config
 import requests
 import traceback
@@ -17,8 +17,6 @@ heroes_bp = Blueprint("heroes", __name__)
 # ------------------------------
 # Utility: normalize API response
 # ------------------------------
-from backend.app.models.models import API_ALIGNMENT_MAP
-
 def normalize_hero(data):
     raw_alignment = data.get("biography", {}).get("alignment")
     alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
@@ -64,9 +62,8 @@ def search_heroes():
         # Persist heroes in DB (skip if already exists)
         for h in normalized:
             try:
-                hero = db.session.get(Hero, h["id"])  # assign to a variable
+                hero = db.session.get(Hero, h["id"])
                 if not hero:
-                    print(f"Persisting hero {h['id']} - {h['name']}")
                     hero = Hero(**h)
                     db.session.add(hero)
                 else:
@@ -74,7 +71,7 @@ def search_heroes():
                     hero.full_name = h["full_name"]
                     hero.alias = h["alias"]
                     hero.alignment = h["alignment"]
-                    hero.image = h["image"]
+                    hero.image = h["image"]  # keep external URL in DB
                     hero.powerstats = h["powerstats"]
                     hero.biography = h["biography"]
                     hero.appearance = h["appearance"]
@@ -86,17 +83,15 @@ def search_heroes():
 
         db.session.commit()
 
-        # Manual pagination
+        # Manual pagination + attach proxy_image
         total = len(normalized)
         start = (page - 1) * per_page
         end = start + per_page
-        paginated = normalized[start:end]
-
-        results = []
-        for hero in normalized:
-            h = hero.copy()
-            h["proxy_image"] = f"/api/heroes/{h['id']}/image"
-            results.append(h)
+        paginated = []
+        for h in normalized[start:end]:
+            h_copy = h.copy()
+            h_copy["proxy_image"] = f"/api/heroes/{h['id']}/image"
+            paginated.append(h_copy)
 
         return jsonify({
             "results": paginated,
@@ -116,9 +111,11 @@ def search_heroes():
 @heroes_bp.route("/<int:hero_id>", methods=["GET"])
 def get_hero(hero_id):
     try:
-        hero = db.session.get(Hero, hero_id)   # check local cache
+        hero = db.session.get(Hero, hero_id)
         if hero:
-            return jsonify(hero.to_dict()), 200
+            hero_dict = hero.to_dict()
+            hero_dict["proxy_image"] = f"/api/heroes/{hero.id}/image"
+            return jsonify(hero_dict), 200
 
         # fallback: external API
         url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
@@ -127,17 +124,14 @@ def get_hero(hero_id):
             return jsonify(error="External API error"), resp.status_code
 
         data = normalize_hero(resp.json())
-
-        # create and persist
         hero = Hero(**data)
         db.session.add(hero)
         db.session.commit()
 
         hero_dict = hero.to_dict()
         hero_dict["proxy_image"] = f"/api/heroes/{hero.id}/image"
-        
-        return jsonify(hero.to_dict()), 200
-    except Exception as e:
+        return jsonify(hero_dict), 200
+    except Exception:
         db.session.rollback()
         traceback.print_exc()
         return jsonify(error="Failed to fetch hero"), 500
@@ -146,7 +140,6 @@ def get_hero(hero_id):
 # ------------------------------
 # GET /api/heroes/<id>/image
 # ------------------------------
-
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
 def get_hero_image(hero_id):
     try:
@@ -154,7 +147,6 @@ def get_hero_image(hero_id):
         if hero and hero.image:
             image_url = hero.image
         else:
-            # fetch from external API if not cached
             url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
             resp = requests.get(url)
             if not resp.ok:
@@ -173,7 +165,6 @@ def get_hero_image(hero_id):
                 db.session.add(hero)
             db.session.commit()
 
-        # download the image
         proxied = requests.get(image_url, stream=True)
         if not proxied.ok:
             return jsonify(error="Failed to fetch external image"), 502
