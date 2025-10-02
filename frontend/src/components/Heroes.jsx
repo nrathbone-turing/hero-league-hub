@@ -213,7 +213,6 @@ export default function Heroes() {
                   boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                 }}
                 onError={(e) => {
-                  // Fallback to the external URL if the proxy ever 502s
                   if (selectedHero?.image && e.currentTarget.src !== selectedHero.image) {
                     e.currentTarget.src = selectedHero.image;
                   }
@@ -225,21 +224,42 @@ export default function Heroes() {
               No image available
             </Typography>
           )}
+
+          {/* Alignment emphasized higher up */}
+          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
+            {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
+          </Typography>
+
           <Typography>
             <strong>Full Name:</strong> {selectedHero?.full_name || "-"}
           </Typography>
           <Typography>
             <strong>Alias:</strong> {selectedHero?.alias || "-"}
           </Typography>
-          <Typography>
-            <strong>Alignment:</strong> {selectedHero?.alignment || "-"}
-          </Typography>
+
+          {/* Powerstats list */}
+          {selectedHero?.powerstats && (
+            <Box sx={{ mt: 2 }}>
+              {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
+                <Typography key={stat}>
+                  {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
+                </Typography>
+              ))}
+            </Box>
+          )}
+
           <Box sx={{ mt: 3, textAlign: "center" }}>
             <Button
               variant="contained"
               color="primary"
               onClick={() => {
-                console.log("Choose Hero:", selectedHero?.id);
+                const existing = localStorage.getItem("chosenHero");
+                if (existing) {
+                  if (!window.confirm("You already selected a hero. Replace them?")) {
+                    return;
+                  }
+                }
+                localStorage.setItem("chosenHero", JSON.stringify(selectedHero));
                 setSelectedHero(null);
               }}
             >
