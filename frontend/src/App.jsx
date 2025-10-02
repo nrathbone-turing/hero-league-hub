@@ -2,9 +2,8 @@
 // Purpose: Root component for React app.
 // Notes:
 // - Wraps app in AuthProvider for global state.
-// - Protects Event routes with ProtectedRoute.
+// - Protects Event and EventRegistration routes with ProtectedRoute.
 // - Redirects based on user.is_admin flag.
-// - Adds route for EventRegistration component.
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import EventDashboard from "./components/EventDashboard";
@@ -39,9 +38,30 @@ function RootRoutes() {
           )
         }
       />
-      <Route path="/dashboard" element={<UserDashboard />} />
-      <Route path="/heroes" element={<Heroes />} />
-      <Route path="/register-event" element={<EventRegistration />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/heroes"
+        element={
+          <ProtectedRoute>
+            <Heroes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/register-event"
+        element={
+          <ProtectedRoute>
+            <EventRegistration />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/events"
         element={
