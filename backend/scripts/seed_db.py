@@ -3,7 +3,7 @@
 # Notes:
 # - Reads from backend/seeds/events.json, entrants.json, matches.json
 # - Inserts into SQLAlchemy models via Flask app context.
-# - Seeds exactly one admin user.
+# - Seeds exactly one admin and one demo user.
 # - Resets Postgres sequences to avoid duplicate key issues.
 
 import os
@@ -11,7 +11,7 @@ import json
 from sqlalchemy.sql import text
 from backend.app import create_app
 from backend.app.extensions import db
-from backend.app.models import Event, Entrant, Match, User
+from backend.app.models import Event, Entrant, Match, User, Hero
 
 SEED_DIR = os.path.join(os.path.dirname(__file__), "..", "seeds")
 
@@ -36,7 +36,7 @@ def run():
                 Event(id=e["id"], name=e["name"], date=e["date"], status=e["status"])
             )
 
-        # Insert Entrants
+        # Insert Entrants (now includes optional user_id + hero_id)
         for en in entrants:
             db.session.add(
                 Entrant(
@@ -44,6 +44,8 @@ def run():
                     name=en["name"],
                     alias=en.get("alias"),
                     event_id=en["event_id"],
+                    user_id=en.get("user_id"),   # <-- NEW
+                    hero_id=en.get("hero_id"),   # <-- NEW
                     dropped=en.get("dropped", False),
                 )
             )
@@ -70,14 +72,24 @@ def run():
 
         # Create demo non-admin user if not exists
         if not User.query.filter_by(email="demo@example.com").first():
-            demo = User(username="demo_user", email="demo_user@example.com", is_admin=False)
+            demo = User(username="demo_user", email="demo@example.com", is_admin=False)
             demo.set_password("password123")
             db.session.add(demo)
+
+        # Insert a demo hero if not exists (helps satisfy hero_id FKs)
+        if not Hero.query.get(999):
+            demo_hero = Hero(
+                id=999,
+                name="Demo Hero",
+                image="http://demo-hero.jpg",
+                powerstats={"strength": 50, "intelligence": 50},
+            )
+            db.session.add(demo_hero)
 
         db.session.commit()
 
         # Reset sequences
-        for table in ["events", "entrants", "matches"]:
+        for table in ["events", "entrants", "matches", "users", "heroes"]:
             seq_sql = text(
                 f"""
                 SELECT setval(
@@ -95,9 +107,9 @@ def run():
             f"✅ Inserted {len(events)} events, "
             f"{len(entrants)} entrants, "
             f"{len(matches)} matches, "
-            f"+ admin & demo users"
+            f"+ admin & demo users + demo hero"
         )
-        print("🔄 Sequences reset for events, entrants, and matches.")
+        print("🔄 Sequences reset for all tables.")
 
 
 if __name__ == "__main__":
