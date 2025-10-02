@@ -4,7 +4,7 @@
 # - /api/heroes/<id> → get a specific hero (cached in DB if available, otherwise fetched from API)
 # - Normalizes hero objects before returning
 
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint, request, jsonify, abort, Response
 from backend.app.extensions import db
 from backend.app.models.models import Hero
 from backend.app.config import Config
@@ -21,15 +21,15 @@ from backend.app.models.models import API_ALIGNMENT_MAP
 def normalize_hero(data):
     raw_alignment = data.get("biography", {}).get("alignment")
     alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
-
     hero_id = int(data.get("id"))
 
     return {
-        "id": int(data.get("id")),
+        "id": hero_id,
         "name": data.get("name"),
         "full_name": data.get("biography", {}).get("full-name"),
-        "alias": None,  # placeholder for now
+        "alias": None,
         "alignment": alignment,
+        # always point to backend proxy route
         "image": f"/api/heroes/{hero_id}/image",
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
@@ -136,21 +136,41 @@ def get_hero(hero_id):
 # GET /api/heroes/<id>/image
 # ------------------------------
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
-def hero_image(hero_id):
+def get_hero_image(hero_id):
     try:
         hero = db.session.get(Hero, hero_id)
-        if not hero or not hero.image:
-            abort(404)
+        if hero and hero.image:
+            image_url = hero.image
+        else:
+            # Fetch from API if not cached
+            url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
+            resp = requests.get(url)
+            if not resp.ok:
+                return jsonify(error="External API error"), resp.status_code
 
-        resp = requests.get(hero.image, stream=True)
-        if not resp.ok:
-            abort(502)
+            data = resp.json()
+            image_url = data.get("image", {}).get("url")
+            if not image_url:
+                return jsonify(error="No image available"), 404
 
-        from flask import Response
-        # Guess mime type from URL (jpg/png fallback)
-        mime = "image/jpeg" if hero.image.endswith(".jpg") else "image/png"
-        return Response(resp.content, mimetype=mime)
+            if hero:
+                hero.image = image_url
+            else:
+                normalized = normalize_hero(data)
+                hero = Hero(**normalized)
+                db.session.add(hero)
+            db.session.commit()
+
+        # Proxy the image bytes back
+        proxied = requests.get(image_url, stream=True)
+        if not proxied.ok:
+            return jsonify(error="Failed to load external image"), 502
+
+        return Response(
+            proxied.content,
+            mimetype=proxied.headers.get("Content-Type", "image/jpeg")
+        )
 
     except Exception as e:
         traceback.print_exc()
-        abort(500)
+        return jsonify(error=f"Failed to fetch image: {str(e)}"), 500
