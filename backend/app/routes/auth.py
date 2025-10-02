@@ -21,7 +21,6 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
     data = request.get_json() or {}
-    # redact password before logging
     safe_data = {k: v for k, v in data.items() if k != "password"}
     print("DEBUG signup payload:", safe_data)
 
@@ -41,8 +40,11 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
+        # issue token immediately
+        token = create_access_token(identity=str(user.id))
         print(f"✅ Created user {user.id} ({email})")
-        return jsonify(user.to_dict()), 201
+
+        return jsonify(access_token=token, user=user.to_dict()), 201
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
