@@ -1,19 +1,24 @@
+# backend/app/routes/heroes.py
 # Provides routes for fetching and persisting heroes
 # - /api/heroes?search=...&page=...&per_page=...
 # - /api/heroes/<id>
 # - /api/heroes/<id>/image (backend image proxy to avoid hotlink/CORS)
 
-from flask import Blueprint, request, jsonify, send_file, Response
+from flask import Blueprint, request, jsonify, Response
 from backend.app.extensions import db
 from backend.app.models.models import Hero, API_ALIGNMENT_MAP
 from backend.app.config import Config
 import requests
 import traceback
-import io
 
 heroes_bp = Blueprint("heroes", __name__)
 
-UA = {"User-Agent": "HeroLeagueHub/1.0 (+https://localhost)"}
+UA = {
+    "User-Agent": "HeroLeagueHub/1.0 (+https://localhost)",
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.superherodb.com/",
+}
 
 
 def normalize_hero(data):
@@ -27,7 +32,7 @@ def normalize_hero(data):
         "full_name": data.get("biography", {}).get("full-name"),
         "alias": None,
         "alignment": alignment,
-        "image": (data.get("image", {}) or {}).get("url"),  # external URL persisted
+        "image": (data.get("image", {}) or {}).get("url"),
         "powerstats": data.get("powerstats"),
         "biography": data.get("biography"),
         "appearance": data.get("appearance"),
@@ -54,30 +59,21 @@ def search_heroes():
         api_results = resp.json().get("results", []) or []
         normalized = [normalize_hero(h) for h in api_results]
 
-        # Persist / upsert
+        # Upsert heroes
         for h in normalized:
             try:
                 hero = db.session.get(Hero, h["id"])
                 if not hero:
-                    hero = Hero(**h)
-                    db.session.add(hero)
+                    db.session.add(Hero(**h))
                 else:
-                    hero.name = h["name"]
-                    hero.full_name = h["full_name"]
-                    hero.alias = h["alias"]
-                    hero.alignment = h["alignment"]
-                    hero.image = h["image"]
-                    hero.powerstats = h["powerstats"]
-                    hero.biography = h["biography"]
-                    hero.appearance = h["appearance"]
-                    hero.work = h["work"]
-                    hero.connections = h["connections"]
+                    for key, val in h.items():
+                        setattr(hero, key, val)
             except Exception as e:
                 db.session.rollback()
                 print(f"⚠️ Failed to persist hero {h.get('id')}: {e}")
         db.session.commit()
 
-        # Attach proxy_image BEFORE paginating so the UI always gets it
+        # Attach proxy_image for frontend use
         for h in normalized:
             h["proxy_image"] = f"/api/heroes/{h['id']}/image"
 
@@ -105,7 +101,6 @@ def get_hero(hero_id):
     try:
         hero = db.session.get(Hero, hero_id)
         if not hero:
-            # Fetch single hero on cache miss
             url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/{hero_id}"
             resp = requests.get(url, headers=UA, timeout=10)
             if not resp.ok:
@@ -127,7 +122,6 @@ def get_hero(hero_id):
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
 def get_hero_image(hero_id):
     try:
-        # Find persisted external URL or fetch it
         hero = db.session.get(Hero, hero_id)
         image_url = hero.image if hero and hero.image else None
 
@@ -144,14 +138,13 @@ def get_hero_image(hero_id):
                 hero.image = image_url
                 db.session.commit()
             else:
-                # Create minimally so we have a row next time
-                new_data = normalize_hero(data)
-                db.session.add(Hero(**new_data))
+                db.session.add(Hero(**normalize_hero(data)))
                 db.session.commit()
 
-        # Fetch the binary image (avoid streaming chunked—return a single buffer)
         proxied = requests.get(image_url, headers=UA, timeout=12)
         if proxied.status_code != 200 or not proxied.content:
+            # console log to help debugging when a CDN blocks the request
+            print(f"[image-proxy] upstream {proxied.status_code} for {image_url}")
             return jsonify(error="Failed to fetch external image"), 502
 
         content_type = proxied.headers.get("Content-Type", "image/jpeg")
