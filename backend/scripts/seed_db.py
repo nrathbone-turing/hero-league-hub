@@ -64,9 +64,15 @@ def run():
 
         # Create admin user if not exists
         if not User.query.filter_by(email="admin@example.com").first():
-            admin = User(username="admin", email="admin@example.com")
-            admin.set_password("password123")
+            admin = User(username="admin", email="admin@example.com", is_admin=True)
+            admin.set_password("admin")
             db.session.add(admin)
+
+        # Create demo non-admin user if not exists
+        if not User.query.filter_by(email="demo@example.com").first():
+            demo = User(username="demo_user", email="demo_user@example.com", is_admin=False)
+            demo.set_password("password123")
+            db.session.add(demo)
 
         db.session.commit()
 
@@ -89,7 +95,7 @@ def run():
             f"✅ Inserted {len(events)} events, "
             f"{len(entrants)} entrants, "
             f"{len(matches)} matches, "
-            f"+ admin user"
+            f"+ admin & demo users"
         )
         print("🔄 Sequences reset for events, entrants, and matches.")
 
