@@ -1,11 +1,8 @@
 // File: frontend/src/components/Heroes.jsx
 // Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
-// - Fetches from /api/heroes (backend proxy).
-// - Skips API calls if search is empty (prevents 400 errors).
-// - Adds client-side sorting with TableSortLabel.
-// - Removes inline image column; image shown in modal dialog instead.
-// - Adds Full Name, Alias, Alignment columns.
+// - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
+// - Uses absolute backend origin for images to bypass Vite proxy quirks.
 
 import { useState, useEffect } from "react";
 import {
@@ -13,6 +10,7 @@ import {
   Typography,
   TextField,
   Box,
+  Button,
   Table,
   TableHead,
   TableRow,
@@ -26,6 +24,9 @@ import {
   DialogContent,
 } from "@mui/material";
 import { apiFetch } from "../api";
+
+const BACKEND_ORIGIN =
+  import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:5500";
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
@@ -52,11 +53,10 @@ export default function Heroes() {
       setTotal(0);
       return;
     }
-
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`
       );
       setHeroes(data.results || []);
       setTotal(data.total || 0);
@@ -98,6 +98,15 @@ export default function Heroes() {
 
   const sortedHeroes = sortData(heroes, orderBy, order);
 
+  // Compute dialog image src:
+  // Prefer backend proxy (absolute), fall back to external URL if present.
+  const dialogImgSrc = (h) => {
+    if (!h) return null;
+    if (h.proxy_image) return h.proxy_image;            // e.g. "/api/heroes/70/image"
+    if (h.image) return h.image;                        // last resort
+    return null;
+  };
+  
   return (
     <Container sx={{ mt: 4 }}>
       <Typography
@@ -149,9 +158,7 @@ export default function Heroes() {
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
                     >
-                      {col
-                        .replace("_", " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {col.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                     </TableSortLabel>
                   </TableCell>
                 ))}
@@ -194,18 +201,51 @@ export default function Heroes() {
       <Dialog open={!!selectedHero} onClose={() => setSelectedHero(null)} maxWidth="sm" fullWidth>
         <DialogTitle>{selectedHero?.name}</DialogTitle>
         <DialogContent>
-          {selectedHero?.image && (
+          {dialogImgSrc(selectedHero) ? (
             <Box textAlign="center" mb={2}>
               <img
-                src={selectedHero.image}
+                src={dialogImgSrc(selectedHero)}
                 alt={selectedHero.name}
-                style={{ maxWidth: "100%", height: "auto" }}
+                style={{
+                  maxWidth: "100%",
+                  height: "auto",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                }}
+                onError={(e) => {
+                  // Fallback to the external URL if the proxy ever 502s
+                  if (selectedHero?.image && e.currentTarget.src !== selectedHero.image) {
+                    e.currentTarget.src = selectedHero.image;
+                  }
+                }}
               />
             </Box>
+          ) : (
+            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
+              No image available
+            </Typography>
           )}
-          <Typography><strong>Full Name:</strong> {selectedHero?.full_name || "-"}</Typography>
-          <Typography><strong>Alias:</strong> {selectedHero?.alias || "-"}</Typography>
-          <Typography><strong>Alignment:</strong> {selectedHero?.alignment || "-"}</Typography>
+          <Typography>
+            <strong>Full Name:</strong> {selectedHero?.full_name || "-"}
+          </Typography>
+          <Typography>
+            <strong>Alias:</strong> {selectedHero?.alias || "-"}
+          </Typography>
+          <Typography>
+            <strong>Alignment:</strong> {selectedHero?.alignment || "-"}
+          </Typography>
+          <Box sx={{ mt: 3, textAlign: "center" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                console.log("Choose Hero:", selectedHero?.id);
+                setSelectedHero(null);
+              }}
+            >
+              Choose Hero
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
     </Container>
