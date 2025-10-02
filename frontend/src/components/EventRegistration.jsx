@@ -1,10 +1,11 @@
 // File: frontend/src/components/EventRegistration.jsx
-// Purpose: Allow logged-in users to register for an event with prefilled info.
+// Purpose: Unified event + hero registration form.
 // Notes:
-// - Auto-fills name, username, email from auth context.
-// - Dropdowns for event selection and hero selection.
-// - Submits to /api/entrants.
-// - Displays confirmation on success.
+// - Auto-fills user info from auth context.
+// - Dropdowns for event + hero.
+// - Preview card renders below hero dropdown after selection.
+// - Small help text with link to /heroes for browsing info.
+// - Submits to /api/entrants to create entrant record.
 
 import { useState, useEffect } from "react";
 import {
@@ -16,12 +17,15 @@ import {
   Box,
   CircularProgress,
   Alert,
+  Card,
+  CardContent,
+  Link,
 } from "@mui/material";
 import { apiFetch } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export default function EventRegistration({ chosenHeroes = [] }) {
+export default function EventRegistration({ availableHeroes = [] }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -38,33 +42,40 @@ export default function EventRegistration({ chosenHeroes = [] }) {
     notes: "",
   });
 
+  const [selectedHero, setSelectedHero] = useState(null);
+
   // Load events on mount
   useEffect(() => {
     async function fetchEvents() {
       try {
         const data = await apiFetch("/events");
         setEvents(data);
-        setLoadingEvents(false);
       } catch (err) {
         setError("Failed to load events");
+      } finally {
         setLoadingEvents(false);
       }
     }
     fetchEvents();
   }, []);
 
+  // Update hero preview when hero_id changes
+  useEffect(() => {
+    if (formData.hero_id) {
+      const hero = availableHeroes.find((h) => String(h.id) === String(formData.hero_id));
+      setSelectedHero(hero || null);
+    } else {
+      setSelectedHero(null);
+    }
+  }, [formData.hero_id, availableHeroes]);
+
   function handleChange(e) {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError(null);
-
     try {
       await apiFetch("/entrants", {
         method: "POST",
@@ -72,16 +83,15 @@ export default function EventRegistration({ chosenHeroes = [] }) {
         body: JSON.stringify({
           name: formData.name,
           alias: formData.username,
-          event_id: Number(formData.event_id), // ✅ ensure numeric
-          hero_id: Number(formData.hero_id),   // ✅ ensure numeric
+          email: formData.email,
+          event_id: formData.event_id,
+          hero_id: formData.hero_id,
           notes: formData.notes,
         }),
       });
       navigate("/dashboard");
     } catch (err) {
-      // Handle both thrown Error and { error: "..."} objects
-      const msg = err?.error || err?.message || "Registration failed";
-      setError(msg);
+      setError(err.message || "Registration failed");
     }
   }
 
@@ -92,7 +102,7 @@ export default function EventRegistration({ chosenHeroes = [] }) {
       </Typography>
 
       {error && (
-        <Alert severity="error" role="alert" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
@@ -156,16 +166,65 @@ export default function EventRegistration({ chosenHeroes = [] }) {
           margin="normal"
           required
         >
-          {chosenHeroes.length === 0 ? (
-            <MenuItem value="">No heroes selected yet</MenuItem>
+          {availableHeroes.length === 0 ? (
+            <MenuItem value="">No heroes available</MenuItem>
           ) : (
-            chosenHeroes.map((hero) => (
+            availableHeroes.map((hero) => (
               <MenuItem key={hero.id} value={hero.id}>
                 {hero.name} ({hero.alias || "No alias"})
               </MenuItem>
             ))
           )}
         </TextField>
+
+        {/* Help text under hero dropdown */}
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+          Not sure which hero to pick?{" "}
+          <Link href="/heroes" target="_blank" rel="noopener noreferrer">
+            Browse full hero list
+          </Link>
+        </Typography>
+
+        {/* Hero preview card */}
+        {selectedHero && (
+          <Card sx={{ mt: 2, mb: 2 }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom align="center">
+                {selectedHero.alignment?.toUpperCase() || "UNKNOWN"}
+              </Typography>
+              <Box textAlign="center" mb={2}>
+                {selectedHero.proxy_image && (
+                  <img
+                    src={selectedHero.proxy_image}
+                    alt={selectedHero.name}
+                    style={{
+                      maxWidth: "100%",
+                      borderRadius: "8px",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                    }}
+                  />
+                )}
+              </Box>
+              <Typography variant="h5" align="center" gutterBottom>
+                {selectedHero.name}
+              </Typography>
+              <Typography align="center" gutterBottom>
+                {selectedHero.full_name || "-"}
+              </Typography>
+              <Typography>
+                <strong>Alias:</strong> {selectedHero.alias || "-"}
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                {selectedHero.powerstats &&
+                  Object.entries(selectedHero.powerstats).map(([stat, val]) => (
+                    <Typography key={stat}>
+                      {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
+                    </Typography>
+                  ))}
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         <TextField
           label="Notes"
