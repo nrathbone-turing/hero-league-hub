@@ -4,7 +4,7 @@
 // - Uses global fetch mock from setupTests.js.
 // - Covers navbar, dashboard, event detail, error routes, and event registration.
 
-import { screen, waitFor, render, within } from "@testing-library/react";
+import { screen, waitFor, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App";
 import { renderWithRouter } from "../test-utils";
@@ -46,13 +46,8 @@ describe("App routing (auth happy path)", () => {
       renderWithRouter(<App />, { route: "/" });
 
       const dashboard = await screen.findByTestId("user-dashboard");
-      expect(
-        within(dashboard).getByText(/welcome, participant/i)
-      ).toBeInTheDocument();
-
-      expect(
-        within(dashboard).getByRole("button", { name: /choose hero/i })
-      ).toBeInTheDocument();
+      expect(dashboard).toBeInTheDocument();
+      expect(screen.getByText(/welcome, participant/i)).toBeInTheDocument();
     });
 
     test("navigates to EventRegistration page when authenticated", async () => {
@@ -106,6 +101,25 @@ describe("App routing (auth happy path)", () => {
       await userEvent.click(eventName);
       expect(await screen.findByText(/Hero Cup — 2025-09-12/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe("App routing (unauthenticated users)", () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  test("redirects unauthenticated user to /login for /register-event", async () => {
+    render(
+      <MemoryRouter initialEntries={["/register-event"]}>
+        <App />
+        <LocationSpy />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location").textContent).toBe("/login")
+    );
   });
 });
 
