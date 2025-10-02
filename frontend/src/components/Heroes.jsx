@@ -2,6 +2,7 @@
 // Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
 // - Fetches from /api/heroes (backend proxy).
+// - Adds fallback: prefer proxy_image, fallback to image if missing.
 // - Skips API calls if search is empty (prevents 400 errors).
 // - Adds client-side sorting with TableSortLabel.
 // - Removes inline image column; image shown in modal dialog instead.
@@ -57,7 +58,7 @@ export default function Heroes() {
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`
       );
       setHeroes(data.results || []);
       setTotal(data.total || 0);
@@ -150,9 +151,7 @@ export default function Heroes() {
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
                     >
-                      {col
-                        .replace("_", " ")
-                        .replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {col.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                     </TableSortLabel>
                   </TableCell>
                 ))}
@@ -200,18 +199,18 @@ export default function Heroes() {
       >
         <DialogTitle>{selectedHero?.name}</DialogTitle>
         <DialogContent>
-          {selectedHero?.image ? (
+          {selectedHero?.proxy_image || selectedHero?.image ? (
             <Box textAlign="center" mb={2}>
-            <img
-              src={selectedHero.proxy_image}
-              alt={selectedHero.name}
-              style={{
-                maxWidth: "100%",
-                height: "auto",
-                borderRadius: "8px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-              }}
-            />
+              <img
+                src={selectedHero.proxy_image || selectedHero.image}
+                alt={selectedHero.name}
+                style={{
+                  maxWidth: "100%",
+                  height: "auto",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                }}
+              />
             </Box>
           ) : (
             <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
