@@ -109,6 +109,32 @@ describe("App routing (unauthenticated users)", () => {
     localStorage.clear();
   });
 
+  test("redirects unauthenticated user to /login for /dashboard", async () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <App />
+        <LocationSpy />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location").textContent).toBe("/login")
+    );
+  });
+
+  test("redirects unauthenticated user to /login for /heroes", async () => {
+    render(
+      <MemoryRouter initialEntries={["/heroes"]}>
+        <App />
+        <LocationSpy />
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location").textContent).toBe("/login")
+    );
+  });
+
   test("redirects unauthenticated user to /login for /register-event", async () => {
     render(
       <MemoryRouter initialEntries={["/register-event"]}>
