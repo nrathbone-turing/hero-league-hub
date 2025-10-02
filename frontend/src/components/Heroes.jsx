@@ -102,11 +102,11 @@ export default function Heroes() {
   // Prefer backend proxy (absolute), fall back to external URL if present.
   const dialogImgSrc = (h) => {
     if (!h) return null;
-    if (h.proxy_image) return `${BACKEND_ORIGIN}${h.proxy_image}`;
-    if (h.image) return h.image; // last resort (may be hotlinked/blocked)
+    if (h.proxy_image) return h.proxy_image;            // e.g. "/api/heroes/70/image"
+    if (h.image) return h.image;                        // last resort
     return null;
-    }
-
+  };
+  
   return (
     <Container sx={{ mt: 4 }}>
       <Typography
@@ -198,12 +198,7 @@ export default function Heroes() {
       )}
 
       {/* Hero detail dialog */}
-      <Dialog
-        open={!!selectedHero}
-        onClose={() => setSelectedHero(null)}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={!!selectedHero} onClose={() => setSelectedHero(null)} maxWidth="sm" fullWidth>
         <DialogTitle>{selectedHero?.name}</DialogTitle>
         <DialogContent>
           {dialogImgSrc(selectedHero) ? (
@@ -216,6 +211,12 @@ export default function Heroes() {
                   height: "auto",
                   borderRadius: "8px",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                }}
+                onError={(e) => {
+                  // Fallback to the external URL if the proxy ever 502s
+                  if (selectedHero?.image && e.currentTarget.src !== selectedHero.image) {
+                    e.currentTarget.src = selectedHero.image;
+                  }
                 }}
               />
             </Box>
