@@ -1,12 +1,10 @@
 // File: frontend/src/components/EventRegistration.jsx
-// Purpose: Unified event + hero registration form.
+// Purpose: Allow logged-in users to register for an event with prefilled info.
 // Notes:
-// - Auto-fills user info from auth context.
-// - Loads events and heroes from backend API.
-// - Dropdowns for event + hero.
-// - Preview card renders below hero dropdown after selection.
-// - Small help text with link to /heroes for browsing info.
-// - Submits to /api/entrants to create entrant record.
+// - Auto-fills name, username, email from auth context.
+// - Dropdowns for event selection and hero selection (searchable with limit).
+// - Submits to /api/entrants.
+// - Displays confirmation on success.
 
 import { useState, useEffect } from "react";
 import {
@@ -18,9 +16,8 @@ import {
   Box,
   CircularProgress,
   Alert,
-  Card,
-  CardContent,
   Link,
+  Autocomplete,
 } from "@mui/material";
 import { apiFetch } from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -45,47 +42,36 @@ export default function EventRegistration() {
     notes: "",
   });
 
-  const [selectedHero, setSelectedHero] = useState(null);
-
-  // Load events
+  // Load events on mount
   useEffect(() => {
     async function fetchEvents() {
       try {
         const data = await apiFetch("/events");
         setEvents(data);
+        setLoadingEvents(false);
       } catch (err) {
         setError("Failed to load events");
-      } finally {
         setLoadingEvents(false);
       }
     }
     fetchEvents();
   }, []);
 
-  // Load heroes
+  // Load heroes (first page, limit 100 for now)
   useEffect(() => {
     async function fetchHeroes() {
       try {
-        const data = await apiFetch("/heroes/browse");
+        const data = await apiFetch("/heroes?search=a&page=1&per_page=100"); 
+        // using "a" ensures results come back from API
         setHeroes(data.results || []);
+        setLoadingHeroes(false);
       } catch (err) {
         setError("Failed to load heroes");
-      } finally {
         setLoadingHeroes(false);
       }
     }
     fetchHeroes();
   }, []);
-
-  // Update hero preview
-  useEffect(() => {
-    if (formData.hero_id) {
-      const hero = heroes.find((h) => String(h.id) === String(formData.hero_id));
-      setSelectedHero(hero || null);
-    } else {
-      setSelectedHero(null);
-    }
-  }, [formData.hero_id, heroes]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -101,7 +87,6 @@ export default function EventRegistration() {
         body: JSON.stringify({
           name: formData.name,
           alias: formData.username,
-          email: formData.email,
           event_id: formData.event_id,
           hero_id: formData.hero_id,
           notes: formData.notes,
@@ -179,75 +164,49 @@ export default function EventRegistration() {
             <CircularProgress />
           </Box>
         ) : (
-          <TextField
-            select
-            label="Hero"
-            name="hero_id"
-            value={formData.hero_id}
-            onChange={handleChange}
-            fullWidth
-            margin="normal"
-            required
-          >
-            {heroes.length === 0 ? (
-              <MenuItem value="">No heroes available</MenuItem>
-            ) : (
-              heroes.map((hero) => (
-                <MenuItem key={hero.id} value={hero.id}>
-                  {hero.name} ({hero.alias || "No alias"})
-                </MenuItem>
-              ))
-            )}
-          </TextField>
-        )}
-
-        {/* Help text under hero dropdown */}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-          Not sure which hero to pick?{" "}
-          <Link href="/heroes" target="_blank" rel="noopener noreferrer">
-            Browse full hero list
-          </Link>
-        </Typography>
-
-        {/* Hero preview card */}
-        {selectedHero && (
-          <Card sx={{ mt: 2, mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom align="center">
-                {selectedHero.alignment?.toUpperCase() || "UNKNOWN"}
-              </Typography>
-              <Box textAlign="center" mb={2}>
-                {selectedHero.proxy_image && (
-                  <img
-                    src={selectedHero.proxy_image}
-                    alt={selectedHero.name}
-                    style={{
-                      maxWidth: "100%",
-                      borderRadius: "8px",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                )}
-              </Box>
-              <Typography variant="h5" align="center" gutterBottom>
-                {selectedHero.name}
-              </Typography>
-              <Typography align="center" gutterBottom>
-                {selectedHero.full_name || "-"}
-              </Typography>
-              <Typography>
-                <strong>Alias:</strong> {selectedHero.alias || "-"}
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                {selectedHero.powerstats &&
-                  Object.entries(selectedHero.powerstats).map(([stat, val]) => (
-                    <Typography key={stat}>
-                      {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
-                    </Typography>
-                  ))}
-              </Box>
-            </CardContent>
-          </Card>
+          <>
+            <Autocomplete
+              options={heroes}
+              getOptionLabel={(option) =>
+                `${option.name} (${option.alias || "No alias"})`
+              }
+              filterOptions={(options, state) =>
+                options
+                  .filter((h) =>
+                    h.name
+                      .toLowerCase()
+                      .includes(state.inputValue.toLowerCase())
+                  )
+                  .slice(0, 25)
+              }
+              onChange={(e, newValue) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  hero_id: newValue?.id || "",
+                }))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Hero"
+                  margin="normal"
+                  fullWidth
+                  required
+                />
+              )}
+              ListboxProps={{ style: { maxHeight: 300, overflow: "auto" } }}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: "block" }}
+            >
+              Not sure who to pick?{" "}
+              <Link href="/heroes" target="_blank" rel="noopener">
+                Browse characters
+              </Link>
+            </Typography>
+          </>
         )}
 
         <TextField
