@@ -4,6 +4,7 @@
 // - Wraps app in AuthProvider for global state.
 // - Protects Event routes with ProtectedRoute.
 // - Redirects based on user.is_admin flag.
+// - Adds route for EventRegistration component.
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import EventDashboard from "./components/EventDashboard";
@@ -16,7 +17,8 @@ import LoginForm from "./components/LoginForm";
 import SignupForm from "./components/SignupForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import UserDashboard from "./components/UserDashboard";
-import Heroes from "./components/Heroes"; 
+import Heroes from "./components/Heroes";
+import EventRegistration from "./components/EventRegistration";
 
 function RootRoutes() {
   const { user, isAuthenticated } = useAuth();
@@ -39,6 +41,7 @@ function RootRoutes() {
       />
       <Route path="/dashboard" element={<UserDashboard />} />
       <Route path="/heroes" element={<Heroes />} />
+      <Route path="/register-event" element={<EventRegistration />} />
       <Route
         path="/events"
         element={
