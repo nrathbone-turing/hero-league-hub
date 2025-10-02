@@ -60,13 +60,26 @@ def search_heroes():
         # Persist heroes in DB (skip if already exists)
         for h in normalized:
             try:
-                db.session.get(Hero, h["id"])
+                hero = db.session.get(Hero, h["id"])  # assign to a variable
                 if not hero:
                     print(f"Persisting hero {h['id']} - {h['name']}")
                     hero = Hero(**h)
                     db.session.add(hero)
+                else:
+                    hero.name = h["name"]
+                    hero.full_name = h["full_name"]
+                    hero.alias = h["alias"]
+                    hero.alignment = h["alignment"]
+                    hero.image = h["image"]
+                    hero.powerstats = h["powerstats"]
+                    hero.biography = h["biography"]
+                    hero.appearance = h["appearance"]
+                    hero.work = h["work"]
+                    hero.connections = h["connections"]
             except Exception as e:
-                print(f"⚠️ Failed to persist hero {h['id']}: {e}")
+                db.session.rollback()
+                print(f"⚠️ Failed to persist hero {h.get('id')}: {e}")
+
         db.session.commit()
 
         # Manual pagination
@@ -93,7 +106,7 @@ def search_heroes():
 @heroes_bp.route("/<int:hero_id>", methods=["GET"])
 def get_hero(hero_id):
     try:
-        hero = db.session.get(Hero, hero_id)   # modern API
+        hero = db.session.get(Hero, hero_id)   # check local cache
         if hero:
             return jsonify(hero.to_dict()), 200
 
@@ -104,11 +117,14 @@ def get_hero(hero_id):
             return jsonify(error="External API error"), resp.status_code
 
         data = normalize_hero(resp.json())
+
+        # create and persist
         hero = Hero(**data)
         db.session.add(hero)
         db.session.commit()
 
         return jsonify(hero.to_dict()), 200
-    except Exception:
+    except Exception as e:
+        db.session.rollback()
         traceback.print_exc()
         return jsonify(error="Failed to fetch hero"), 500
