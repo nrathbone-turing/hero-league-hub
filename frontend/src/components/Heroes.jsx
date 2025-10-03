@@ -4,7 +4,7 @@
 // - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
 // - Persist chosen hero or update entrant.hero if registered.
 // - Redirects to /dashboard after hero is chosen.
-// - Fallback confirm dialog text if event details are missing.
+// - Modal uses accordions with properly capitalized, human-friendly field labels.
 
 import { useState, useEffect } from "react";
 import {
@@ -24,7 +24,11 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { apiFetch } from "../api";
 import { useNavigate } from "react-router-dom";
 
@@ -129,11 +133,26 @@ export default function Heroes() {
       }
 
       setSelectedHero(null);
-      navigate("/dashboard"); // 👈 redirect to dashboard after choosing
+      navigate("/dashboard");
     } catch (err) {
       alert("❌ Failed to choose hero: " + err.message);
     }
   }
+
+  // Format helpers
+  const formatAliases = (aliases) => {
+    if (!aliases) return "-";
+    return Array.isArray(aliases) ? aliases.join(", ") : aliases;
+  };
+
+  const formatLabel = (key) => {
+    if (!key) return "";
+    return key
+      .replace(/_/g, " ")         // underscores → spaces
+      .replace(/-/g, " ")         // hyphens → spaces
+      .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase → words
+      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize
+  };
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -156,7 +175,7 @@ export default function Heroes() {
       </Box>
 
       {loading && (
-        <Box sx={{ textAlign: "center", mt: 2 }}>
+        <Box textAlign="center" mt={2}>
           <CircularProgress />
           <Typography>Loading heroes...</Typography>
         </Box>
@@ -186,7 +205,7 @@ export default function Heroes() {
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
                     >
-                      {col.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {formatLabel(col)}
                     </TableSortLabel>
                   </TableCell>
                 ))}
@@ -203,7 +222,7 @@ export default function Heroes() {
                   <TableCell>{hero.id}</TableCell>
                   <TableCell>{hero.name}</TableCell>
                   <TableCell>{hero.full_name || "-"}</TableCell>
-                  <TableCell>{hero.alias || "-"}</TableCell>
+                  <TableCell>{formatAliases(hero.alias)}</TableCell>
                   <TableCell>{hero.alignment || "-"}</TableCell>
                 </TableRow>
               ))}
@@ -233,7 +252,7 @@ export default function Heroes() {
         fullWidth
       >
         <DialogTitle>{selectedHero?.name}</DialogTitle>
-        <DialogContent>
+        <DialogContent dividers>
           {dialogImgSrc(selectedHero) ? (
             <Box textAlign="center" mb={2}>
               <img
@@ -245,14 +264,6 @@ export default function Heroes() {
                   borderRadius: "8px",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                 }}
-                onError={(e) => {
-                  if (
-                    selectedHero?.image &&
-                    e.currentTarget.src !== selectedHero.image
-                  ) {
-                    e.currentTarget.src = selectedHero.image;
-                  }
-                }}
               />
             </Box>
           ) : (
@@ -261,26 +272,90 @@ export default function Heroes() {
             </Typography>
           )}
 
-          {/* Alignment */}
           <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
-          <Typography>
-            <strong>Full Name:</strong> {selectedHero?.full_name || "-"}
-          </Typography>
-          <Typography>
-            <strong>Alias:</strong> {selectedHero?.alias || "-"}
-          </Typography>
-
+          {/* Powerstats */}
           {selectedHero?.powerstats && (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Powerstats
+              </Typography>
               {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
                 <Typography key={stat}>
-                  {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
+                  <strong>{formatLabel(stat)}:</strong> {val}
                 </Typography>
               ))}
             </Box>
+          )}
+
+          {/* Biography Accordion */}
+          {selectedHero?.biography && (
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1">Biography</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {Object.entries(selectedHero.biography).map(([key, val]) => (
+                  <Typography key={key}>
+                    <strong>{formatLabel(key)}:</strong>{" "}
+                    {key.toLowerCase().includes("alias")
+                      ? formatAliases(val)
+                      : val || "-"}
+                  </Typography>
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          {/* Appearance Accordion */}
+          {selectedHero?.appearance && (
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1">Appearance</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {Object.entries(selectedHero.appearance).map(([key, val]) => (
+                  <Typography key={key}>
+                    <strong>{formatLabel(key)}:</strong>{" "}
+                    {Array.isArray(val) ? val.join(", ") : val || "-"}
+                  </Typography>
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          {/* Work Accordion */}
+          {selectedHero?.work && (
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1">Work</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {Object.entries(selectedHero.work).map(([key, val]) => (
+                  <Typography key={key}>
+                    <strong>{formatLabel(key)}:</strong> {val || "-"}
+                  </Typography>
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          )}
+
+          {/* Connections Accordion */}
+          {selectedHero?.connections && (
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle1">Connections</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {Object.entries(selectedHero.connections).map(([key, val]) => (
+                  <Typography key={key}>
+                    <strong>{formatLabel(key)}:</strong> {val || "-"}
+                  </Typography>
+                ))}
+              </AccordionDetails>
+            </Accordion>
           )}
 
           <Box sx={{ mt: 3, textAlign: "center" }}>
