@@ -4,6 +4,7 @@ from sqlalchemy import Enum, CheckConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app.extensions import db
 from sqlalchemy.dialects.postgresql import JSON
+from datetime import datetime
 
 # Allowed event statuses
 EVENT_STATUSES = ("drafting", "published", "cancelled", "completed")
@@ -83,6 +84,12 @@ class Entrant(db.Model):
 
     dropped = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
     event = db.relationship("Event", back_populates="entrants")
     user = db.relationship("User", back_populates="entrants", lazy="joined")
     hero = db.relationship("Hero", lazy="joined")
@@ -133,6 +140,12 @@ class Match(db.Model):
     entrant2_id = db.Column(db.Integer, db.ForeignKey("entrants.id"), nullable=True)
     scores = db.Column(db.String, nullable=True)
     winner_id = db.Column(db.Integer, db.ForeignKey("entrants.id"), nullable=True)
+
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         CheckConstraint(
