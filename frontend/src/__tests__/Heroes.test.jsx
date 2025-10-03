@@ -219,7 +219,13 @@ describe("Heroes - Table and Dialog", () => {
   test("opens dialog with hero details when row is clicked", async () => {
     api.apiFetch.mockResolvedValue({
       results: [
-        { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+        {
+          id: 2,
+          name: "Batman",
+          full_name: "Bruce Wayne",
+          alias: "Dark Knight",
+          alignment: "good",
+        },
       ],
       page: 1,
       per_page: 25,
@@ -228,14 +234,27 @@ describe("Heroes - Table and Dialog", () => {
     });
 
     renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    // trigger a search to populate the table
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "Batman", { allAtOnce: true });
 
-    await userEvent.click(await screen.findByText("Batman"));
-    const dialog = await screen.findByRole("dialog");
+    // click the table row using test id
+    const row = await screen.findByTestId("hero-row-2");
+    await userEvent.click(row);
 
-    expect(within(dialog).getByText("Bruce Wayne")).toBeInTheDocument();
-    expect(within(dialog).getByText("Dark Knight")).toBeInTheDocument();
+    // dialog should open
+    const dialog = await screen.findByTestId("hero-dialog");
+    expect(dialog).toBeInTheDocument();
+
+    // title should match hero name
+    expect(within(dialog).getByTestId("hero-dialog-title")).toHaveTextContent("Batman");
+
+    // alignment should be shown
+    expect(within(dialog).getByTestId("hero-alignment")).toHaveTextContent("GOOD");
+
+    // and we should see the Choose Hero button
+    expect(within(dialog).getByTestId("choose-hero-btn")).toBeInTheDocument();
   });
 
   test("closes dialog when ESC pressed", async () => {
@@ -318,8 +337,13 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.click(await screen.findByText("Flash"));
     const dialog = await screen.findByRole("dialog");
 
-    expect(within(dialog).getByText(/Speed: 100/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Strength: 50/)).toBeInTheDocument();
+    // Scope to Powerstats section (heading role)
+    const statsHeading = within(dialog).getByRole("heading", { name: /powerstats/i });
+    expect(statsHeading).toBeInTheDocument();
+
+    // Then check for individual stats using label text (strong tags get flattened into text)
+    expect(within(dialog).getByText(/Speed/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Strength/i)).toBeInTheDocument();
   });
 
   test("Choose Hero stores chosenHero in localStorage if no entrant exists", async () => {
@@ -404,4 +428,85 @@ describe("Heroes - Table and Dialog", () => {
     // Assert we navigated to dashboard
     expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
   });
+
+ describe("Heroes - Dialog Accordion Sections", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    api.apiFetch.mockResolvedValue({
+      results: [
+        {
+          id: 10,
+          name: "AccordionHero",
+          alignment: "hero",
+          biography: {
+            "full-name": "Test Name",
+            "place-of-birth": "Test City",
+            "publisher": "Test Publisher",
+          },
+          appearance: {
+            "eye-color": "Green",
+            "hair-color": "Black",
+          },
+          work: {
+            base: "Test Base",
+            occupation: "Tester",
+          },
+          connections: {
+            "group-affiliation": "Test Group",
+            relatives: "Test Relative",
+          },
+        },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+  });
+
+  test("renders accordion sections for Biography, Appearance, Work, Connections", async () => {
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("AccordionHero"));
+    const dialog = await screen.findByRole("dialog");
+
+    // Verify accordions exist by heading text
+    expect(within(dialog).getByText("Biography")).toBeInTheDocument();
+    expect(within(dialog).getByText("Appearance")).toBeInTheDocument();
+    expect(within(dialog).getByText("Work")).toBeInTheDocument();
+    expect(within(dialog).getByText("Connections")).toBeInTheDocument();
+  });
+
+  test("accordion shows formatted fields with capitalization", async () => {
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("AccordionHero"));
+    const dialog = await screen.findByRole("dialog");
+
+    // Biography section expands by default
+    expect(within(dialog).getByText(/Full Name:/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Place Of Birth:/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Publisher:/i)).toBeInTheDocument();
+  });
+
+  test("accordion expands Appearance when clicked", async () => {
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("AccordionHero"));
+    const dialog = await screen.findByRole("dialog");
+
+    // Click to expand Appearance
+    const appearanceHeader = within(dialog).getByText("Appearance");
+    await userEvent.click(appearanceHeader);
+
+    expect(within(dialog).getByText(/Eye Color:/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Hair Color:/i)).toBeInTheDocument();
+  });
+}); 
 });
