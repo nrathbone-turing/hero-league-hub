@@ -3,8 +3,8 @@
 // Notes:
 // - Shows Login/Signup when logged out.
 // - Shows Welcome + Logout when logged in.
+// - Added navigation links for Heroes and Events.
 // - Persists token handling via AuthContext.
-// - Styled with simple flexbox layout for consistency.
 
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -36,6 +36,26 @@ export default function Navbar() {
         >
           Hero Tournament Manager
         </Typography>
+
+        {/* Center: Navigation links */}
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            component={Link}
+            to="/heroes"
+            color="inherit"
+            data-testid="nav-heroes"
+          >
+            Heroes
+          </Button>
+          <Button
+            component={Link}
+            to="/events"
+            color="inherit"
+            data-testid="nav-events"
+          >
+            Events
+          </Button>
+        </Box>
 
         {/* Right: Auth-aware actions */}
         <Box sx={{ display: "flex", gap: 2 }}>
