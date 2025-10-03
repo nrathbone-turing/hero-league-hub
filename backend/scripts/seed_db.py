@@ -1,7 +1,7 @@
 # File: backend/scripts/seed_db.py
 # Purpose: Load JSON seed data into the Flask DB.
 # Notes:
-# - Reads from backend/seeds/events.json, entrants.json, matches.json, users.json
+# - Reads from backend/seeds/events.json, entrants.json, matches.json, users.json, superheros_all.json
 # - Inserts into SQLAlchemy models via Flask app context.
 # - Passwords from users.json are hashed before insert.
 # - Resets Postgres sequences to avoid duplicate key issues.
@@ -30,6 +30,7 @@ def run():
         entrants = load_seed("entrants.json")
         matches = load_seed("matches.json")
         users = load_seed("users.json")
+        heroes = load_seed("superheros_all.json")
 
         # Insert Events
         for e in events:
@@ -47,6 +48,24 @@ def run():
             )
             user.set_password(u.get("password", "password123"))
             db.session.add(user)
+
+        # Insert Heroes (all from superheros_all.json)
+        for h in heroes:
+            db.session.add(
+                Hero(
+                    id=h["id"],
+                    name=h["name"],
+                    full_name=h.get("biography", {}).get("fullName"),
+                    image=h.get("images", {}).get("md"),
+                    powerstats=h.get("powerstats"),
+                    biography=h.get("biography"),
+                    appearance=h.get("appearance"),
+                    work=h.get("work"),
+                    connections=h.get("connections"),
+                    alias=h.get("slug"),
+                    alignment=h.get("biography", {}).get("alignment"),
+                )
+            )
 
         # Insert Entrants (linked to users + heroes)
         for en in entrants:
@@ -76,16 +95,6 @@ def run():
                 )
             )
 
-        # Insert demo hero if not exists
-        if not Hero.query.get(999):
-            demo_hero = Hero(
-                id=999,
-                name="Demo Hero",
-                image="http://demo-hero.jpg",
-                powerstats={"strength": 50, "intelligence": 50},
-            )
-            db.session.add(demo_hero)
-
         db.session.commit()
 
         # Reset sequences
@@ -106,9 +115,9 @@ def run():
         print(
             f"✅ Inserted {len(events)} events, "
             f"{len(users)} users, "
+            f"{len(heroes)} heroes, "
             f"{len(entrants)} entrants, "
-            f"{len(matches)} matches, "
-            f"+ demo hero"
+            f"{len(matches)} matches"
         )
         print("🔄 Sequences reset for all tables.")
 
