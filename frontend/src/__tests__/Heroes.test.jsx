@@ -5,6 +5,7 @@
 // - Covers search, loading, error, empty state, pagination, sorting, dialog details, and hero selection.
 
 import { screen, waitFor, within } from "@testing-library/react";
+import { Routes, Route } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Heroes from "../components/Heroes";
@@ -369,5 +370,38 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: /choose hero/i }));
     const entrant = JSON.parse(localStorage.getItem("entrant"));
     expect(entrant?.hero?.name).toBe("New Hero");
+  });
+
+  test("Choose Hero redirects to /dashboard after selection", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 5, name: "RedirectHero", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(
+      <Routes>
+        <Route path="/heroes" element={<Heroes />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+      </Routes>,
+      { route: "/heroes" }
+    );
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "RedirectHero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("RedirectHero"));
+    const dialog = await screen.findByRole("dialog");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: /choose hero/i }));
+
+    // Assert hero persisted
+    const stored = JSON.parse(localStorage.getItem("chosenHero"));
+    expect(stored?.name).toBe("RedirectHero");
+
+    // Assert we navigated to dashboard
+    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
   });
 });
