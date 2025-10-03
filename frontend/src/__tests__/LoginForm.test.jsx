@@ -37,6 +37,6 @@ describe("LoginForm", () => {
     await userEvent.type(screen.getByLabelText(/password/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /log in/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/invalid/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/login failed/i);
   });
 });
