@@ -1,9 +1,9 @@
 // File: frontend/src/components/Heroes.jsx
 // Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
-// - Supports browsing/searching heroes.
-// - If user already registered, selecting a new hero updates entrant on backend.
-// - Otherwise falls back to localStorage persistence for hero choice.
+// - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
+// - Persist chosen hero or update entrant.hero if registered.
+// - Fallback confirm dialog text if event details are missing.
 
 import { useState, useEffect } from "react";
 import {
@@ -11,6 +11,7 @@ import {
   Typography,
   TextField,
   Box,
+  Button,
   Table,
   TableHead,
   TableRow,
@@ -22,7 +23,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Button,
 } from "@mui/material";
 import { apiFetch } from "../api";
 
@@ -96,6 +96,7 @@ export default function Heroes() {
 
   const sortedHeroes = sortData(heroes, orderBy, order);
 
+  // Compute dialog image src:
   const dialogImgSrc = (h) => {
     if (!h) return null;
     if (h.proxy_image) return h.proxy_image;
@@ -106,29 +107,26 @@ export default function Heroes() {
   async function handleChooseHero(hero) {
     try {
       const storedEntrant = localStorage.getItem("entrant");
-      if (storedEntrant) {
-        const entrant = JSON.parse(storedEntrant);
-        const confirmReplace = window.confirm(
-          `You are registered for ${entrant.event?.name}. Replace your hero with ${hero.name}?`
-        );
-        if (!confirmReplace) return;
+      let parsedEntrant = storedEntrant ? JSON.parse(storedEntrant) : null;
 
-        // Update entrant with new hero
-        const updated = await apiFetch(`/entrants/${entrant.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ hero_id: hero.id }),
-        });
-        localStorage.setItem("entrant", JSON.stringify(updated));
-        localStorage.setItem("chosenHero", JSON.stringify(hero));
-        alert(`✅ Hero updated to ${hero.name} for ${entrant.event?.name}`);
+      if (parsedEntrant) {
+        const eventName = parsedEntrant.event?.name || "your current event";
+        if (
+          !window.confirm(
+            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
+          )
+        ) {
+          return;
+        }
+        parsedEntrant.hero = hero;
+        localStorage.setItem("entrant", JSON.stringify(parsedEntrant));
       } else {
-        // No entrant yet, fallback to local storage persistence
         localStorage.setItem("chosenHero", JSON.stringify(hero));
-        alert(`✅ Hero chosen: ${hero.name}`);
       }
+
       setSelectedHero(null);
     } catch (err) {
-      alert(`❌ Failed to update hero: ${err.message}`);
+      alert("❌ Failed to choose hero: " + err.message);
     }
   }
 
@@ -242,6 +240,14 @@ export default function Heroes() {
                   borderRadius: "8px",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                 }}
+                onError={(e) => {
+                  if (
+                    selectedHero?.image &&
+                    e.currentTarget.src !== selectedHero.image
+                  ) {
+                    e.currentTarget.src = selectedHero.image;
+                  }
+                }}
               />
             </Box>
           ) : (
@@ -250,6 +256,7 @@ export default function Heroes() {
             </Typography>
           )}
 
+          {/* Alignment */}
           <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
