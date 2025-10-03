@@ -2,6 +2,7 @@
 // Purpose: Participant dashboard.
 // Notes:
 // - Uses namespaced keys: entrant_<id>, chosenHero_<id>
+// - Cancels registration but preserves chosenHero if no matches exist.
 
 import { useAuth } from "../context/AuthContext";
 import { deleteEntrant } from "../api";
@@ -42,8 +43,7 @@ export default function UserDashboard() {
     const storedHero = heroKey ? localStorage.getItem(heroKey) : null;
     if (storedHero) {
       try {
-        const parsed = JSON.parse(storedHero);
-        setChosenHero(Array.isArray(parsed) ? parsed[0] : parsed);
+        setChosenHero(JSON.parse(storedHero));
       } catch {
         setChosenHero(null);
       }
@@ -66,10 +66,16 @@ export default function UserDashboard() {
 
     try {
       await deleteEntrant(entrant.id);
+
       localStorage.removeItem(`entrant_${user.id}`);
-      localStorage.removeItem(`chosenHero_${user.id}`);
+
+      // Only clear chosenHero if entrant had matches
+      if (entrant.matches && entrant.matches.length > 0) {
+        localStorage.removeItem(`chosenHero_${user.id}`);
+        setChosenHero(null);
+      }
+
       setEntrant(null);
-      setChosenHero(null);
     } catch (err) {
       console.error("Failed to unregister", err);
       alert("❌ Failed to cancel registration");
