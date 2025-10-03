@@ -9,6 +9,7 @@ import time
 
 
 def test_signup_creates_user(client):
+    """Test that POST /api/signup creates a user and returns JSON without password."""
     resp = client.post(
         "/api/signup",
         json={
@@ -19,8 +20,9 @@ def test_signup_creates_user(client):
     )
     assert resp.status_code == 201
     data = resp.get_json()
-    assert data["username"] == "alice"
-    assert "password" not in data  # password should not be returned
+    # User fields are nested under "user"
+    assert data["user"]["username"] == "alice"
+    assert "password" not in data["user"]
 
 
 def test_login_returns_token(client):
