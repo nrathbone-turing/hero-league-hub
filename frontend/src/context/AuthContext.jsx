@@ -49,8 +49,10 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    const userData = data.user || { username, email };
-    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    const normalized = {
+      ...(data.user || { username, email }),
+      is_admin: data.user?.is_admin ?? false,
+    };
     setUser(normalized);
 
     return data;
@@ -66,8 +68,10 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    const userData = data.user || { username: email.split("@")[0], email };
-    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    const normalized = {
+      ...(data.user || { username: email.split("@")[0], email }),
+      is_admin: data.user?.is_admin ?? false,
+    };
     setUser(normalized);
 
     return data;
@@ -94,7 +98,5 @@ export default function AuthProvider({ children }) {
     isAuthenticated: !!token,
   };
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
