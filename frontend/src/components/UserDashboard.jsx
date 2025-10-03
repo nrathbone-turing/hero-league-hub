@@ -3,6 +3,8 @@
 // Notes:
 // - Uses namespaced keys: entrant_<id>, chosenHero_<id>
 // - Cancels registration but preserves chosenHero if no matches exist.
+// - Includes data-testid hooks for stable tests.
+// - Renders hero powerstats when available.
 
 import { useAuth } from "../context/AuthContext";
 import { deleteEntrant } from "../api";
@@ -92,9 +94,14 @@ export default function UserDashboard() {
         {/* Hero card */}
         <Grid item xs={12} md={6}>
           {chosenHero ? (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="hero-card">
               <CardContent>
-                <Typography variant="h6" align="center" sx={{ fontWeight: "bold", mb: 2 }}>
+                <Typography
+                  variant="h6"
+                  align="center"
+                  sx={{ fontWeight: "bold", mb: 2 }}
+                  data-testid="hero-alignment"
+                >
                   {chosenHero.alignment?.toUpperCase() || "UNKNOWN"}
                 </Typography>
                 <Box textAlign="center" mb={2}>
@@ -102,6 +109,7 @@ export default function UserDashboard() {
                     <img
                       src={chosenHero.proxy_image}
                       alt={chosenHero.name}
+                      data-testid="hero-image"
                       style={{
                         maxWidth: "100%",
                         borderRadius: "8px",
@@ -110,27 +118,57 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography variant="h5" align="center" gutterBottom>
+                <Typography
+                  variant="h5"
+                  align="center"
+                  gutterBottom
+                  data-testid="hero-name"
+                >
                   {chosenHero.name}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography
+                  align="center"
+                  gutterBottom
+                  data-testid="hero-full-name"
+                >
                   {chosenHero.full_name || "-"}
                 </Typography>
-                <Typography>
+                <Typography data-testid="hero-alias">
                   <strong>Alias:</strong> {chosenHero.alias || "-"}
                 </Typography>
+
+                {/* Powerstats block */}
+                <Box sx={{ mt: 2 }} data-testid="hero-powerstats">
+                  {chosenHero.powerstats &&
+                    Object.entries(chosenHero.powerstats).map(([key, value]) => (
+                      <Typography key={key} align="center">
+                        {key}: {value}
+                      </Typography>
+                    ))}
+                </Box>
+
                 <Box sx={{ mt: 3, textAlign: "center" }}>
-                  <Button variant="outlined" color="secondary" onClick={() => navigate("/heroes")}>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => navigate("/heroes")}
+                    data-testid="choose-another-hero"
+                  >
                     Choose Another Hero
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="hero-card-empty">
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t selected your hero yet.</Typography>
-                <Button variant="contained" color="primary" onClick={() => navigate("/heroes")}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => navigate("/heroes")}
+                  data-testid="choose-hero-btn"
+                >
                   Choose Hero
                 </Button>
               </CardContent>
@@ -141,21 +179,21 @@ export default function UserDashboard() {
         {/* Event card */}
         <Grid item xs={12} md={6}>
           {entrant ? (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="event-card">
               <CardContent>
                 <Typography variant="h6" align="center" sx={{ fontWeight: "bold", mb: 2 }}>
                   Registered Event
                 </Typography>
-                <Typography variant="h5" align="center" gutterBottom>
+                <Typography variant="h5" align="center" gutterBottom data-testid="event-name">
                   {entrant.event?.name || "Event"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography align="center" gutterBottom data-testid="event-date">
                   {entrant.event?.date || "TBA"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography align="center" gutterBottom data-testid="event-status">
                   Status: {entrant.event?.status || "-"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography align="center" gutterBottom data-testid="event-entrants">
                   Entrants: {entrant.event?.entrant_count ?? "-"}
                 </Typography>
                 <Box textAlign="center" my={2}>
@@ -163,6 +201,7 @@ export default function UserDashboard() {
                     <img
                       src={entrant.hero.proxy_image}
                       alt={entrant.hero.name}
+                      data-testid="event-hero-image"
                       style={{
                         maxWidth: "200px",
                         borderRadius: "8px",
@@ -171,13 +210,13 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography variant="h6" align="center">
+                <Typography variant="h6" align="center" data-testid="event-hero-name">
                   {entrant.hero?.name}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography align="center" gutterBottom data-testid="event-hero-full-name">
                   {entrant.hero?.full_name || "-"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography align="center" gutterBottom data-testid="event-hero-alias">
                   Alias: {entrant.hero?.alias || "-"}
                 </Typography>
                 <Box sx={{ mt: 3, textAlign: "center" }}>
@@ -186,23 +225,30 @@ export default function UserDashboard() {
                     color="secondary"
                     onClick={() => navigate("/register-event")}
                     sx={{ mr: 2 }}
+                    data-testid="change-registration-btn"
                   >
                     Change Registration
                   </Button>
-                  <Button variant="outlined" color="error" onClick={handleCancelRegistration}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleCancelRegistration}
+                    data-testid="cancel-registration-btn"
+                  >
                     Cancel Registration
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="event-card-empty">
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t registered for an event yet.</Typography>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/register-event")}
+                  data-testid="register-event-btn"
                 >
                   Register for Event
                 </Button>
