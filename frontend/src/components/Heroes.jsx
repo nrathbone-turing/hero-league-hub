@@ -3,6 +3,7 @@
 // Notes:
 // - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
 // - Persist chosen hero or update entrant.hero if registered.
+// - Redirects to /dashboard after hero is chosen.
 // - Fallback confirm dialog text if event details are missing.
 
 import { useState, useEffect } from "react";
@@ -25,6 +26,7 @@ import {
   DialogContent,
 } from "@mui/material";
 import { apiFetch } from "../api";
+import { useNavigate } from "react-router-dom";
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
@@ -43,6 +45,8 @@ export default function Heroes() {
 
   // Modal
   const [selectedHero, setSelectedHero] = useState(null);
+
+  const navigate = useNavigate();
 
   async function fetchHeroes(query = "", pageNum = 0, perPage = 25) {
     if (!query) {
@@ -125,6 +129,7 @@ export default function Heroes() {
       }
 
       setSelectedHero(null);
+      navigate("/dashboard"); // 👈 redirect to dashboard after choosing
     } catch (err) {
       alert("❌ Failed to choose hero: " + err.message);
     }
