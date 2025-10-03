@@ -20,3 +20,8 @@ postgres_data/
 # Environment files
 .env
 .env.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
