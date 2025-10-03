@@ -1,11 +1,8 @@
 // File: frontend/src/components/Heroes.jsx
 // Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
 // Notes:
-// - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
-// - Persist chosen hero or update entrant.hero if registered.
-// - Redirects to /dashboard after hero is chosen.
-// - Modal uses accordions with properly capitalized, human-friendly field labels.
-// - Added data-testid hooks for stable test selectors.
+// - Namespaced localStorage by user id.
+// - Stable test selectors via data-testid on table, dialog, and fields.
 
 import { useState, useEffect } from "react";
 import {
@@ -32,8 +29,10 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { apiFetch } from "../api";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Heroes() {
+  const { user } = useAuth();
   const [heroes, setHeroes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -63,9 +62,7 @@ export default function Heroes() {
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${
-          pageNum + 1
-        }&per_page=${perPage}`
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
       );
       setHeroes(data.results || []);
       setTotal(data.total || 0);
@@ -117,22 +114,24 @@ export default function Heroes() {
 
   async function handleChooseHero(hero) {
     try {
-      const storedEntrant = localStorage.getItem("entrant");
+      const entrantKey = `entrant_${user?.id}`;
+      const heroKey = `chosenHero_${user?.id}`;
+      const storedEntrant = entrantKey ? localStorage.getItem(entrantKey) : null;
       let parsedEntrant = storedEntrant ? JSON.parse(storedEntrant) : null;
 
       if (parsedEntrant) {
         const eventName = parsedEntrant.event?.name || "your current event";
         if (
           !window.confirm(
-            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
+            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`,
           )
         ) {
           return;
         }
         parsedEntrant.hero = hero;
-        localStorage.setItem("entrant", JSON.stringify(parsedEntrant));
+        localStorage.setItem(entrantKey, JSON.stringify(parsedEntrant));
       } else {
-        localStorage.setItem("chosenHero", JSON.stringify(hero));
+        localStorage.setItem(heroKey, JSON.stringify(hero));
       }
 
       setSelectedHero(null);
@@ -148,14 +147,12 @@ export default function Heroes() {
     return Array.isArray(aliases) ? aliases.join(", ") : aliases;
   };
 
-  const formatLabel = (key) => {
-    if (!key) return "";
-    return key
+  const formatLabel = (key) =>
+    key
       .replace(/_/g, " ")
       .replace(/-/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/\b\w/g, (c) => c.toUpperCase());
-  };
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -202,10 +199,7 @@ export default function Heroes() {
             <TableHead>
               <TableRow>
                 {["id", "name", "full_name", "alias", "alignment"].map((col) => (
-                  <TableCell
-                    key={col}
-                    sortDirection={orderBy === col ? order : false}
-                  >
+                  <TableCell key={col} sortDirection={orderBy === col ? order : false}>
                     <TableSortLabel
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
@@ -267,7 +261,7 @@ export default function Heroes() {
             <Box textAlign="center" mb={2}>
               <img
                 src={dialogImgSrc(selectedHero)}
-                alt={selectedHero.name}
+                alt={selectedHero?.name}
                 style={{
                   maxWidth: "100%",
                   height: "auto",
@@ -277,21 +271,12 @@ export default function Heroes() {
               />
             </Box>
           ) : (
-            <Typography
-              align="center"
-              color="text.secondary"
-              sx={{ mb: 2 }}
-              data-testid="no-image-text"
-            >
+            <Typography align="center" color="text.secondary" sx={{ mb: 2 }} data-testid="no-image-text">
               No image available
             </Typography>
           )}
 
-          <Typography
-            align="center"
-            sx={{ fontWeight: "bold", mb: 1 }}
-            data-testid="hero-alignment"
-          >
+          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }} data-testid="hero-alignment">
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
@@ -309,7 +294,7 @@ export default function Heroes() {
             </Box>
           )}
 
-          {/* Biography Accordion */}
+          {/* Biography */}
           {selectedHero?.biography && (
             <Accordion data-testid="hero-biography">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -328,7 +313,7 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Appearance Accordion */}
+          {/* Appearance */}
           {selectedHero?.appearance && (
             <Accordion data-testid="hero-appearance">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -345,7 +330,7 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Work Accordion */}
+          {/* Work */}
           {selectedHero?.work && (
             <Accordion data-testid="hero-work">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -361,7 +346,7 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Connections Accordion */}
+          {/* Connections */}
           {selectedHero?.connections && (
             <Accordion data-testid="hero-connections">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
