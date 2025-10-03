@@ -1,10 +1,11 @@
 // File: frontend/src/components/EventRegistration.jsx
 // Purpose: Register logged-in users for an event with hero selection.
 // Notes:
-// - Autocomplete searches across full hero DB, but dropdown shows only top 25.
-// - Persists entrant + chosen hero in localStorage after successful registration.
+// - Loads first page of heroes on mount so dropdown is populated.
+// - Typing triggers server-side search, always capped at 25 results.
+// - Persists entrant + chosen hero per user in localStorage.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Container,
   Typography,
@@ -21,14 +22,16 @@ import { apiFetch } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
+const PAGE_SIZE = 25;
+
 export default function EventRegistration() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [events, setEvents] = useState([]);
-  const [heroes, setHeroes] = useState([]);
+  const [heroOptions, setHeroOptions] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const [loadingHeroes, setLoadingHeroes] = useState(true);
+  const [loadingHeroes, setLoadingHeroes] = useState(false);
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -38,9 +41,11 @@ export default function EventRegistration() {
     notes: "",
   });
 
+  const latestTerm = useRef("");
+
   // Load events
   useEffect(() => {
-    async function fetchEvents() {
+    (async () => {
       try {
         const data = await apiFetch("/events");
         setEvents(data);
@@ -49,24 +54,45 @@ export default function EventRegistration() {
       } finally {
         setLoadingEvents(false);
       }
-    }
-    fetchEvents();
+    })();
   }, []);
 
-  // Load heroes (fetch all for search)
+  // Load first heroes page on mount
   useEffect(() => {
-    async function fetchHeroes() {
+    (async () => {
+      setLoadingHeroes(true);
       try {
-        const data = await apiFetch("/heroes?search=a&page=1&per_page=1000");
-        setHeroes(data.results || []);
+        const data = await apiFetch(`/heroes?search=a&page=1&per_page=${PAGE_SIZE}`);
+        setHeroOptions(data.results || []);
       } catch {
         setError("Failed to load heroes");
       } finally {
         setLoadingHeroes(false);
       }
-    }
-    fetchHeroes();
+    })();
   }, []);
+
+  // Server-side search when typing
+  async function handleHeroSearch(term) {
+    latestTerm.current = term;
+    if (!term) return; // don’t send empty search
+
+    setLoadingHeroes(true);
+    try {
+      const url = `/heroes?search=${encodeURIComponent(term)}&page=1&per_page=${PAGE_SIZE}`;
+      const data = await apiFetch(url);
+      if (latestTerm.current === term) {
+        setHeroOptions(data.results || []);
+      }
+    } catch {
+      if (latestTerm.current === term) {
+        setHeroOptions([]);
+        setError("Failed to load heroes");
+      }
+    } finally {
+      if (latestTerm.current === term) setLoadingHeroes(false);
+    }
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -81,9 +107,9 @@ export default function EventRegistration() {
         body: JSON.stringify(formData),
       });
 
-      localStorage.setItem("entrant", JSON.stringify(entrant));
+      localStorage.setItem(`entrant_${user.id}`, JSON.stringify(entrant));
       if (entrant.hero) {
-        localStorage.setItem("chosenHero", JSON.stringify(entrant.hero));
+        localStorage.setItem(`chosenHero_${user.id}`, JSON.stringify(entrant.hero));
       }
 
       navigate("/dashboard");
@@ -144,60 +170,46 @@ export default function EventRegistration() {
           </TextField>
         )}
 
-        {loadingHeroes ? (
-          <Box textAlign="center" mt={2}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            <Autocomplete
-              options={heroes}
-              getOptionLabel={(option) =>
-                option?.name
-                  ? `${option.name}${option.alias ? ` (${option.alias})` : ""}`
-                  : ""
-              }
-              renderOption={(props, option) => (
-                <li {...props} key={option.id}>
-                  {option.name} ({option.alias || "No alias"})
-                </li>
-              )}
-              filterOptions={(options, state) =>
-                options
-                  .filter((h) =>
-                    h.name.toLowerCase().includes(state.inputValue.toLowerCase())
-                  )
-                  .slice(0, 25)
-              }
-              onChange={(e, newValue) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  hero_id: newValue?.id || "",
-                }))
-              }
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Hero"
-                  margin="normal"
-                  fullWidth
-                  required
-                />
-              )}
-              ListboxProps={{ style: { maxHeight: 300, overflow: "auto" } }}
-            />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 1, display: "block" }}
-            >
-              Not sure who to pick?{" "}
-              <Link href="/heroes" target="_blank" rel="noopener">
-                Browse characters
-              </Link>
-            </Typography>
-          </>
-        )}
+        <Autocomplete
+          options={heroOptions}
+          loading={loadingHeroes}
+          filterOptions={(x) => x} // don’t filter client-side, backend handles it
+          getOptionLabel={(option) =>
+            option?.name ? `${option.name}${option.alias ? ` (${option.alias})` : ""}` : ""
+          }
+          renderOption={(props, option) => (
+            <li {...props} key={option.id}>
+              {option.name} ({option.alias || "No alias"})
+            </li>
+          )}
+          onChange={(_, newValue) =>
+            setFormData((prev) => ({
+              ...prev,
+              hero_id: newValue?.id || "",
+            }))
+          }
+          onInputChange={(_, newInput) => {
+            if (newInput && newInput.length > 1) {
+              handleHeroSearch(newInput);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField {...params} label="Hero" margin="normal" fullWidth required />
+          )}
+          ListboxProps={{ style: { maxHeight: 300, overflow: "auto" } }}
+          noOptionsText={loadingHeroes ? "Loading..." : "No options"}
+        />
+
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mt: 1, display: "block" }}
+        >
+          Not sure who to pick?{" "}
+          <Link href="/heroes" target="_blank" rel="noopener">
+            Browse characters
+          </Link>
+        </Typography>
 
         <TextField
           label="Notes"
