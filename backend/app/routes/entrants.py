@@ -61,6 +61,45 @@ def register_user_for_event():
         return jsonify(error=f"Failed to register entrant: {str(e)}"), 500
 
 
+@bp.route("/unregister/<int:event_id>", methods=["DELETE"])
+@jwt_required()
+def unregister_user_from_event(event_id):
+    """User: unregister from an event.
+    - Hard delete if no matches
+    - Soft delete if matches exist
+    """
+    from flask_jwt_extended import get_jwt_identity
+    user_id = get_jwt_identity()
+    try:
+        entrant = Entrant.query.filter_by(user_id=user_id, event_id=event_id).first()
+        if not entrant:
+            abort(404)
+
+        has_matches = (
+            Match.query.filter(
+                (Match.entrant1_id == entrant.id)
+                | (Match.entrant2_id == entrant.id)
+                | (Match.winner_id == entrant.id)
+            ).count()
+            > 0
+        )
+
+        if has_matches:
+            entrant.soft_delete()
+            db.session.commit()
+            return jsonify(
+                entrant.to_dict(include_event=True, include_hero=True, include_user=True)
+            ), 200
+        else:
+            db.session.delete(entrant)
+            db.session.commit()
+            return "", 204
+    except Exception as e:
+        db.session.rollback()
+        traceback.print_exc()
+        return jsonify(error="Failed to unregister entrant"), 500
+
+
 # ------------------------
 # ADMIN CRUD ENDPOINTS
 # ------------------------
