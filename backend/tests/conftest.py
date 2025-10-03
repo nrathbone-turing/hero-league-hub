@@ -3,7 +3,7 @@
 # Provides:
 # - app, client, session
 # - create_event, create_user, create_hero, seed_event_with_entrants
-# - auth_header (JWT bound to real User)
+# - auth_user_and_header (User + JWT header)
 # - mock_hero_api (patch Superhero API)
 
 import pytest
@@ -114,11 +114,10 @@ def seed_event_with_entrants(session, create_event):
 
 
 @pytest.fixture
-def auth_header(app, session):
-    """Provide Authorization header with a valid JWT bound to a real User.
-    This ensures endpoints that fetch the user by ID can succeed.
+def auth_user_and_header(app, session):
+    """Provide (user, header) tuple with a valid JWT bound to a real User.
+    Use this fixture when tests need both the logged-in user and auth header.
     """
-    # Create a test user
     user = User(username="authuser", email="auth@test.com")
     user.set_password("password")
     session.add(user)
@@ -126,7 +125,8 @@ def auth_header(app, session):
 
     with app.app_context():
         token = create_access_token(identity=str(user.id))
-        return {"Authorization": f"Bearer {token}"}
+        header = {"Authorization": f"Bearer {token}"}
+        return user, header
 
 
 # ------------------------------
