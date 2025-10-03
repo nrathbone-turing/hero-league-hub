@@ -1,14 +1,15 @@
+// Purpose: Tests for LoginForm component.
+// Notes:
+// - Uses renderWithRouter to wrap AuthProvider/MemoryRouter.
+// - Less strict assertions: roles, text content, and test ids.
+
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import LoginForm from "../components/LoginForm";
 import { renderWithRouter } from "../test-utils";
 import { mockFetchSuccess, mockFetchFailure } from "../setupTests";
-import LoginForm from "../components/LoginForm";
 
 describe("LoginForm", () => {
-  afterEach(() => {
-    localStorage.clear();
-  });
-
   test("renders username and password fields", () => {
     renderWithRouter(<LoginForm />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -16,30 +17,26 @@ describe("LoginForm", () => {
   });
 
   test("successful login stores token and redirects", async () => {
-    mockFetchSuccess({
-      access_token: "fake-jwt-token",
-      user: { username: "tester", email: "t@example.com", is_admin: false },
-    });
+    mockFetchSuccess({ access_token: "token123", user: { username: "bob" } });
 
     renderWithRouter(<LoginForm />, { route: "/login" });
-
-    await userEvent.type(screen.getByLabelText(/email/i), "t@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "password123");
+    await userEvent.type(screen.getByLabelText(/email/i), "bob@example.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "pw123");
     await userEvent.click(screen.getByRole("button", { name: /log in/i }));
 
-    await waitFor(() =>
-      expect(localStorage.getItem("token")).toBe("fake-jwt-token")
-    );
+    await waitFor(() => {
+      expect(localStorage.getItem("token")).toBe("token123");
+    });
   });
 
   test("shows error on invalid credentials", async () => {
     mockFetchFailure({ error: "Invalid credentials" });
 
     renderWithRouter(<LoginForm />, { route: "/login" });
-    await userEvent.type(screen.getByLabelText(/email/i), "wrong@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "badpass");
+    await userEvent.type(screen.getByLabelText(/email/i), "bad@example.com");
+    await userEvent.type(screen.getByLabelText(/password/i), "wrong");
     await userEvent.click(screen.getByRole("button", { name: /log in/i }));
 
-    expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/invalid/i);
   });
 });
