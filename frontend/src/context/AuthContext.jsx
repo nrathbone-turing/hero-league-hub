@@ -3,9 +3,11 @@
 // Notes:
 // - Stores current user and JWT token in localStorage.
 // - Uses centralized apiFetch for all API calls.
-// - Exposes signup, login, logout, and isAuthenticated.
+// - Exposes signup, login, logout, validateToken, and isAuthenticated.
+// - Auto-redirects to /login if token is invalid/expired.
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 
 const AuthContext = createContext();
@@ -20,6 +22,8 @@ export default function AuthProvider({ children }) {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
+
+  const navigate = useNavigate();
 
   // persist token
   useEffect(() => {
@@ -38,6 +42,28 @@ export default function AuthProvider({ children }) {
       localStorage.removeItem("user");
     }
   }, [user]);
+
+  // -------------------------
+  // Helper: validate token
+  // -------------------------
+  const validateToken = async () => {
+    if (!token) return false;
+    try {
+      const res = await apiFetch("/protected"); // backend validates JWT
+      console.log("✅ Token validated:", res);
+      return true;
+    } catch (err) {
+      console.warn("⚠️ Invalid/expired token, logging out:", err.message);
+      logout(true); // auto redirect on failure
+      return false;
+    }
+  };
+
+  // run token validation once on mount
+  useEffect(() => {
+    validateToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Signup
   const signup = async (username, email, password) => {
@@ -78,7 +104,7 @@ export default function AuthProvider({ children }) {
   };
 
   // Logout
-  const logout = async () => {
+  const logout = async (redirect = false) => {
     try {
       await apiFetch("/logout", { method: "DELETE" });
     } catch (err) {
@@ -86,6 +112,10 @@ export default function AuthProvider({ children }) {
     }
     setToken(null);
     setUser(null);
+
+    if (redirect) {
+      navigate("/login");
+    }
   };
 
   const value = {
@@ -95,6 +125,7 @@ export default function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    validateToken,
     isAuthenticated: !!token,
   };
 
