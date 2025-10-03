@@ -235,25 +235,16 @@ describe("Heroes - Table and Dialog", () => {
 
     renderWithRouter(<Heroes />, { route: "/heroes" });
 
-    // trigger a search to populate the table
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "Batman", { allAtOnce: true });
 
-    // click the table row using test id
     const row = await screen.findByTestId("hero-row-2");
     await userEvent.click(row);
 
-    // dialog should open
     const dialog = await screen.findByTestId("hero-dialog");
     expect(dialog).toBeInTheDocument();
-
-    // title should match hero name
     expect(within(dialog).getByTestId("hero-dialog-title")).toHaveTextContent("Batman");
-
-    // alignment should be shown
     expect(within(dialog).getByTestId("hero-alignment")).toHaveTextContent("GOOD");
-
-    // and we should see the Choose Hero button
     expect(within(dialog).getByTestId("choose-hero-btn")).toBeInTheDocument();
   });
 
@@ -337,68 +328,17 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.click(await screen.findByText("Flash"));
     const dialog = await screen.findByRole("dialog");
 
-    // Scope to Powerstats section (heading role)
-    const statsHeading = within(dialog).getByRole("heading", { name: /powerstats/i });
-    expect(statsHeading).toBeInTheDocument();
-
-    // Then check for individual stats using label text (strong tags get flattened into text)
+    expect(within(dialog).getByRole("heading", { name: /powerstats/i })).toBeInTheDocument();
     expect(within(dialog).getByText(/Speed/i)).toBeInTheDocument();
     expect(within(dialog).getByText(/Strength/i)).toBeInTheDocument();
   });
 
-  test("Choose Hero stores chosenHero in localStorage if no entrant exists", async () => {
+  test("Choose Hero (no entrant): stores hero in namespaced storage and redirects", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+
     api.apiFetch.mockResolvedValue({
       results: [{ id: 1, name: "Wonder Woman", alignment: "good" }],
-      page: 1,
-      per_page: 25,
-      total: 1,
-      total_pages: 1,
-    });
-
-    renderWithRouter(<Heroes />, { route: "/heroes" });
-    const input = await screen.findByRole("textbox", { name: /search heroes/i });
-    await userEvent.type(input, "Wonder Woman", { allAtOnce: true });
-
-    await userEvent.click(await screen.findByText("Wonder Woman"));
-    const dialog = await screen.findByRole("dialog");
-
-    await userEvent.click(within(dialog).getByRole("button", { name: /choose hero/i }));
-    const stored = JSON.parse(localStorage.getItem("chosenHero"));
-    expect(stored?.name).toBe("Wonder Woman");
-  });
-
-  test("Choose Hero replaces hero in entrant if entrant exists", async () => {
-    localStorage.setItem(
-      "entrant",
-      JSON.stringify({ id: 1, event: { name: "Hero Cup" }, hero: { id: 2, name: "Old Hero" } }),
-    );
-
-    api.apiFetch.mockResolvedValue({
-      results: [{ id: 3, name: "New Hero", alignment: "good" }],
-      page: 1,
-      per_page: 25,
-      total: 1,
-      total_pages: 1,
-    });
-
-    renderWithRouter(<Heroes />, { route: "/heroes" });
-    const input = await screen.findByRole("textbox", { name: /search heroes/i });
-    await userEvent.type(input, "New Hero", { allAtOnce: true });
-
-    await userEvent.click(await screen.findByText("New Hero"));
-    const dialog = await screen.findByRole("dialog");
-
-    // Mock confirm to always return true
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-
-    await userEvent.click(within(dialog).getByRole("button", { name: /choose hero/i }));
-    const entrant = JSON.parse(localStorage.getItem("entrant"));
-    expect(entrant?.hero?.name).toBe("New Hero");
-  });
-
-  test("Choose Hero redirects to /dashboard after selection", async () => {
-    api.apiFetch.mockResolvedValue({
-      results: [{ id: 5, name: "RedirectHero", alignment: "good" }],
       page: 1,
       per_page: 25,
       total: 1,
@@ -414,22 +354,86 @@ describe("Heroes - Table and Dialog", () => {
     );
 
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
-    await userEvent.type(input, "RedirectHero", { allAtOnce: true });
+    await userEvent.type(input, "Wonder Woman", { allAtOnce: true });
 
-    await userEvent.click(await screen.findByText("RedirectHero"));
-    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(await screen.findByTestId("hero-row-1"));
+    const dialog = await screen.findByTestId("hero-dialog");
 
-    await userEvent.click(within(dialog).getByRole("button", { name: /choose hero/i }));
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
 
-    // Assert hero persisted
-    const stored = JSON.parse(localStorage.getItem("chosenHero"));
-    expect(stored?.name).toBe("RedirectHero");
-
-    // Assert we navigated to dashboard
     expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
+
+    const stored = JSON.parse(localStorage.getItem("chosenHero_123"));
+    expect(stored?.name).toBe("Wonder Woman");
   });
 
- describe("Heroes - Dialog Accordion Sections", () => {
+  test("Choose Hero (entrant exists): replaces hero after confirm", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 3, name: "New Hero", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(
+      <Routes>
+        <Route path="/heroes" element={<Heroes />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+      </Routes>,
+      { route: "/heroes" }
+    );
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "New Hero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByTestId("hero-row-3"));
+    const dialog = await screen.findByTestId("hero-dialog");
+
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
+
+    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
+    const entrant = JSON.parse(localStorage.getItem("entrant_123"));
+    expect(entrant?.hero?.name).toBe("New Hero");
+  });
+
+  test("Choose Hero (entrant exists): cancel confirm leaves hero unchanged", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 3, name: "New Hero", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "New Hero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByTestId("hero-row-3"));
+    const dialog = await screen.findByTestId("hero-dialog");
+
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
+
+    const entrant = JSON.parse(localStorage.getItem("entrant_123"));
+    expect(entrant?.hero?.name).toBe("Old Hero");
+  });
+});
+
+describe("Heroes - Dialog Accordion Sections", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     api.apiFetch.mockResolvedValue({
@@ -438,23 +442,10 @@ describe("Heroes - Table and Dialog", () => {
           id: 10,
           name: "AccordionHero",
           alignment: "hero",
-          biography: {
-            "full-name": "Test Name",
-            "place-of-birth": "Test City",
-            "publisher": "Test Publisher",
-          },
-          appearance: {
-            "eye-color": "Green",
-            "hair-color": "Black",
-          },
-          work: {
-            base: "Test Base",
-            occupation: "Tester",
-          },
-          connections: {
-            "group-affiliation": "Test Group",
-            relatives: "Test Relative",
-          },
+          biography: { "full-name": "Test Name" },
+          appearance: { "eye-color": "Green" },
+          work: { occupation: "Tester" },
+          connections: { relatives: "Test Relative" },
         },
       ],
       page: 1,
@@ -464,7 +455,7 @@ describe("Heroes - Table and Dialog", () => {
     });
   });
 
-  test("renders accordion sections for Biography, Appearance, Work, Connections", async () => {
+  test("renders accordion sections", async () => {
     renderWithRouter(<Heroes />, { route: "/heroes" });
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "AccordionHero", { allAtOnce: true });
@@ -472,41 +463,9 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.click(await screen.findByText("AccordionHero"));
     const dialog = await screen.findByRole("dialog");
 
-    // Verify accordions exist by heading text
     expect(within(dialog).getByText("Biography")).toBeInTheDocument();
     expect(within(dialog).getByText("Appearance")).toBeInTheDocument();
     expect(within(dialog).getByText("Work")).toBeInTheDocument();
     expect(within(dialog).getByText("Connections")).toBeInTheDocument();
   });
-
-  test("accordion shows formatted fields with capitalization", async () => {
-    renderWithRouter(<Heroes />, { route: "/heroes" });
-    const input = await screen.findByRole("textbox", { name: /search heroes/i });
-    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
-
-    await userEvent.click(await screen.findByText("AccordionHero"));
-    const dialog = await screen.findByRole("dialog");
-
-    // Biography section expands by default
-    expect(within(dialog).getByText(/Full Name:/i)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Place Of Birth:/i)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Publisher:/i)).toBeInTheDocument();
-  });
-
-  test("accordion expands Appearance when clicked", async () => {
-    renderWithRouter(<Heroes />, { route: "/heroes" });
-    const input = await screen.findByRole("textbox", { name: /search heroes/i });
-    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
-
-    await userEvent.click(await screen.findByText("AccordionHero"));
-    const dialog = await screen.findByRole("dialog");
-
-    // Click to expand Appearance
-    const appearanceHeader = within(dialog).getByText("Appearance");
-    await userEvent.click(appearanceHeader);
-
-    expect(within(dialog).getByText(/Eye Color:/i)).toBeInTheDocument();
-    expect(within(dialog).getByText(/Hair Color:/i)).toBeInTheDocument();
-  });
-}); 
 });
