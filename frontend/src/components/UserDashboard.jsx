@@ -1,10 +1,7 @@
 // File: frontend/src/components/UserDashboard.jsx
-// Purpose: Landing page for non-admin participants.
+// Purpose: Participant dashboard.
 // Notes:
-// - Left: hero card (choose hero only).
-// - Right: registered event card (entrant + hero).
-// - Syncs live with localStorage changes (auto-refresh when updated elsewhere).
-// - Supports Cancel Registration (hard delete if no matches, soft delete otherwise).
+// - Uses namespaced keys: entrant_<id>, chosenHero_<id>
 
 import { useAuth } from "../context/AuthContext";
 import { deleteEntrant } from "../api";
@@ -27,22 +24,22 @@ export default function UserDashboard() {
   const [entrant, setEntrant] = useState(null);
 
   function syncFromStorage() {
-    const storedEntrant = localStorage.getItem("entrant");
+    const entrantKey = `entrant_${user?.id}`;
+    const heroKey = `chosenHero_${user?.id}`;
+
+    const storedEntrant = entrantKey ? localStorage.getItem(entrantKey) : null;
     if (storedEntrant) {
       try {
         const parsedEntrant = JSON.parse(storedEntrant);
         setEntrant(parsedEntrant);
-        if (parsedEntrant.hero) {
-          setChosenHero(parsedEntrant.hero);
-        }
+        if (parsedEntrant.hero) setChosenHero(parsedEntrant.hero);
         return;
       } catch {
         setEntrant(null);
       }
     }
 
-    // fallback for legacy chosenHero only
-    const storedHero = localStorage.getItem("chosenHero");
+    const storedHero = heroKey ? localStorage.getItem(heroKey) : null;
     if (storedHero) {
       try {
         const parsed = JSON.parse(storedHero);
@@ -55,29 +52,22 @@ export default function UserDashboard() {
 
   useEffect(() => {
     syncFromStorage();
-
-    const handleStorage = () => syncFromStorage();
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, []);
+    const handler = () => syncFromStorage();
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, [user?.id]);
 
   async function handleCancelRegistration() {
     if (!entrant?.id) {
       alert("❌ No entrant to unregister");
       return;
     }
-
-    if (!window.confirm("Are you sure you want to cancel your registration?")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to cancel your registration?")) return;
 
     try {
       await deleteEntrant(entrant.id);
-
-      // Reset localStorage + state
-      localStorage.removeItem("entrant");
+      localStorage.removeItem(`entrant_${user.id}`);
+      localStorage.removeItem(`chosenHero_${user.id}`);
       setEntrant(null);
       setChosenHero(null);
     } catch (err) {
@@ -98,11 +88,7 @@ export default function UserDashboard() {
           {chosenHero ? (
             <Card sx={{ p: 2 }}>
               <CardContent>
-                <Typography
-                  variant="h6"
-                  align="center"
-                  sx={{ fontWeight: "bold", mb: 2 }}
-                >
+                <Typography variant="h6" align="center" sx={{ fontWeight: "bold", mb: 2 }}>
                   {chosenHero.alignment?.toUpperCase() || "UNKNOWN"}
                 </Typography>
                 <Box textAlign="center" mb={2}>
@@ -127,20 +113,8 @@ export default function UserDashboard() {
                 <Typography>
                   <strong>Alias:</strong> {chosenHero.alias || "-"}
                 </Typography>
-                <Box sx={{ mt: 2 }}>
-                  {chosenHero.powerstats &&
-                    Object.entries(chosenHero.powerstats).map(([stat, val]) => (
-                      <Typography key={stat}>
-                        {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
-                      </Typography>
-                    ))}
-                </Box>
                 <Box sx={{ mt: 3, textAlign: "center" }}>
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => navigate("/heroes")}
-                  >
+                  <Button variant="outlined" color="secondary" onClick={() => navigate("/heroes")}>
                     Choose Another Hero
                   </Button>
                 </Box>
@@ -149,14 +123,8 @@ export default function UserDashboard() {
           ) : (
             <Card sx={{ p: 2 }}>
               <CardContent sx={{ textAlign: "center" }}>
-                <Typography variant="body1" gutterBottom>
-                  You haven’t selected your hero yet.
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate("/heroes")}
-                >
+                <Typography>You haven’t selected your hero yet.</Typography>
+                <Button variant="contained" color="primary" onClick={() => navigate("/heroes")}>
                   Choose Hero
                 </Button>
               </CardContent>
@@ -169,11 +137,7 @@ export default function UserDashboard() {
           {entrant ? (
             <Card sx={{ p: 2 }}>
               <CardContent>
-                <Typography
-                  variant="h6"
-                  align="center"
-                  sx={{ fontWeight: "bold", mb: 2 }}
-                >
+                <Typography variant="h6" align="center" sx={{ fontWeight: "bold", mb: 2 }}>
                   Registered Event
                 </Typography>
                 <Typography variant="h5" align="center" gutterBottom>
@@ -219,11 +183,7 @@ export default function UserDashboard() {
                   >
                     Change Registration
                   </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleCancelRegistration}
-                  >
+                  <Button variant="outlined" color="error" onClick={handleCancelRegistration}>
                     Cancel Registration
                   </Button>
                 </Box>
@@ -232,9 +192,7 @@ export default function UserDashboard() {
           ) : (
             <Card sx={{ p: 2 }}>
               <CardContent sx={{ textAlign: "center" }}>
-                <Typography variant="body1" gutterBottom>
-                  You haven’t registered for an event yet.
-                </Typography>
+                <Typography>You haven’t registered for an event yet.</Typography>
                 <Button
                   variant="contained"
                   color="primary"
