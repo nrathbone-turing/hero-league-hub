@@ -5,7 +5,8 @@
 // - Seeds chosenHero or entrant in localStorage *before* render to avoid race with effects.
 
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import AuthProvider from "../context/AuthContext";
 import UserDashboard from "../components/UserDashboard";
@@ -68,6 +69,7 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
 describe("UserDashboard", () => {
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   test("renders welcome message with username", async () => {
@@ -119,7 +121,49 @@ describe("UserDashboard", () => {
     expect(eventUtils.getByText(/clark kent/i)).toBeInTheDocument();
     expect(eventUtils.getByText(/man of steel/i)).toBeInTheDocument();
 
-    // CTA
+    // CTAs
     expect(eventUtils.getByRole("button", { name: /change registration/i })).toBeInTheDocument();
+    expect(eventUtils.getByRole("button", { name: /cancel registration/i })).toBeInTheDocument();
+  });
+
+  test("cancel registration clears entrant and reverts UI", async () => {
+    renderWithAuth({ withEntrant: true });
+
+    // Mock confirm → OK
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    // Mock fetch DELETE success
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, status: 204 })
+    );
+
+    const eventCard = await screen.findByText(/hero cup/i);
+    const eventUtils = within(eventCard.closest(".MuiCard-root"));
+
+    await userEvent.click(eventUtils.getByRole("button", { name: /cancel registration/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /register for event/i })).toBeInTheDocument()
+    );
+
+    expect(localStorage.getItem("entrant")).toBeNull();
+  });
+
+  test("cancel registration confirm → user clicks cancel, nothing happens", async () => {
+    renderWithAuth({ withEntrant: true });
+
+    // Mock confirm → Cancel
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    global.fetch = vi.fn();
+
+    const eventCard = await screen.findByText(/hero cup/i);
+    const eventUtils = within(eventCard.closest(".MuiCard-root"));
+
+    await userEvent.click(eventUtils.getByRole("button", { name: /cancel registration/i }));
+
+    // Entrant card should still be visible
+    expect(eventUtils.getByText(/hero cup/i)).toBeInTheDocument();
+    expect(localStorage.getItem("entrant")).not.toBeNull();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
