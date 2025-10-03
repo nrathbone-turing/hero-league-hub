@@ -4,6 +4,7 @@
 // - Left: hero card (choose hero only).
 // - Right: registered event card (entrant + hero).
 // - Syncs live with localStorage changes (auto-refresh when updated elsewhere).
+// - Supports Cancel Registration (hard delete if no matches, soft delete otherwise).
 
 import { useAuth } from "../context/AuthContext";
 import {
@@ -25,7 +26,6 @@ export default function UserDashboard() {
   const [entrant, setEntrant] = useState(null);
 
   function syncFromStorage() {
-    // Prefer entrant over legacy chosenHero
     const storedEntrant = localStorage.getItem("entrant");
     if (storedEntrant) {
       try {
@@ -55,13 +55,48 @@ export default function UserDashboard() {
   useEffect(() => {
     syncFromStorage();
 
-    // Listen for localStorage changes from other tabs/components
     const handleStorage = () => syncFromStorage();
     window.addEventListener("storage", handleStorage);
     return () => {
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
+
+  async function handleCancelRegistration() {
+    if (!entrant?.id) {
+      alert("❌ No entrant to unregister");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to cancel your registration?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/entrants/${entrant.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!res.ok && res.status !== 204) {
+        throw new Error("Failed to cancel registration");
+      }
+
+      // Reset localStorage + state
+      localStorage.removeItem("entrant");
+      setEntrant(null);
+      setChosenHero(null);
+    } catch (err) {
+      console.error("Failed to unregister", err);
+      alert("❌ Failed to cancel registration");
+    }
+  }
 
   return (
     <Container sx={{ mt: 4 }} data-testid="user-dashboard">
@@ -192,8 +227,16 @@ export default function UserDashboard() {
                     variant="outlined"
                     color="secondary"
                     onClick={() => navigate("/register-event")}
+                    sx={{ mr: 2 }}
                   >
                     Change Registration
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleCancelRegistration}
+                  >
+                    Cancel Registration
                   </Button>
                 </Box>
               </CardContent>
