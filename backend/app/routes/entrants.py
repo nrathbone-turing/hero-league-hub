@@ -4,11 +4,10 @@
 # - Admins: can create/update/delete entrants freely.
 # - Users: register themselves + hero into an event (one entrant per user/event).
 # - Expanded GET supports filtering by event_id and user_id.
-# - Enriched responses now include related hero and event details.
 
 from flask import Blueprint, request, jsonify, abort
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend.app.models.models import Entrant, Match, Hero, User
+from flask_jwt_extended import jwt_required
+from backend.app.models.models import Entrant, Match, Hero
 from backend.app.extensions import db
 import traceback
 
@@ -52,14 +51,9 @@ def register_user_for_event():
         db.session.add(entrant)
         db.session.commit()
 
-        # Enrich response with hero and event
-        payload = entrant.to_dict()
-        payload["hero"] = hero.to_dict() if hasattr(hero, "to_dict") else None
-        event = getattr(entrant, "event", None)
-        if event and hasattr(event, "to_dict"):
-            payload["event"] = event.to_dict(include_counts=True)
-
-        return jsonify(payload), 201
+        return jsonify(
+            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
+        ), 201
 
     except Exception as e:
         db.session.rollback()
@@ -92,16 +86,9 @@ def create_entrant():
         db.session.add(entrant)
         db.session.commit()
 
-        # Enrich response with hero and event
-        payload = entrant.to_dict()
-        hero = db.session.get(Hero, entrant.hero_id) if entrant.hero_id else None
-        if hero and hasattr(hero, "to_dict"):
-            payload["hero"] = hero.to_dict()
-        event = getattr(entrant, "event", None)
-        if event and hasattr(event, "to_dict"):
-            payload["event"] = event.to_dict(include_counts=True)
-
-        return jsonify(payload), 201
+        return jsonify(
+            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
+        ), 201
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
@@ -123,16 +110,10 @@ def get_entrants():
             query = query.filter_by(user_id=user_id)
 
         entrants = query.all()
-        enriched = []
-        for e in entrants:
-            payload = e.to_dict()
-            if e.hero and hasattr(e.hero, "to_dict"):
-                payload["hero"] = e.hero.to_dict()
-            if e.event and hasattr(e.event, "to_dict"):
-                payload["event"] = e.event.to_dict(include_counts=True)
-            enriched.append(payload)
-
-        return jsonify(enriched), 200
+        return jsonify([
+            e.to_dict(include_event=True, include_hero=True, include_user=True)
+            for e in entrants
+        ]), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify(error="Failed to fetch entrants"), 500
@@ -150,13 +131,9 @@ def update_entrant(entrant_id):
         for key, value in data.items():
             setattr(entrant, key, value)
         db.session.commit()
-
-        payload = entrant.to_dict()
-        if entrant.hero and hasattr(entrant.hero, "to_dict"):
-            payload["hero"] = entrant.hero.to_dict()
-        if entrant.event and hasattr(entrant.event, "to_dict"):
-            payload["event"] = entrant.event.to_dict(include_counts=True)
-        return jsonify(payload), 200
+        return jsonify(
+            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
+        ), 200
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
@@ -187,7 +164,9 @@ def delete_entrant(entrant_id):
         if has_matches:
             entrant.soft_delete()
             db.session.commit()
-            return jsonify(entrant.to_dict()), 200
+            return jsonify(
+                entrant.to_dict(include_event=True, include_hero=True, include_user=True)
+            ), 200
         else:
             db.session.delete(entrant)
             db.session.commit()
