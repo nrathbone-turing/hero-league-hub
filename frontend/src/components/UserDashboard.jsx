@@ -2,7 +2,8 @@
 // Purpose: Landing page for non-admin participants.
 // Notes:
 // - Left: hero card (choose hero only).
-// - Right: event card with entrant info, no hero card event button.
+// - Right: registered event card with entrant info (event + hero).
+// - Uses entrant payload persisted from EventRegistration for full details.
 
 import { useAuth } from "../context/AuthContext";
 import {
@@ -24,7 +25,7 @@ export default function UserDashboard() {
   const [entrant, setEntrant] = useState(null);
 
   useEffect(() => {
-    // Load hero from localStorage (legacy support)
+    // Load hero (legacy fallback, but entrant.hero will usually override)
     const storedHero = localStorage.getItem("chosenHero");
     if (storedHero) {
       try {
@@ -35,11 +36,15 @@ export default function UserDashboard() {
       }
     }
 
-    // Load event registration
+    // Load event registration (preferred source)
     const storedEntrant = localStorage.getItem("entrant");
     if (storedEntrant) {
       try {
-        setEntrant(JSON.parse(storedEntrant));
+        const parsedEntrant = JSON.parse(storedEntrant);
+        setEntrant(parsedEntrant);
+        if (parsedEntrant.hero) {
+          setChosenHero(parsedEntrant.hero); // sync hero to entrant.hero
+        }
       } catch {
         setEntrant(null);
       }
