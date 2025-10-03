@@ -44,15 +44,25 @@ class Event(db.Model):
     def __repr__(self):
         return f"<Event {self.name} ({self.date}) - {self.status}>"
 
-    def to_dict(self, include_related=False):
+    def to_dict(self, include_related: bool = False, include_counts: bool = True):
+        """
+        Serialize Event.
+
+        - include_related: when True, include full entrants and matches lists.
+        - include_counts: when True (default), include entrant_count summary.
+
+        (include_counts is accepted to avoid unexpected-keyword errors where callers
+        already pass this flag.)
+        """
         data = {
             "id": self.id,
             "name": self.name,
             "date": self.date,
             "rules": self.rules,
             "status": self.status,
-            "entrant_count": len(self.entrants) if self.entrants else 0,
         }
+        if include_counts:
+            data["entrant_count"] = len(self.entrants) if self.entrants else 0
         if include_related:
             data["entrants"] = [e.to_dict() for e in self.entrants]
             data["matches"] = [m.to_dict() for m in self.matches]
@@ -87,8 +97,15 @@ class Entrant(db.Model):
         self.alias = None
         self.dropped = True
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_event: bool = False, include_hero: bool = False, include_user: bool = False):
+        """
+        Serialize Entrant.
+
+        - include_event: add nested event (with counts)
+        - include_hero:  add nested hero
+        - include_user:  add nested user
+        """
+        data = {
             "id": self.id,
             "name": self.name,
             "alias": self.alias,
@@ -97,6 +114,13 @@ class Entrant(db.Model):
             "hero_id": self.hero_id,
             "dropped": self.dropped,
         }
+        if include_event and self.event:
+            data["event"] = self.event.to_dict(include_counts=True)
+        if include_hero and self.hero:
+            data["hero"] = self.hero.to_dict()
+        if include_user and self.user:
+            data["user"] = self.user.to_dict()
+        return data
 
 
 class Match(db.Model):
