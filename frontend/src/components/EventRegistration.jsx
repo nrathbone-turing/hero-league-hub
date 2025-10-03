@@ -4,6 +4,7 @@
 // - Loads first page of heroes on mount so dropdown is populated.
 // - Typing triggers server-side search, always capped at 25 results.
 // - Persists entrant + chosen hero per user in localStorage.
+// - No longer sends user_id explicitly (derived from token).
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -35,7 +36,6 @@ export default function EventRegistration() {
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
-    user_id: user?.id || "",
     event_id: "",
     hero_id: "",
     notes: "",
@@ -64,13 +64,24 @@ export default function EventRegistration() {
       try {
         const data = await apiFetch(`/heroes?search=a&page=1&per_page=${PAGE_SIZE}`);
         setHeroOptions(data.results || []);
+
+        // Pre-populate if a hero is already chosen
+        const storedHero = localStorage.getItem(`chosenHero_${user?.id}`);
+        if (storedHero) {
+          try {
+            const parsed = JSON.parse(storedHero);
+            setFormData((prev) => ({ ...prev, hero_id: parsed.id || "" }));
+          } catch {
+            /* ignore parse error */
+          }
+        }
       } catch {
         setError("Failed to load heroes");
       } finally {
         setLoadingHeroes(false);
       }
     })();
-  }, []);
+  }, [user?.id]);
 
   // Server-side search when typing
   async function handleHeroSearch(term) {
@@ -133,7 +144,6 @@ export default function EventRegistration() {
       <form onSubmit={handleSubmit}>
         <TextField
           label="User"
-          name="user_id"
           value={user?.username || ""}
           fullWidth
           margin="normal"
@@ -182,6 +192,9 @@ export default function EventRegistration() {
               {option.name} ({option.alias || "No alias"})
             </li>
           )}
+          value={
+            heroOptions.find((h) => h.id === formData.hero_id) || null
+          }
           onChange={(_, newValue) =>
             setFormData((prev) => ({
               ...prev,
