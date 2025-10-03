@@ -3,7 +3,7 @@
 // Notes:
 // - Auto-fills user fields from AuthContext.
 // - Event + hero dropdowns (hero searchable, paginated).
-// - On success, persists entrant and redirects to /dashboard.
+// - On success, persists entrant (with nested event + hero) and redirects to /dashboard.
 
 import { useState, useEffect } from "react";
 import {
@@ -33,9 +33,7 @@ export default function EventRegistration() {
   const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: user?.username || "",
-    alias: user?.username || "",
-    email: user?.email || "",
+    user_id: user?.id || "",
     event_id: "",
     hero_id: "",
     notes: "",
@@ -79,13 +77,16 @@ export default function EventRegistration() {
   async function handleSubmit(e) {
     e.preventDefault();
     try {
-      const entrant = await apiFetch("/entrants", {
+      const entrant = await apiFetch("/entrants/register", {
         method: "POST",
         body: JSON.stringify(formData),
       });
 
-      // store entrant in localStorage for dashboard
+      // store entrant (with nested event + hero)
       localStorage.setItem("entrant", JSON.stringify(entrant));
+      if (entrant.hero) {
+        localStorage.setItem("chosenHero", JSON.stringify(entrant.hero));
+      }
 
       navigate("/dashboard");
     } catch (err) {
@@ -107,28 +108,19 @@ export default function EventRegistration() {
 
       <form onSubmit={handleSubmit}>
         <TextField
-          label="Name"
-          name="name"
-          value={formData.name}
+          label="User"
+          name="user_id"
+          value={user?.username || ""}
           fullWidth
           margin="normal"
-          onChange={handleChange}
-        />
-        <TextField
-          label="Username"
-          name="alias"
-          value={formData.alias}
-          fullWidth
-          margin="normal"
-          onChange={handleChange}
+          InputProps={{ readOnly: true }}
         />
         <TextField
           label="Email"
-          name="email"
-          value={formData.email}
+          value={user?.email || ""}
           fullWidth
           margin="normal"
-          onChange={handleChange}
+          InputProps={{ readOnly: true }}
         />
 
         {loadingEvents ? (
