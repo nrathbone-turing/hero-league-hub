@@ -5,6 +5,7 @@
 // - Persist chosen hero or update entrant.hero if registered.
 // - Redirects to /dashboard after hero is chosen.
 // - Modal uses accordions with properly capitalized, human-friendly field labels.
+// - Added data-testid hooks for stable test selectors.
 
 import { useState, useEffect } from "react";
 import {
@@ -62,7 +63,9 @@ export default function Heroes() {
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`
+        `/heroes?search=${encodeURIComponent(query)}&page=${
+          pageNum + 1
+        }&per_page=${perPage}`
       );
       setHeroes(data.results || []);
       setTotal(data.total || 0);
@@ -148,10 +151,10 @@ export default function Heroes() {
   const formatLabel = (key) => {
     if (!key) return "";
     return key
-      .replace(/_/g, " ")         // underscores → spaces
-      .replace(/-/g, " ")         // hyphens → spaces
-      .replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase → words
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize
+      .replace(/_/g, " ")
+      .replace(/-/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   return (
@@ -195,11 +198,14 @@ export default function Heroes() {
 
       {heroes.length > 0 && (
         <Box>
-          <Table size="small">
+          <Table size="small" data-testid="heroes-table">
             <TableHead>
               <TableRow>
                 {["id", "name", "full_name", "alias", "alignment"].map((col) => (
-                  <TableCell key={col} sortDirection={orderBy === col ? order : false}>
+                  <TableCell
+                    key={col}
+                    sortDirection={orderBy === col ? order : false}
+                  >
                     <TableSortLabel
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
@@ -218,6 +224,7 @@ export default function Heroes() {
                   hover
                   onClick={() => setSelectedHero(hero)}
                   sx={{ cursor: "pointer" }}
+                  data-testid={`hero-row-${hero.id}`}
                 >
                   <TableCell>{hero.id}</TableCell>
                   <TableCell>{hero.name}</TableCell>
@@ -250,8 +257,11 @@ export default function Heroes() {
         onClose={() => setSelectedHero(null)}
         maxWidth="sm"
         fullWidth
+        data-testid="hero-dialog"
       >
-        <DialogTitle>{selectedHero?.name}</DialogTitle>
+        <DialogTitle data-testid="hero-dialog-title">
+          {selectedHero?.name}
+        </DialogTitle>
         <DialogContent dividers>
           {dialogImgSrc(selectedHero) ? (
             <Box textAlign="center" mb={2}>
@@ -267,23 +277,32 @@ export default function Heroes() {
               />
             </Box>
           ) : (
-            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography
+              align="center"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+              data-testid="no-image-text"
+            >
               No image available
             </Typography>
           )}
 
-          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
+          <Typography
+            align="center"
+            sx={{ fontWeight: "bold", mb: 1 }}
+            data-testid="hero-alignment"
+          >
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
           {/* Powerstats */}
           {selectedHero?.powerstats && (
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ mb: 2 }} data-testid="hero-powerstats">
               <Typography variant="subtitle1" gutterBottom>
                 Powerstats
               </Typography>
               {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
-                <Typography key={stat}>
+                <Typography key={stat} data-testid={`powerstat-${stat}`}>
                   <strong>{formatLabel(stat)}:</strong> {val}
                 </Typography>
               ))}
@@ -292,7 +311,7 @@ export default function Heroes() {
 
           {/* Biography Accordion */}
           {selectedHero?.biography && (
-            <Accordion>
+            <Accordion data-testid="hero-biography">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Biography</Typography>
               </AccordionSummary>
@@ -311,7 +330,7 @@ export default function Heroes() {
 
           {/* Appearance Accordion */}
           {selectedHero?.appearance && (
-            <Accordion>
+            <Accordion data-testid="hero-appearance">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Appearance</Typography>
               </AccordionSummary>
@@ -328,7 +347,7 @@ export default function Heroes() {
 
           {/* Work Accordion */}
           {selectedHero?.work && (
-            <Accordion>
+            <Accordion data-testid="hero-work">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Work</Typography>
               </AccordionSummary>
@@ -344,7 +363,7 @@ export default function Heroes() {
 
           {/* Connections Accordion */}
           {selectedHero?.connections && (
-            <Accordion>
+            <Accordion data-testid="hero-connections">
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Connections</Typography>
               </AccordionSummary>
@@ -363,6 +382,7 @@ export default function Heroes() {
               variant="contained"
               color="primary"
               onClick={() => handleChooseHero(selectedHero)}
+              data-testid="choose-hero-btn"
             >
               Choose Hero
             </Button>
