@@ -2,9 +2,10 @@
 # Purpose: Load JSON seed data into the Flask DB.
 # Notes:
 # - Reads from backend/seeds/events.json, entrants.json, matches.json, users.json, superheros_all.json
-# - Inserts into SQLAlchemy models via Flask app context.
+# - Inserts in phases with commits between phases to avoid autoflush collisions.
+# - Bumps sequences after fixed-ID inserts before adding extras (admin/demo).
 # - Passwords from users.json are hashed before insert.
-# - Resets Postgres sequences to avoid duplicate key issues.
+# - Resets Postgres sequences at the end as well.
 
 import os
 import json
@@ -21,35 +22,53 @@ def load_seed(filename):
         return json.load(f)
 
 
+def bump_sequence(table_name: str):
+    """
+    Set the sequence for `table_name.id` to MAX(id)+1 to ensure autoincrement
+    does not collide with fixed IDs we just inserted.
+    """
+    setval_sql = text("""
+        SELECT setval(
+            pg_get_serial_sequence(:table, 'id'),
+            COALESCE((SELECT MAX(id) FROM """ + table_name + """), 0) + 1,
+            false
+        )
+    """)
+    db.session.execute(setval_sql, {"table": table_name})
+
+
 def run():
     app = create_app()
     with app.app_context():
         print("🌱 Seeding database...")
 
-        events = load_seed("events.json")
+        events   = load_seed("events.json")
         entrants = load_seed("entrants.json")
-        matches = load_seed("matches.json")
-        users = load_seed("users.json")
-        heroes = load_seed("superheros_all.json")
+        matches  = load_seed("matches.json")
+        users    = load_seed("users.json")
+        heroes   = load_seed("superheros_all.json")
 
-        # Insert Events
+        # -------------------------
+        # Phase 1: Events
+        # -------------------------
         for e in events:
             db.session.add(
-                Event(id=e["id"], name=e["name"], date=e["date"], status=e["status"])
+                Event(
+                    id=e["id"],
+                    name=e["name"],
+                    date=e.get("date"),
+                    status=e["status"],
+                )
             )
+        db.session.commit()
+        bump_sequence("events")
+        db.session.commit()
+        print(f"✅ Inserted {len(events)} events")
 
-        # Insert Users (hash passwords)
-        for u in users:
-            user = User(
-                id=u["id"],
-                username=u["username"],
-                email=u["email"],
-                is_admin=u.get("is_admin", False),
-            )
-            user.set_password(u.get("password", "password123"))
-            db.session.add(user)
-
-        # Insert Heroes (all from superheros_all.json)
+        # -------------------------
+        # Phase 2: Heroes
+        # (must be before Entrants to satisfy FK)
+        # -------------------------
         for h in heroes:
             db.session.add(
                 Hero(
@@ -66,8 +85,54 @@ def run():
                     alignment=h.get("biography", {}).get("alignment"),
                 )
             )
+        db.session.commit()
+        bump_sequence("heroes")
+        db.session.commit()
+        print(f"✅ Inserted {len(heroes)} heroes")
 
-        # Insert Entrants (linked to users + heroes)
+        # -------------------------
+        # Phase 3: Users from JSON (fixed IDs)
+        # -------------------------
+        for u in users:
+            user = User(
+                id=u["id"],
+                username=u["username"],
+                email=u["email"],
+                is_admin=u.get("is_admin", False),
+            )
+            # If your users.json has no password, we still hash a default:
+            user.set_password(u.get("password", "password123"))
+            db.session.add(user)
+        db.session.commit()
+        bump_sequence("users")
+        db.session.commit()
+        print(f"✅ Inserted {len(users)} users")
+
+        # -------------------------
+        # Phase 4: Ensure extras (admin + demo) exist
+        # (use no_autoflush to avoid any pending autoflush)
+        # Now safe: users sequence points past MAX(id)
+        # -------------------------
+        with db.session.no_autoflush:
+            if not User.query.filter_by(email="admin@example.com").first():
+                admin = User(username="admin", email="admin@example.com", is_admin=True)
+                admin.set_password("admin")
+                db.session.add(admin)
+
+            if not User.query.filter_by(email="demo@example.com").first():
+                demo = User(username="demo_user", email="demo@example.com", is_admin=False)
+                demo.set_password("password123")
+                db.session.add(demo)
+
+        db.session.commit()
+        bump_sequence("users")
+        db.session.commit()
+        print("✅ Ensured admin & demo users (auto IDs)")
+
+        # -------------------------
+        # Phase 5: Entrants (fixed IDs)
+        # (Users & Heroes must already exist)
+        # -------------------------
         for en in entrants:
             db.session.add(
                 Entrant(
@@ -80,46 +145,47 @@ def run():
                     dropped=en.get("dropped", False),
                 )
             )
+        db.session.commit()
+        bump_sequence("entrants")
+        db.session.commit()
+        print(f"✅ Inserted {len(entrants)} entrants")
 
-        # Insert Matches
+        # -------------------------
+        # Phase 6: Matches (fixed IDs)
+        # -------------------------
         for m in matches:
             db.session.add(
                 Match(
                     id=m["id"],
-                    round=m["round"],
-                    entrant1_id=m["entrant1_id"],
-                    entrant2_id=m["entrant2_id"],
+                    round=m.get("round"),
+                    entrant1_id=m.get("entrant1_id"),
+                    entrant2_id=m.get("entrant2_id"),
                     scores=m.get("scores"),
                     winner_id=m.get("winner_id"),
                     event_id=m["event_id"],
                 )
             )
-
         db.session.commit()
+        bump_sequence("matches")
+        db.session.commit()
+        print(f"✅ Inserted {len(matches)} matches")
 
-        # Reset sequences
+        # -------------------------
+        # Final: safety bump all sequences
+        # -------------------------
         for table in ["events", "entrants", "matches", "users", "heroes"]:
-            seq_sql = text(
-                f"""
-                SELECT setval(
-                  pg_get_serial_sequence('{table}', 'id'),
-                  COALESCE((SELECT MAX(id) FROM {table}), 1) + 1,
-                  false
-                )
-            """
-            )
-            db.session.execute(seq_sql)
-
+            bump_sequence(table)
         db.session.commit()
 
         print(
-            f"✅ Inserted {len(events)} events, "
-            f"{len(users)} users, "
-            f"{len(heroes)} heroes, "
-            f"{len(entrants)} entrants, "
-            f"{len(matches)} matches"
+            "🎉 Seed complete:\n"
+            f"   Events:   {len(events)}\n"
+            f"   Heroes:   {len(heroes)}\n"
+            f"   Users:    {len(users)} (+admin/demo if missing)\n"
+            f"   Entrants: {len(entrants)}\n"
+            f"   Matches:  {len(matches)}\n"
+            "🔄 Sequences bumped."
         )
-        print("🔄 Sequences reset for all tables.")
 
 
 if __name__ == "__main__":
