@@ -10,7 +10,9 @@ from backend.app.extensions import db
 from sqlalchemy import select
 
 
-def test_create_match(client, seed_event_with_entrants, auth_header):
+def test_create_match(client, seed_event_with_entrants, auth_user_and_header):
+    """Authenticated user can create a match."""
+    _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
     response = client.post(
         "/api/matches",
@@ -29,7 +31,9 @@ def test_create_match(client, seed_event_with_entrants, auth_header):
     assert data["winner_id"] == e1.id
 
 
-def test_create_match_rejects_invalid_winner(client, seed_event_with_entrants, auth_header):
+def test_create_match_rejects_invalid_winner(client, seed_event_with_entrants, auth_user_and_header):
+    """Creating a match should reject invalid winner_id."""
+    _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
     resp = client.post(
         "/api/matches",
@@ -48,6 +52,7 @@ def test_create_match_rejects_invalid_winner(client, seed_event_with_entrants, a
 
 
 def test_get_matches(client, seed_event_with_entrants, session):
+    """GET /api/matches should return list of matches."""
     event, e1, e2 = seed_event_with_entrants()
     match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="1-0", winner_id=e1.id)
     session.add(match)
@@ -59,7 +64,9 @@ def test_get_matches(client, seed_event_with_entrants, session):
     assert any(m["scores"] == "1-0" for m in matches)
 
 
-def test_update_match(client, seed_event_with_entrants, session, auth_header):
+def test_update_match(client, seed_event_with_entrants, session, auth_user_and_header):
+    """PUT /api/matches/:id should update match scores."""
+    _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
     match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="0-0")
     session.add(match)
@@ -73,7 +80,9 @@ def test_update_match(client, seed_event_with_entrants, session, auth_header):
     assert result.scores == "2-0"
 
 
-def test_delete_match(client, seed_event_with_entrants, session, auth_header):
+def test_delete_match(client, seed_event_with_entrants, session, auth_user_and_header):
+    """DELETE /api/matches/:id should remove a match."""
+    _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
     match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="1-1")
     session.add(match)
@@ -85,6 +94,7 @@ def test_delete_match(client, seed_event_with_entrants, session, auth_header):
 
 
 def test_create_match_requires_auth(client, seed_event_with_entrants):
+    """Creating a match without auth should fail."""
     event, e1, e2 = seed_event_with_entrants()
     resp = client.post(
         "/api/matches",
