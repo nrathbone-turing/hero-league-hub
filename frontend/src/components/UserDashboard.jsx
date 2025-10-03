@@ -7,6 +7,7 @@
 // - Supports Cancel Registration (hard delete if no matches, soft delete otherwise).
 
 import { useAuth } from "../context/AuthContext";
+import { deleteEntrant } from "../api";
 import {
   Container,
   Typography,
@@ -73,20 +74,7 @@ export default function UserDashboard() {
     }
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/entrants/${entrant.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!res.ok && res.status !== 204) {
-        throw new Error("Failed to cancel registration");
-      }
+      await deleteEntrant(entrant.id);
 
       // Reset localStorage + state
       localStorage.removeItem("entrant");
