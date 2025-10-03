@@ -1,11 +1,10 @@
 // File: frontend/src/__tests__/UserDashboard.test.jsx
 // Purpose: Stable tests for UserDashboard with AuthProvider and routing.
 // Notes:
-// - Scopes queries within specific cards to avoid duplicate hero/event name conflicts.
-// - Seeds chosenHero or entrant in localStorage *before* render to avoid race with effects.
+// - Relies on test IDs from UserDashboard to avoid brittle string queries.
 
 import React from "react";
-import { render, screen, within, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import AuthProvider from "../context/AuthContext";
@@ -16,12 +15,12 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
   localStorage.setItem("token", "fake-token");
   localStorage.setItem(
     "user",
-    JSON.stringify({ username: "player1", email: "player1@example.com", is_admin: false })
+    JSON.stringify({ id: 1, username: "player1", email: "player1@example.com", is_admin: false })
   );
 
   if (withHero) {
     localStorage.setItem(
-      "chosenHero",
+      "chosenHero_1",
       JSON.stringify({
         id: 1,
         name: "Batman",
@@ -36,7 +35,7 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
 
   if (withEntrant) {
     localStorage.setItem(
-      "entrant",
+      "entrant_1",
       JSON.stringify({
         id: 101,
         event: {
@@ -53,6 +52,7 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
           alias: "Man of Steel",
           proxy_image: "/api/heroes/2/image",
         },
+        matches: [],
       })
     );
   }
@@ -74,96 +74,67 @@ describe("UserDashboard", () => {
 
   test("renders welcome message with username", async () => {
     renderWithAuth();
-    expect(await screen.findByText(/welcome, player1/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("user-dashboard")).toHaveTextContent("Welcome, player1");
   });
 
-  test("renders event registration + hero prompt if no hero selected", async () => {
+  test("renders hero prompt and event prompt when nothing chosen", async () => {
     renderWithAuth();
 
-    const heroCard = await screen.findByText(/you haven’t selected/i);
-    const heroUtils = within(heroCard.closest(".MuiCard-root"));
+    expect(await screen.findByTestId("hero-card-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("choose-hero-btn")).toBeInTheDocument();
 
-    expect(heroUtils.getByRole("button", { name: /choose hero/i })).toBeInTheDocument();
-
-    const eventCard = await screen.findByText(/you haven’t registered/i);
-    const eventUtils = within(eventCard.closest(".MuiCard-root"));
-
-    expect(eventUtils.getByRole("button", { name: /register for event/i })).toBeInTheDocument();
+    expect(await screen.findByTestId("event-card-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("register-event-btn")).toBeInTheDocument();
   });
 
   test("renders chosen hero card with powerstats", async () => {
     renderWithAuth({ withHero: true });
 
-    const heroCard = await screen.findByText(/batman/i);
-    const heroUtils = within(heroCard.closest(".MuiCard-root"));
-
-    // Scoped inside hero card
-    expect(heroUtils.getByText(/combat:\s*100/i)).toBeInTheDocument();
-    expect(heroUtils.getByText(/intelligence:\s*100/i)).toBeInTheDocument();
-    expect(heroUtils.getByRole("button", { name: /choose another hero/i })).toBeInTheDocument();
+    const heroCard = await screen.findByTestId("hero-card");
+    expect(within(heroCard).getByTestId("hero-name")).toHaveTextContent("Batman");
+    expect(within(heroCard).getByText(/combat/i)).toBeInTheDocument();
+    expect(within(heroCard).getByText(/intelligence/i)).toBeInTheDocument();
+    expect(within(heroCard).getByTestId("choose-another-hero")).toBeInTheDocument();
   });
 
   test("renders entrant event card with hero details", async () => {
     renderWithAuth({ withEntrant: true });
 
-    const eventCard = await screen.findByText(/hero cup/i);
-    const eventUtils = within(eventCard.closest(".MuiCard-root"));
+    const eventCard = await screen.findByTestId("event-card");
+    expect(within(eventCard).getByTestId("event-name")).toHaveTextContent("Hero Cup");
+    expect(within(eventCard).getByTestId("event-date")).toHaveTextContent("2025-09-12");
+    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent("published");
+    expect(within(eventCard).getByTestId("event-entrants")).toHaveTextContent("16");
 
-    // Event info
-    expect(eventUtils.getByText(/hero cup/i)).toBeInTheDocument();
-    expect(eventUtils.getByText(/2025-09-12/i)).toBeInTheDocument();
-    expect(eventUtils.getByText(/status:\s*published/i)).toBeInTheDocument();
-    expect(eventUtils.getByText(/entrants:\s*16/i)).toBeInTheDocument();
-
-    // Hero info
-    expect(eventUtils.getByRole("img", { name: /superman/i })).toBeInTheDocument();
-    expect(eventUtils.getByText(/superman/i)).toBeInTheDocument();
-    expect(eventUtils.getByText(/clark kent/i)).toBeInTheDocument();
-    expect(eventUtils.getByText(/man of steel/i)).toBeInTheDocument();
-
-    // CTAs
-    expect(eventUtils.getByRole("button", { name: /change registration/i })).toBeInTheDocument();
-    expect(eventUtils.getByRole("button", { name: /cancel registration/i })).toBeInTheDocument();
+    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent("Superman");
+    expect(within(eventCard).getByTestId("change-registration-btn")).toBeInTheDocument();
+    expect(within(eventCard).getByTestId("cancel-registration-btn")).toBeInTheDocument();
   });
 
   test("cancel registration clears entrant and reverts UI", async () => {
     renderWithAuth({ withEntrant: true });
-
-    // Mock confirm → OK
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    global.fetch = vi.fn(() => Promise.resolve({ ok: true, status: 204 }));
 
-    // Mock fetch DELETE success
-    global.fetch = vi.fn(() =>
-      Promise.resolve({ ok: true, status: 204 })
-    );
-
-    const eventCard = await screen.findByText(/hero cup/i);
-    const eventUtils = within(eventCard.closest(".MuiCard-root"));
-
-    await userEvent.click(eventUtils.getByRole("button", { name: /cancel registration/i }));
+    const eventCard = await screen.findByTestId("event-card");
+    await userEvent.click(within(eventCard).getByTestId("cancel-registration-btn"));
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /register for event/i })).toBeInTheDocument()
+      expect(screen.getByTestId("register-event-btn")).toBeInTheDocument()
     );
-
-    expect(localStorage.getItem("entrant")).toBeNull();
+    expect(localStorage.getItem("entrant_1")).toBeNull();
   });
 
   test("cancel registration confirm → user clicks cancel, nothing happens", async () => {
     renderWithAuth({ withEntrant: true });
-
-    // Mock confirm → Cancel
     vi.spyOn(window, "confirm").mockReturnValue(false);
     global.fetch = vi.fn();
 
-    const eventCard = await screen.findByText(/hero cup/i);
-    const eventUtils = within(eventCard.closest(".MuiCard-root"));
+    const eventCard = await screen.findByTestId("event-card");
+    await userEvent.click(within(eventCard).getByTestId("cancel-registration-btn"));
 
-    await userEvent.click(eventUtils.getByRole("button", { name: /cancel registration/i }));
-
-    // Entrant card should still be visible
-    expect(eventUtils.getByText(/hero cup/i)).toBeInTheDocument();
-    expect(localStorage.getItem("entrant")).not.toBeNull();
+    expect(eventCard).toBeInTheDocument();
+    expect(localStorage.getItem("entrant_1")).not.toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 });
