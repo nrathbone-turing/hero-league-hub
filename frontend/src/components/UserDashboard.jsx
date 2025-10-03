@@ -2,8 +2,8 @@
 // Purpose: Landing page for non-admin participants.
 // Notes:
 // - Left: hero card (choose hero only).
-// - Right: registered event card with entrant info (event + hero).
-// - Uses entrant payload persisted from EventRegistration for full details.
+// - Right: registered event card (entrant + hero).
+// - Syncs live with localStorage changes (auto-refresh when updated elsewhere).
 
 import { useAuth } from "../context/AuthContext";
 import {
@@ -24,8 +24,23 @@ export default function UserDashboard() {
   const [chosenHero, setChosenHero] = useState(null);
   const [entrant, setEntrant] = useState(null);
 
-  useEffect(() => {
-    // Load hero (legacy fallback, but entrant.hero will usually override)
+  function syncFromStorage() {
+    // Prefer entrant over legacy chosenHero
+    const storedEntrant = localStorage.getItem("entrant");
+    if (storedEntrant) {
+      try {
+        const parsedEntrant = JSON.parse(storedEntrant);
+        setEntrant(parsedEntrant);
+        if (parsedEntrant.hero) {
+          setChosenHero(parsedEntrant.hero);
+        }
+        return;
+      } catch {
+        setEntrant(null);
+      }
+    }
+
+    // fallback for legacy chosenHero only
     const storedHero = localStorage.getItem("chosenHero");
     if (storedHero) {
       try {
@@ -35,20 +50,17 @@ export default function UserDashboard() {
         setChosenHero(null);
       }
     }
+  }
 
-    // Load event registration (preferred source)
-    const storedEntrant = localStorage.getItem("entrant");
-    if (storedEntrant) {
-      try {
-        const parsedEntrant = JSON.parse(storedEntrant);
-        setEntrant(parsedEntrant);
-        if (parsedEntrant.hero) {
-          setChosenHero(parsedEntrant.hero); // sync hero to entrant.hero
-        }
-      } catch {
-        setEntrant(null);
-      }
-    }
+  useEffect(() => {
+    syncFromStorage();
+
+    // Listen for localStorage changes from other tabs/components
+    const handleStorage = () => syncFromStorage();
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   return (
