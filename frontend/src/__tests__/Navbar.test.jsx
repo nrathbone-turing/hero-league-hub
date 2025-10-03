@@ -3,8 +3,7 @@
 // Notes:
 // - Covers logged out UI (login/signup links).
 // - Covers logged in UI (welcome + logout).
-// - Ensures logout clears localStorage and resets user.
-// - Verifies navigation works for /, /login, and /signup.
+// - Ensures Heroes and Events nav links appear and navigate.
 
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -14,10 +13,12 @@ import Navbar from "../components/Navbar";
 import LoginForm from "../components/LoginForm";
 import SignupForm from "../components/SignupForm";
 
-// Test harness page to check navigation + auth state
+function HeroesPage() {
+  return <div data-testid="heroes-page">Heroes Page</div>;
+}
+
 function EventsPage() {
-  const { user } = useAuth();
-  return <div>Events Dashboard {user ? `(user: ${user.username})` : ""}</div>;
+  return <div data-testid="events-page">Events Page</div>;
 }
 
 // Harness to expose auth API to tests
@@ -35,9 +36,10 @@ function renderWithRouter(initialEntries = ["/"], onAuthReady = () => {}) {
       <MemoryRouter initialEntries={initialEntries}>
         <Navbar />
         <Routes>
-          <Route path="/" element={<EventsPage />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path="/signup" element={<SignupForm />} />
+          <Route path="/heroes" element={<HeroesPage />} />
+          <Route path="/events" element={<EventsPage />} />
         </Routes>
         <AuthTestHarness onReady={onAuthReady} />
       </MemoryRouter>
@@ -46,7 +48,6 @@ function renderWithRouter(initialEntries = ["/"], onAuthReady = () => {}) {
 }
 
 beforeEach(() => {
-  // Mock fetch for /login and /signup
   global.fetch = vi.fn((url) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
@@ -108,10 +109,8 @@ describe("Navbar", () => {
     renderWithRouter(["/"], (api) => (authApi = api));
 
     await waitFor(() => expect(authApi).toBeDefined());
-
     await authApi.login("test@example.com", "password123");
 
-    // token should persist to localStorage
     await waitFor(() => {
       expect(localStorage.getItem("token")).toBe("fake-jwt-token");
     });
@@ -125,5 +124,17 @@ describe("Navbar", () => {
     await waitFor(() => {
       expect(screen.queryByText(/welcome/i)).not.toBeInTheDocument();
     });
+  });
+
+  test("navigates to Heroes page", () => {
+    renderWithRouter();
+    fireEvent.click(screen.getByTestId("nav-heroes"));
+    expect(screen.getByTestId("heroes-page")).toBeInTheDocument();
+  });
+
+  test("navigates to Events page", () => {
+    renderWithRouter();
+    fireEvent.click(screen.getByTestId("nav-events"));
+    expect(screen.getByTestId("events-page")).toBeInTheDocument();
   });
 });
