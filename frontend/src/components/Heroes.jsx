@@ -1,8 +1,8 @@
 // File: frontend/src/components/Heroes.jsx
-// Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
+// Purpose: Hero pool browser with selection + entrant persistence.
 // Notes:
-// - Dynamic hero pool with search/sort; shows image in dialog via backend proxy.
-// - Uses absolute backend origin for images to bypass Vite proxy quirks.
+// - On hero choose, updates entrant if exists, else redirects to event registration.
+// - Uses Entrants API for persistence.
 
 import { useState, useEffect } from "react";
 import {
@@ -22,17 +22,20 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { apiFetch } from "../api";
-
-const BACKEND_ORIGIN =
-  import.meta.env.VITE_BACKEND_ORIGIN || "http://localhost:5500";
+import { useNavigate } from "react-router-dom";
 
 export default function Heroes() {
   const [heroes, setHeroes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -98,15 +101,39 @@ export default function Heroes() {
 
   const sortedHeroes = sortData(heroes, orderBy, order);
 
-  // Compute dialog image src:
-  // Prefer backend proxy (absolute), fall back to external URL if present.
-  const dialogImgSrc = (h) => {
-    if (!h) return null;
-    if (h.proxy_image) return h.proxy_image;            // e.g. "/api/heroes/70/image"
-    if (h.image) return h.image;                        // last resort
-    return null;
-  };
-  
+  // Handle hero selection
+  async function handleChooseHero(hero) {
+    try {
+      const entrantRaw = localStorage.getItem("entrant");
+      if (!entrantRaw) {
+        // No registration yet → redirect
+        alert("Please register for an event first before choosing a hero.");
+        navigate("/register-event");
+        return;
+      }
+
+      const entrant = JSON.parse(entrantRaw);
+      const entrantId = entrant.id;
+
+      // Call API to update entrant with new hero
+      const updated = await apiFetch(`/entrants/${entrantId}`, {
+        method: "PUT",
+        body: JSON.stringify({ hero_id: hero.id }),
+      });
+
+      // Persist updated entrant + hero
+      localStorage.setItem("entrant", JSON.stringify(updated));
+      localStorage.setItem("chosenHero", JSON.stringify(hero));
+
+      alert(`✅ Hero updated to ${hero.name}`);
+      setSelectedHero(null);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("❌ Failed to update hero:", err);
+      alert(err.message || "Failed to update hero");
+    }
+  }
+
   return (
     <Container sx={{ mt: 4 }}>
       <Typography
@@ -200,68 +227,58 @@ export default function Heroes() {
       {/* Hero detail dialog */}
       <Dialog open={!!selectedHero} onClose={() => setSelectedHero(null)} maxWidth="sm" fullWidth>
         <DialogTitle>{selectedHero?.name}</DialogTitle>
-        <DialogContent>
-          {dialogImgSrc(selectedHero) ? (
-            <Box textAlign="center" mb={2}>
+        <DialogContent dividers sx={{ maxHeight: "70vh" }}>
+          <Box textAlign="center" mb={2}>
+            {selectedHero?.proxy_image && (
               <img
-                src={dialogImgSrc(selectedHero)}
+                src={selectedHero.proxy_image}
                 alt={selectedHero.name}
                 style={{
                   maxWidth: "100%",
-                  height: "auto",
                   borderRadius: "8px",
                   boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                 }}
-                onError={(e) => {
-                  if (selectedHero?.image && e.currentTarget.src !== selectedHero.image) {
-                    e.currentTarget.src = selectedHero.image;
-                  }
-                }}
               />
-            </Box>
-          ) : (
-            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
-              No image available
-            </Typography>
-          )}
+            )}
+          </Box>
 
-          {/* Alignment emphasized higher up */}
           <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
-          <Typography>
-            <strong>Full Name:</strong> {selectedHero?.full_name || "-"}
-          </Typography>
-          <Typography>
-            <strong>Alias:</strong> {selectedHero?.alias || "-"}
-          </Typography>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Biography</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <pre>{JSON.stringify(selectedHero?.biography, null, 2)}</pre>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Powerstats list */}
-          {selectedHero?.powerstats && (
-            <Box sx={{ mt: 2 }}>
-              {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
-                <Typography key={stat}>
-                  {stat.charAt(0).toUpperCase() + stat.slice(1)}: {val}
-                </Typography>
-              ))}
-            </Box>
-          )}
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Appearance</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <pre>{JSON.stringify(selectedHero?.appearance, null, 2)}</pre>
+            </AccordionDetails>
+          </Accordion>
+
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Work & Connections</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <pre>{JSON.stringify(selectedHero?.work, null, 2)}</pre>
+              <pre>{JSON.stringify(selectedHero?.connections, null, 2)}</pre>
+            </AccordionDetails>
+          </Accordion>
 
           <Box sx={{ mt: 3, textAlign: "center" }}>
             <Button
               variant="contained"
               color="primary"
-              onClick={() => {
-                const existing = localStorage.getItem("chosenHero");
-                if (existing) {
-                  if (!window.confirm("You already selected a hero. Replace them?")) {
-                    return;
-                  }
-                }
-                localStorage.setItem("chosenHero", JSON.stringify(selectedHero));
-                setSelectedHero(null);
-              }}
+              onClick={() => handleChooseHero(selectedHero)}
             >
               Choose Hero
             </Button>
