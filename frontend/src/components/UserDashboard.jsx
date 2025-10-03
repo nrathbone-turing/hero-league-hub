@@ -1,9 +1,8 @@
 // File: frontend/src/components/UserDashboard.jsx
 // Purpose: Landing page for non-admin participants.
 // Notes:
-// - Left: hero card (chosenHero logic preserved).
-// - Right: registered event card (replaces analytics placeholder).
-// - Shows event + hero if registered, otherwise prompt to register.
+// - Left: hero card (choose hero only).
+// - Right: event card with entrant info, no hero card event button.
 
 import { useAuth } from "../context/AuthContext";
 import {
@@ -96,28 +95,13 @@ export default function UserDashboard() {
                       </Typography>
                     ))}
                 </Box>
-                <Box
-                  sx={{
-                    mt: 3,
-                    textAlign: "center",
-                    display: "flex",
-                    gap: 2,
-                    justifyContent: "center",
-                  }}
-                >
+                <Box sx={{ mt: 3, textAlign: "center" }}>
                   <Button
                     variant="outlined"
                     color="secondary"
                     onClick={() => navigate("/heroes")}
                   >
                     Choose Another Hero
-                  </Button>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate("/register-event")}
-                  >
-                    Register for Event
                   </Button>
                 </Box>
               </CardContent>
@@ -157,6 +141,12 @@ export default function UserDashboard() {
                 </Typography>
                 <Typography align="center" gutterBottom>
                   {entrant.event?.date || "TBA"}
+                </Typography>
+                <Typography align="center" gutterBottom>
+                  Status: {entrant.event?.status || "-"}
+                </Typography>
+                <Typography align="center" gutterBottom>
+                  Entrants: {entrant.event?.entrant_count ?? "-"}
                 </Typography>
                 <Box textAlign="center" my={2}>
                   {entrant.hero?.proxy_image && (
