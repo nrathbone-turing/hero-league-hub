@@ -46,15 +46,6 @@ class Event(db.Model):
         return f"<Event {self.name} ({self.date}) - {self.status}>"
 
     def to_dict(self, include_related: bool = False, include_counts: bool = True):
-        """
-        Serialize Event.
-
-        - include_related: when True, include full entrants and matches lists.
-        - include_counts: when True (default), include entrant_count summary.
-
-        (include_counts is accepted to avoid unexpected-keyword errors where callers
-        already pass this flag.)
-        """
         data = {
             "id": self.id,
             "name": self.name,
@@ -78,7 +69,7 @@ class Entrant(db.Model):
     alias = db.Column(db.String(80), nullable=True)
     event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
 
-    # New P3 scope fields
+    # Links
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     hero_id = db.Column(db.Integer, db.ForeignKey("heroes.id"), nullable=True)
 
@@ -90,9 +81,32 @@ class Entrant(db.Model):
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
+    # Relationships
     event = db.relationship("Event", back_populates="entrants")
-    user = db.relationship("User", back_populates="entrants", lazy="joined")
+
+    user = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="entrants",
+        lazy="joined",
+        overlaps="created_entrants,updated_entrants"
+    )
     hero = db.relationship("Hero", lazy="joined")
+
+    created_by = db.relationship(
+        "User",
+        foreign_keys=[created_by_id],
+        back_populates="created_entrants",
+        lazy="joined",
+        overlaps="entrants,updated_entrants"
+    )
+    updated_by = db.relationship(
+        "User",
+        foreign_keys=[updated_by_id],
+        back_populates="updated_entrants",
+        lazy="joined",
+        overlaps="entrants,created_entrants"
+    )
 
     def __repr__(self):
         status = "dropped" if self.dropped else "active"
@@ -105,13 +119,6 @@ class Entrant(db.Model):
         self.dropped = True
 
     def to_dict(self, include_event: bool = False, include_hero: bool = False, include_user: bool = False):
-        """
-        Serialize Entrant.
-
-        - include_event: add nested event (with counts)
-        - include_hero:  add nested hero
-        - include_user:  add nested user
-        """
         data = {
             "id": self.id,
             "name": self.name,
@@ -169,7 +176,6 @@ class Match(db.Model):
             "scores": self.scores,
             "winner_id": self.winner_id,
         }
-
         if include_names:
             e1 = db.session.get(Entrant, self.entrant1_id) if self.entrant1_id else None
             e2 = db.session.get(Entrant, self.entrant2_id) if self.entrant2_id else None
@@ -178,7 +184,6 @@ class Match(db.Model):
             data["entrant1"] = e1.to_dict() if e1 else None
             data["entrant2"] = e2.to_dict() if e2 else None
             data["winner"] = w.to_dict() if w else None
-
         return data
 
 
@@ -190,8 +195,25 @@ class User(db.Model):
     email = db.Column(db.String, unique=True, nullable=False)
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    entrants = db.relationship("Entrant", back_populates="user", cascade="all, delete-orphan")
 
+    entrants = db.relationship(
+        "Entrant",
+        back_populates="user",
+        foreign_keys="Entrant.user_id",
+        overlaps="created_by,updated_by"
+    )
+    created_entrants = db.relationship(
+        "Entrant",
+        back_populates="created_by",
+        foreign_keys="Entrant.created_by_id",
+        overlaps="user,updated_by"
+    )
+    updated_entrants = db.relationship(
+        "Entrant",
+        back_populates="updated_by",
+        foreign_keys="Entrant.updated_by_id",
+        overlaps="user,created_by"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
