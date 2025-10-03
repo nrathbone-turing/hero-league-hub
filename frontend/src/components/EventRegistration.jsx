@@ -1,9 +1,8 @@
 // File: frontend/src/components/EventRegistration.jsx
 // Purpose: Register logged-in users for an event with hero selection.
 // Notes:
-// - Auto-fills user fields from AuthContext.
-// - Event + hero dropdowns (hero searchable, paginated).
-// - On success, persists entrant (with nested event + hero) and redirects to /dashboard.
+// - Autocomplete searches across full hero DB, but dropdown shows only top 25.
+// - Persists entrant + chosen hero in localStorage after successful registration.
 
 import { useState, useEffect } from "react";
 import {
@@ -54,11 +53,11 @@ export default function EventRegistration() {
     fetchEvents();
   }, []);
 
-  // Load heroes
+  // Load heroes (fetch all for search)
   useEffect(() => {
     async function fetchHeroes() {
       try {
-        const data = await apiFetch("/heroes?search=a&page=1&per_page=100");
+        const data = await apiFetch("/heroes?search=a&page=1&per_page=1000");
         setHeroes(data.results || []);
       } catch {
         setError("Failed to load heroes");
@@ -82,7 +81,6 @@ export default function EventRegistration() {
         body: JSON.stringify(formData),
       });
 
-      // store entrant (with nested event + hero)
       localStorage.setItem("entrant", JSON.stringify(entrant));
       if (entrant.hero) {
         localStorage.setItem("chosenHero", JSON.stringify(entrant.hero));
