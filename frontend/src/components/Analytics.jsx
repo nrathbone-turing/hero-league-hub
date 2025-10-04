@@ -1,8 +1,8 @@
 // File: frontend/src/components/Analytics.jsx
 // Purpose: Displays analytics dashboards for hero usage, win rates, and event trends.
 // Notes:
-// - Uses mock data initially (to be replaced with API analytics endpoints).
-// - Includes tabs for each dashboard type.
+// - Includes aria-labels and data-testids for stable testing.
+// - Currently uses mock data (API integration planned later).
 
 import {
   Container,
@@ -51,8 +51,13 @@ export default function Analytics() {
   const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
 
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" align="center" gutterBottom>
+    <Container sx={{ mt: 4 }} data-testid="analytics-page">
+      <Typography
+        variant="h4"
+        align="center"
+        gutterBottom
+        data-testid="analytics-title"
+      >
         Hero League Analytics
       </Typography>
 
@@ -62,19 +67,22 @@ export default function Analytics() {
           onChange={(e, newVal) => setTab(newVal)}
           centered
           variant="fullWidth"
+          aria-label="Analytics Tabs"
+          data-testid="analytics-tabs"
         >
-          <Tab label="Hero Usage" />
-          <Tab label="Win Rates" />
-          <Tab label="Participation" />
+          <Tab label="Hero Usage" data-testid="tab-usage" />
+          <Tab label="Win Rates" data-testid="tab-winrates" />
+          <Tab label="Participation" data-testid="tab-participation" />
         </Tabs>
       </Paper>
 
+      {/* --- HERO USAGE --- */}
       {tab === 0 && (
-        <Box textAlign="center">
+        <Box textAlign="center" aria-label="Hero Usage Chart" data-testid="chart-usage">
           <Typography variant="h6" gutterBottom>
             Hero Usage Distribution
           </Typography>
-          <PieChart width={400} height={300}>
+          <PieChart width={400} height={300} aria-label="Hero Usage Pie Chart">
             <Pie
               data={mockHeroUsage}
               cx="50%"
@@ -85,7 +93,11 @@ export default function Analytics() {
               dataKey="value"
             >
               {mockHeroUsage.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                  data-testid={`usage-slice-${entry.name}`}
+                />
               ))}
             </Pie>
             <Tooltip />
@@ -94,8 +106,9 @@ export default function Analytics() {
         </Box>
       )}
 
+      {/* --- WIN RATES --- */}
       {tab === 1 && (
-        <Box textAlign="center">
+        <Box textAlign="center" aria-label="Hero Win Rates Chart" data-testid="chart-winrates">
           <Typography variant="h6" gutterBottom>
             Hero Win Rates (%)
           </Typography>
@@ -104,19 +117,21 @@ export default function Analytics() {
             height={300}
             data={mockWinRates}
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            aria-label="Hero Win Rates Bar Chart"
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="hero" />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="winRate" fill="#82ca9d" />
+            <Bar dataKey="winRate" fill="#82ca9d" data-testid="bar-winrates" />
           </BarChart>
         </Box>
       )}
 
+      {/* --- PARTICIPATION --- */}
       {tab === 2 && (
-        <Box textAlign="center">
+        <Box textAlign="center" aria-label="Event Participation Chart" data-testid="chart-participation">
           <Typography variant="h6" gutterBottom>
             Event Participation
           </Typography>
@@ -125,13 +140,18 @@ export default function Analytics() {
             height={300}
             data={mockParticipation}
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            aria-label="Event Participation Bar Chart"
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="event" />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="participants" fill="#ffc658" />
+            <Bar
+              dataKey="participants"
+              fill="#ffc658"
+              data-testid="bar-participation"
+            />
           </BarChart>
         </Box>
       )}

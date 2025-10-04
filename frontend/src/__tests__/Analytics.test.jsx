@@ -1,26 +1,46 @@
 // File: frontend/src/__tests__/Analytics.test.jsx
-// Purpose: Verifies rendering and tab switching for Analytics component.
+// Purpose: Robust tests for Analytics tabs and charts.
+// Notes:
+// - Uses data-testid and aria-labels for reliable queries (avoids text-only assertions).
 
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Analytics from "../components/Analytics";
 
-describe("Analytics", () => {
-  test("renders the analytics page with default tab", async () => {
+describe("Analytics Component", () => {
+  beforeEach(() => {
     renderWithRouter(<Analytics />);
-    expect(await screen.findByText(/Hero League Analytics/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hero Usage Distribution/i)).toBeInTheDocument();
   });
 
-  test("switches between analytics tabs", async () => {
-    renderWithRouter(<Analytics />);
-    const winRateTab = screen.getByRole("tab", { name: /Win Rates/i });
-    await userEvent.click(winRateTab);
-    expect(screen.getByText(/Hero Win Rates/i)).toBeInTheDocument();
+  test("renders analytics page with default Hero Usage tab", async () => {
+    const page = await screen.findByTestId("analytics-page");
+    expect(page).toBeInTheDocument();
+    expect(screen.getByTestId("analytics-title")).toHaveTextContent(
+      /Hero League Analytics/i
+    );
 
-    const participationTab = screen.getByRole("tab", { name: /Participation/i });
+    // Default tab content
+    expect(screen.getByTestId("chart-usage")).toBeInTheDocument();
+    const chart = screen.getByLabelText("Hero Usage Chart");
+    expect(within(chart).getAllByTestId(/usage-slice-/i).length).toBeGreaterThan(0);
+  });
+
+  test("switches to Win Rates tab and shows correct chart", async () => {
+    const winTab = screen.getByTestId("tab-winrates");
+    await userEvent.click(winTab);
+
+    const winChart = await screen.findByTestId("chart-winrates");
+    expect(winChart).toBeInTheDocument();
+    expect(within(winChart).getByLabelText("Hero Win Rates Bar Chart")).toBeVisible();
+  });
+
+  test("switches to Participation tab and shows correct chart", async () => {
+    const participationTab = screen.getByTestId("tab-participation");
     await userEvent.click(participationTab);
-    expect(screen.getByText(/Event Participation/i)).toBeInTheDocument();
+
+    const partChart = await screen.findByTestId("chart-participation");
+    expect(partChart).toBeInTheDocument();
+    expect(within(partChart).getByLabelText("Event Participation Bar Chart")).toBeVisible();
   });
 });
