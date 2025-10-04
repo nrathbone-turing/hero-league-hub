@@ -34,14 +34,14 @@ You can run Hero League Hub in two ways:
 
 ### Local (Recommended)
 ```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-python wsgi.py  # runs at http://localhost:5500
+# Backend (Local)
+pipenv install
+pipenv shell
+python backend/wsgi.py  # runs at http://localhost:5500
 ```
 
 ```bash
-# Frontend
+# Frontend (Local)
 cd frontend
 npm install
 npm run dev     # runs at http://localhost:3000

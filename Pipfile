@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask-cors = "==6.0.1"
+flask-cors = "*"
 alembic = "==1.16.5"
 black = "==24.8.0"
 blinker = "==1.9.0"
@@ -31,7 +31,7 @@ pycodestyle = "==2.12.1"
 pyflakes = "==3.2.0"
 pygments = "==2.19.2"
 pytest = "==8.4.2"
-python-dotenv = "==1.1.1"
+python-dotenv = "*"
 requests = "*"
 sqlalchemy = "==2.0.43"
 typing-extensions = "==4.15.0"
