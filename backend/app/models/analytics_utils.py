@@ -1,22 +1,21 @@
 # File: backend/app/models/analytics_utils.py
-# Purpose: Aggregate analytics calculations based on real/seeded match data.
+# Purpose: Aggregate analytics calculations based on real match data.
 
-from backend.app.models import Event, Match, Entrant, Hero
+from backend.app.models.models import Event, Match, Entrant  # corrected imports
 from backend.app.extensions import db
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 
 def get_hero_win_rates():
     """Return hero usage and win rates across all matches."""
     results = (
         db.session.query(
-            Hero.name.label("hero_name"),
+            Entrant.hero_name.label("hero_name"),
             func.count(Entrant.id).label("usage_count"),
-            func.sum(func.case((Match.winner_id == Entrant.id, 1), else_=0)).label("wins"),
+            func.sum(case((Match.winner_id == Entrant.id, 1), else_=0)).label("wins"),
         )
-        .join(Entrant, Entrant.hero_id == Hero.id)
         .outerjoin(Match, (Match.entrant1_id == Entrant.id) | (Match.entrant2_id == Entrant.id))
-        .group_by(Hero.name)
+        .group_by(Entrant.hero_name)
         .all()
     )
 
@@ -52,8 +51,8 @@ def get_match_results_summary():
     results = (
         db.session.query(
             Event.name,
-            func.count(Match.id),
-            func.avg(func.length(Match.scores)),
+            func.count(Match.id).label("match_count"),
+            func.avg(func.length(Match.scores)).label("avg_length"),
         )
         .join(Match, Match.event_id == Event.id)
         .group_by(Event.name)
