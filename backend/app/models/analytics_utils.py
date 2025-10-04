@@ -20,6 +20,7 @@ def get_hero_win_rates():
                 case((Match.winner_id == Entrant.id, 1), else_=0)
             ).label("wins"),
         )
+        .select_from(Entrant)
         .outerjoin(Hero, Entrant.hero_id == Hero.id)
         .outerjoin(
             Match,
