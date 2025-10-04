@@ -7,11 +7,9 @@ Built with **Flask (backend)**, **React + Vite (frontend)**, and **Postgres** fo
 
 You can run Hero League Hub in two ways: **locally (no Docker required)** or **with Docker Compose**.
 
----
-
 ### Option 1: Local Development (Recommended for quick iteration)
 
-Run frontend and backend in separate terminals.
+Run frontend and backend in separate terminals
 
 #### Backend
 ```bash
@@ -31,10 +29,10 @@ npm run dev
 ```
 Notes:
 - Runs on: http://localhost:3000
-- The frontend is configured to proxy API requests (e.g. /api/health) to the backend automatically
+- The frontend proxies API requests (e.g. /api/health) to the backend automatically
 
 ### Option 2: Docker Compose (Full stack with DB)
-Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ```bash
 docker compose up --build
@@ -52,149 +50,242 @@ docker compose down
 
 ---
 
+## Event Registration Flow
+
+Users can now register for published events directly from the app
+- **Frontend**: Users pick a hero, then select an event from a filtered dropdown
+- **Backend**: `/api/entrants/register` creates a new entrant tied to the logged-in user and chosen hero
+- **Persistence**: Entrants and heroes are cached in `localStorage` for dashboard display
+
+### Registration Logic
+- Only **published events** appear in dropdowns
+- Prevents duplicate registration per user/event
+- On successful registration, entrant info appears in **User Dashboard**
+
+---
+
 ## Database Management
 
-Notes:
-- Database schema and seed data are managed with **Flask-Migrate** and helper scripts.
-- All commands are available via **npm scripts** (they run inside the backend container).
-
-### Initialize migrations (only once per project)
+Managed via **Flask-Migrate** and helper scripts. All commands are runnable via **npm scripts** inside the backend container.
 ```bash
-npm run db:init
-```
-
-### Generate new migration
-```bash
-npm run db:migrate
-```
-
-### Apply latest migrations
-```bash
-npm run db:upgrade
-```
-
-### Seed with initial data
-```bash
-npm run db:seed
-```
-
-### Clear all data
-```bash
-npm run db:clear
-```
-
-### Full reset (clear → migrate → seed)
-```bash
-npm run db:reset
+npm run db:init       # Initialize migrations (once)
+npm run db:migrate    # Create migration
+npm run db:upgrade    # Apply migrations
+npm run db:seed       # Seed database
+npm run db:clear      # Clear all data
+npm run db:reset      # Full reset (clear --> migrate --> seed)
 ```
 
 ---
 
 ## Quick Test Checklist
-### Visit the frontend: http://localhost:3000
-This should display the **Hero League Hub UI**
+- **Frontend**: visit http://localhost:3000 --> confirm UI loads
+- **Backend**: http://localhost:5500/api/health --> confirm returns `{ "service": "Hero League Hub", "status": "ok" }`
+- **Proxied route**: http://localhost:3000/api/health --> confirm returns the same JSON as above
 
-### Visit the backend health endpoint: http://localhost:5500/api/health
-This should return:
-```json
-{"service":"Hero League Hub","status":"ok"}
-```
-### Visit proxied route: http://localhost:3000/api/health
-This should also return the same JSON as above
-
-### Verify database contents:
-#### Users
-Command:
+### Sample DB Checks
 ```bash
+# Users
 docker exec -it hero-league-hub-db-1 psql -U postgres -d heroleague -c "SELECT * FROM users LIMIT 5;"
-```
 
-Expected output:
-```python
-id | username |        email        
----+----------+----------------------
- 1 | admin    | admin@example.com
-(1 row)
-```
-
-#### Events
-Command:
-```bash
+# Events
 docker exec -it hero-league-hub-db-1 psql -U postgres -d heroleague -c "SELECT * FROM events LIMIT 5;"
-```
 
-Expected output:
-```python
- id |  name   |    date    | rules |  status   
-----+---------+------------+-------+-----------
-  1 | Event 1 | 2025-09-10 |       | drafting
-  2 | Event 2 | 2025-09-11 |       | published
-  3 | Event 3 | 2025-09-12 |       | cancelled
-  4 | Event 4 | 2025-09-13 |       | drafting
-  5 | Event 5 | 2025-09-14 |       | completed
-(5 rows)
-```
-
-#### Entrants
-Command:
-```bash
+# Entrants
 docker exec -it hero-league-hub-db-1 psql -U postgres -d heroleague -c "SELECT * FROM entrants LIMIT 5;"
-```
 
-Expected output:
-```python
- id |  name  | alias  | event_id | dropped 
-----+--------+--------+----------+---------
-  1 | Hero 1 | Alias1 |        1 | f
-  2 | Hero 2 | Alias2 |        1 | f
-  3 | Hero 3 | Alias3 |        1 | f
-  4 | Hero 4 | Alias4 |        1 | f
-  5 | Hero 5 | Alias5 |        1 | f
-(5 rows)
-```
-
-#### Matches
-Command:
-```bash
+# Matches
 docker exec -it hero-league-hub-db-1 psql -U postgres -d heroleague -c "SELECT * FROM matches LIMIT 5;"
 ```
-
-Expected output:
-```python
- id | event_id | round | entrant1_id | entrant2_id | scores | winner_id 
-----+----------+-------+-------------+-------------+--------+-----------
-  1 |        1 |     1 |           1 |           2 | 2-0    |         1
-  2 |        1 |     1 |           3 |           4 | 0-2    |         4
-  3 |        1 |     1 |           5 |           6 | 2-1    |         5
-  4 |        1 |     1 |           7 |           8 | 1-2    |         8
-  5 |        2 |     1 |           9 |          10 | 2-0    |         9
-(5 rows)
-```
-
-
 
 ---
 
 ## Tech Stack
 - **Backend:** Flask, Flask-Migrate, Flask-SQLAlchemy, Flask-JWT-Extended
-- **Frontend:** React, Vite
+- **Frontend:** React, Vite, MUI (Material UI)
 - **Database:** Postgres 15 (via Docker)
 - **Dev Tools:** Docker Compose, Black, Flake8, Pytest
 
 ---
 
+## Running Tests
+
+### Backend Tests (pytest)
+Run all backend unit and integration tests:
+```bash
+npm run test:backend
+```
+
+### Frontend Tests (Vitest + React Testing Library)
+Run component and UI tests:
+```bash
+npm run test:frontend
+```
+
+### Full Suite (Backend + Frontend)
+Run both backend and frontend test suites in sequence:
+```bash
+npm test
+```
+
+### Notes
+- Backend tests live in `backend/tests/` and use fixtures defined in `conftest.py`
+- Frontend tests live in `frontend/src/__tests__/` and use `setupTests.js` + `test-utils.jsx`
+- Ensure your `.env` or `TestConfig` uses `sqlite:///:memory:` for isolated backend runs
+
+---
+
+## API Endpoints
+
+### Auth
+- `POST /api/signup` — Create a new user account  
+- `POST /api/login` — Authenticate and receive JWT  
+- `DELETE /api/logout` — Revoke token (adds to blocklist)
+
+### Events
+- `GET /api/events` — List all events (sorted by date/status)
+- `POST /api/events` — Create a new event *(admin use only)*
+- `PUT /api/events/:id` — Update event status *(admin use only)*
+- `DELETE /api/events/:id` — Delete an event *(admin use only)*
+
+### Entrants
+- `POST /api/entrants/register` — Register a user + hero for an event  
+- `DELETE /api/entrants/unregister/:event_id` — Remove entrant from event  
+- `GET /api/entrants?event_id=X&user_id=Y` — Filter entrants by user/event  
+- `PUT /api/entrants/:id` — Update entrant info *(admin)*  
+- `DELETE /api/entrants/:id` — Hard/soft delete entrant *(admin)*  
+
+### Matches
+- `GET /api/matches?event_id=X` — List all matches for an event  
+- `POST /api/matches` — Create a match *(admin)*  
+- `PUT /api/matches/:id` — Update scores or winner *(admin)*  
+- `DELETE /api/matches/:id` — Delete a match *(admin)*  
+
+### Analytics *(coming soon)*
+- `/api/analytics/usage` — Participation stats  
+- `/api/analytics/results` — Match outcome summaries  
+- `/api/analytics/heroes` — Hero win rates + usage rates 
+---
+
+## Data Models
+
+### User
+| Field | Type | Description |
+|--------|------|-------------|
+| `id` | Integer | Primary key |
+| `username` | String | Unique display name for the user |
+| `email` | String | Unique email for login |
+| `password_hash` | String | Securely hashed password |
+| `is_admin` | Boolean | Flags admin accounts (rare for registrants) |
+
+---
+
+### Hero
+| Field | Type | Description |
+|--------|------|-------------|
+| `id` | Integer | External SuperHero API ID |
+| `name` | String | Hero’s public name |
+| `full_name` | String | Hero’s real or full name |
+| `alignment` | String | `"hero"`, `"villain"`, `"antihero"`, or `"unknown"` |
+| `powerstats` | JSON | Key-value stats (strength, speed, etc.) |
+| `image` | String | Hero portrait URL |
+
+---
+
+### Event
+| Field | Type | Description |
+|--------|------|-------------|
+| `id` | Integer | Primary key |
+| `name` | String | Event title |
+| `date` | String | Date of event (ISO or string) |
+| `rules` | String | Format or rule set (e.g. "Bo3" or "Villains only") |
+| `status` | Enum | `"drafting"`, `"published"`, `"cancelled"`, `"completed"` |
+| `entrants` | Relationship | List of registered entrants |
+| `matches` | Relationship | List of associated matches |
+
+---
+
+### Entrant
+| Field | Type | Description |
+|--------|------|-------------|
+| `id` | Integer | Primary key |
+| `user_id` | FK --> `users.id` | Linked participant |
+| `hero_id` | FK --> `heroes.id` | Chosen hero |
+| `event_id` | FK --> `events.id` | Event registration |
+| `name` | String | User's display name at registration |
+| `alias` | String | User's selected hero for event |
+| `dropped` | Boolean | Indicates withdrawn or inactive entrant |
+| `created_at` / `updated_at` | DateTime | Audit timestamps |
+
+---
+
+### Match
+| Field | Type | Description |
+|--------|------|-------------|
+| `id` | Integer | Primary key |
+| `event_id` | FK → `events.id` | Event association |
+| `round` | Integer | Match round number |
+| `entrant1_id` / `entrant2_id` | FK → `entrants.id` | Match participants |
+| `scores` | String | Score summary (e.g., `"2-1"`) |
+| `winner_id` | FK → `entrants.id` | Match winner |
+
+---
+
+**Relationships**
+- One **Event** → many **Entrants** and **Matches**  
+- One **User** → many **Entrants**  
+- One **Hero** → many **Entrants** (reused across events)  
+
+---
+
 ## Project Structure
 ```
-placeholder for tree
+.
+├── backend
+│   ├── app
+│   │   ├── __init__.py             # Flask app factory and extension setup
+│   │   ├── blocklist.py            # JWT blocklist store
+│   │   ├── config.py               # App + Test configuration
+│   │   ├── extensions.py           # SQLAlchemy, Migrate, JWT init
+│   │   ├── models/                 # ORM models: User, Event, Entrant, Match, Hero
+│   │   └── routes/                 # Flask Blueprints: auth, events, entrants, matches, heroes
+│   ├── migrations/                 # Alembic migration scripts
+│   ├── scripts/                    # DB helper scripts (seed/reset/clear)
+│   ├── seeds/                      # JSON seed data for users, events, matches, etc.
+│   ├── tests/                      # Pytest suite for backend routes and models
+│   ├── manage.py                   # Migration CLI entrypoint
+│   ├── requirements.txt            # Python dependencies
+│   ├── Dockerfile.backend          # Backend Docker config
+│   └── wsgi.py                     # Production entrypoint
+├── frontend
+│   ├── src
+│   │   ├── components/             # React components (Dashboard, EventDetail, Registration, etc.)
+│   │   ├── context/                # Auth + global context providers
+│   │   ├── __tests__/              # Vitest + RTL frontend test files
+│   │   ├── api.js                  # Centralized API helper using fetch
+│   │   ├── main.jsx                # React root entrypoint
+│   │   ├── setupTests.js           # RTL setup for Vitest
+│   │   └── test-utils.jsx          # Custom render helpers (with router/context)
+│   ├── public/                     # Static assets
+│   ├── vite.config.js              # Vite build + proxy config
+│   ├── package.json                # Frontend dependencies
+│   └── Dockerfile.frontend         # Frontend Docker config
+├── docker-compose.yml              # Combined stack (frontend, backend, db)
+├── pytest.ini                      # Pytest configuration
+└── README.md                       # Project documentation
 ```
 
 ---
 
 ## Known Issues
-- placeholder
+- MUI Select components require test environment mocking for stable interaction
+- LocalStorage persistence is used for MVP; dynamic fetching planned for future releases
+- Issues accessing images from [Superhero API](https://superheroapi.com/index.html) in a way that works with backend auth
 
 ## Future Improvements
-- placeholder
+- Add analytics tab for win/loss trends and entrant performance
+- Replace localStorage with API-based entrant fetching
+- Enhance error handling and loading UX across components
 
 ---
 
