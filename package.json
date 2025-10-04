@@ -30,7 +30,7 @@
 
     "docker:rebuild": "docker compose down && docker compose up --build -d",
     "db:refresh": "npm run db:drop && npm run db:create && npm run db:upgrade && npm run db:seed",
-    "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm run test:backend",
+    "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm run test:backend && npm run test:frontend",
     "dev:all": "npm run docker:rebuild && npm run start:frontend"
   },
   "devDependencies": {
