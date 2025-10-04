@@ -30,6 +30,7 @@ export default function LoginForm() {
       await login(email, password);
       navigate("/");
     } catch (err) {
+      console.error(err)
       setMessage("❌ Login failed — please check your credentials");
     }
   };

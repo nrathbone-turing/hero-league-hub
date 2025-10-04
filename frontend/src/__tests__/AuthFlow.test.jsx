@@ -9,7 +9,7 @@ import { renderWithRouter } from "../test-utils.jsx";
 import App from "../App";
 
 beforeEach(() => {
-  global.fetch = vi.fn((url, options) => {
+  global.fetch = vi.fn((url) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
         ok: true,
