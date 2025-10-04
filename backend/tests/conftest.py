@@ -19,6 +19,7 @@ from unittest.mock import patch
 # Core fixtures
 # ------------------------------
 
+
 @pytest.fixture(scope="session")
 def app():
     """Create a Flask app instance for testing with TestConfig."""
@@ -56,9 +57,11 @@ def session(app):
 # Entity creators
 # ------------------------------
 
+
 @pytest.fixture
 def create_event(session):
     """Factory fixture to create and persist Event objects."""
+
     def _create_event(**kwargs):
         event = Event(
             name=kwargs.get("name", "Test Cup"),
@@ -69,24 +72,28 @@ def create_event(session):
         session.add(event)
         session.commit()
         return event
+
     return _create_event
 
 
 @pytest.fixture
 def create_user(session):
     """Factory fixture to create and persist User objects."""
+
     def _create_user(username="player1", email="player1@test.com", password="fake"):
         user = User(username=username, email=email)
         user.set_password(password)
         session.add(user)
         session.commit()
         return user
+
     return _create_user
 
 
 @pytest.fixture
 def create_hero(session):
     """Factory fixture to create and persist Hero objects."""
+
     def _create_hero(hero_id=999, name="Batman"):
         hero = Hero(
             id=hero_id,
@@ -97,12 +104,14 @@ def create_hero(session):
         session.add(hero)
         session.commit()
         return hero
+
     return _create_hero
 
 
 @pytest.fixture
 def seed_event_with_entrants(session, create_event):
     """Seed an event with two default entrants for testing matches."""
+
     def _seed_event_with_entrants():
         event = create_event(name="Match Cup", status="published")
         e1 = Entrant(name="Hero A", alias="Alpha", event_id=event.id)
@@ -110,6 +119,7 @@ def seed_event_with_entrants(session, create_event):
         session.add_all([e1, e2])
         session.commit()
         return event, e1, e2
+
     return _seed_event_with_entrants
 
 
@@ -133,6 +143,7 @@ def auth_user_and_header(app, session):
 # API mocking helpers
 # ------------------------------
 
+
 @pytest.fixture
 def mock_hero_api():
     """Monkeypatch requests.get to fake Superhero API response."""
@@ -153,7 +164,9 @@ def mock_hero_api():
     class DummyResp:
         ok = True
         status_code = 200
-        def json(self): return fake_response
+
+        def json(self):
+            return fake_response
 
     with patch("backend.app.routes.heroes.requests.get", return_value=DummyResp()):
         yield

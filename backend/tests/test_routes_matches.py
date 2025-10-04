@@ -31,7 +31,9 @@ def test_create_match(client, seed_event_with_entrants, auth_user_and_header):
     assert data["winner_id"] == e1.id
 
 
-def test_create_match_rejects_invalid_winner(client, seed_event_with_entrants, auth_user_and_header):
+def test_create_match_rejects_invalid_winner(
+    client, seed_event_with_entrants, auth_user_and_header
+):
     """Creating a match should reject invalid winner_id."""
     _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
@@ -54,7 +56,14 @@ def test_create_match_rejects_invalid_winner(client, seed_event_with_entrants, a
 def test_get_matches(client, seed_event_with_entrants, session):
     """GET /api/matches should return list of matches."""
     event, e1, e2 = seed_event_with_entrants()
-    match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="1-0", winner_id=e1.id)
+    match = Match(
+        event_id=event.id,
+        round=1,
+        entrant1_id=e1.id,
+        entrant2_id=e2.id,
+        scores="1-0",
+        winner_id=e1.id,
+    )
     session.add(match)
     session.commit()
 
@@ -68,11 +77,15 @@ def test_update_match(client, seed_event_with_entrants, session, auth_user_and_h
     """PUT /api/matches/:id should update match scores."""
     _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
-    match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="0-0")
+    match = Match(
+        event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="0-0"
+    )
     session.add(match)
     session.commit()
 
-    response = client.put(f"/api/matches/{match.id}", json={"scores": "2-0"}, headers=auth_header)
+    response = client.put(
+        f"/api/matches/{match.id}", json={"scores": "2-0"}, headers=auth_header
+    )
     assert response.status_code == 200
     assert response.get_json()["scores"] == "2-0"
 
@@ -84,7 +97,9 @@ def test_delete_match(client, seed_event_with_entrants, session, auth_user_and_h
     """DELETE /api/matches/:id should remove a match."""
     _, auth_header = auth_user_and_header
     event, e1, e2 = seed_event_with_entrants()
-    match = Match(event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="1-1")
+    match = Match(
+        event_id=event.id, round=1, entrant1_id=e1.id, entrant2_id=e2.id, scores="1-1"
+    )
     session.add(match)
     session.commit()
 

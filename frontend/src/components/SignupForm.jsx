@@ -8,14 +8,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  Container,
-  Paper,
-  Box,
-  TextField,
-  Button,
-  Typography,
-} from "@mui/material";
+import { Container, Paper, Box, TextField, Button, Typography } from "@mui/material";
 
 export default function SignupForm() {
   const { signup } = useAuth();

@@ -9,7 +9,7 @@ import { renderWithRouter } from "../test-utils.jsx";
 import App from "../App";
 
 beforeEach(() => {
-  global.fetch = vi.fn((url, options) => {
+  global.fetch = vi.fn((url) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
         ok: true,
@@ -41,9 +41,7 @@ afterEach(() => {
 
 test("redirects unauthenticated user from / to /login", async () => {
   renderWithRouter(<App />, { route: "/" });
-  expect(
-    await screen.findByRole("button", { name: /log in/i }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
 });
 
 test("successful login redirects to dashboard", async () => {
@@ -62,9 +60,7 @@ test("successful login redirects to dashboard", async () => {
 
 test("navbar shows signup/login when logged out", async () => {
   renderWithRouter(<App />, { route: "/" });
-  expect(
-    await screen.findByRole("button", { name: /log in/i }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /signup/i })).toBeInTheDocument();
 });
 

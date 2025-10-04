@@ -7,7 +7,13 @@
 // - Skips token validation automatically during tests (NODE_ENV=test).
 // - Safe use of useNavigate (only called inside component, not top-level).
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 

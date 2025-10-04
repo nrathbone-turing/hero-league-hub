@@ -51,9 +51,14 @@ def register_user_for_event():
         db.session.add(entrant)
         db.session.commit()
 
-        return jsonify(
-            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
-        ), 201
+        return (
+            jsonify(
+                entrant.to_dict(
+                    include_event=True, include_hero=True, include_user=True
+                )
+            ),
+            201,
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -69,6 +74,7 @@ def unregister_user_from_event(event_id):
     - Soft delete if matches exist
     """
     from flask_jwt_extended import get_jwt_identity
+
     user_id = get_jwt_identity()
     try:
         entrant = Entrant.query.filter_by(user_id=user_id, event_id=event_id).first()
@@ -87,9 +93,14 @@ def unregister_user_from_event(event_id):
         if has_matches:
             entrant.soft_delete()
             db.session.commit()
-            return jsonify(
-                entrant.to_dict(include_event=True, include_hero=True, include_user=True)
-            ), 200
+            return (
+                jsonify(
+                    entrant.to_dict(
+                        include_event=True, include_hero=True, include_user=True
+                    )
+                ),
+                200,
+            )
         else:
             db.session.delete(entrant)
             db.session.commit()
@@ -97,7 +108,7 @@ def unregister_user_from_event(event_id):
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        return jsonify(error="Failed to unregister entrant"), 500
+        return jsonify(error=f"Failed to unregister entrant: {str(e)}"), 500
 
 
 # ------------------------
@@ -125,13 +136,18 @@ def create_entrant():
         db.session.add(entrant)
         db.session.commit()
 
-        return jsonify(
-            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
-        ), 201
+        return (
+            jsonify(
+                entrant.to_dict(
+                    include_event=True, include_hero=True, include_user=True
+                )
+            ),
+            201,
+        )
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        return jsonify(error="Failed to create entrant"), 500
+        return jsonify(error=f"Failed to create entrant: {str(e)}"), 500
 
 
 @bp.route("", methods=["GET"])
@@ -149,13 +165,18 @@ def get_entrants():
             query = query.filter_by(user_id=user_id)
 
         entrants = query.all()
-        return jsonify([
-            e.to_dict(include_event=True, include_hero=True, include_user=True)
-            for e in entrants
-        ]), 200
+        return (
+            jsonify(
+                [
+                    e.to_dict(include_event=True, include_hero=True, include_user=True)
+                    for e in entrants
+                ]
+            ),
+            200,
+        )
     except Exception as e:
         traceback.print_exc()
-        return jsonify(error="Failed to fetch entrants"), 500
+        return jsonify(error=f"Failed to fetch entrants: {str(e)}"), 500
 
 
 @bp.route("/<int:entrant_id>", methods=["PUT"])
@@ -170,13 +191,18 @@ def update_entrant(entrant_id):
         for key, value in data.items():
             setattr(entrant, key, value)
         db.session.commit()
-        return jsonify(
-            entrant.to_dict(include_event=True, include_hero=True, include_user=True)
-        ), 200
+        return (
+            jsonify(
+                entrant.to_dict(
+                    include_event=True, include_hero=True, include_user=True
+                )
+            ),
+            200,
+        )
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        return jsonify(error="Failed to update entrant"), 500
+        return jsonify(error=f"Failed to update entrant: {str(e)}"), 500
 
 
 @bp.route("/<int:entrant_id>", methods=["DELETE"])
@@ -203,9 +229,14 @@ def delete_entrant(entrant_id):
         if has_matches:
             entrant.soft_delete()
             db.session.commit()
-            return jsonify(
-                entrant.to_dict(include_event=True, include_hero=True, include_user=True)
-            ), 200
+            return (
+                jsonify(
+                    entrant.to_dict(
+                        include_event=True, include_hero=True, include_user=True
+                    )
+                ),
+                200,
+            )
         else:
             db.session.delete(entrant)
             db.session.commit()
@@ -213,4 +244,4 @@ def delete_entrant(entrant_id):
     except Exception as e:
         db.session.rollback()
         traceback.print_exc()
-        return jsonify(error="Failed to delete entrant"), 500
+        return jsonify(error=f"Failed to delete entrant: {str(e)}"), 500

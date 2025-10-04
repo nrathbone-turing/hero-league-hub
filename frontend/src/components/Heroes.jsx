@@ -62,7 +62,7 @@ export default function Heroes() {
     setLoading(true);
     try {
       const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`,
+        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`
       );
       setHeroes(data.results || []);
       setTotal(data.total || 0);
@@ -123,7 +123,7 @@ export default function Heroes() {
         const eventName = parsedEntrant.event?.name || "your current event";
         if (
           !window.confirm(
-            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`,
+            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
           )
         ) {
           return;
@@ -253,9 +253,7 @@ export default function Heroes() {
         fullWidth
         data-testid="hero-dialog"
       >
-        <DialogTitle data-testid="hero-dialog-title">
-          {selectedHero?.name}
-        </DialogTitle>
+        <DialogTitle data-testid="hero-dialog-title">{selectedHero?.name}</DialogTitle>
         <DialogContent dividers>
           {dialogImgSrc(selectedHero) ? (
             <Box textAlign="center" mb={2}>
@@ -271,12 +269,21 @@ export default function Heroes() {
               />
             </Box>
           ) : (
-            <Typography align="center" color="text.secondary" sx={{ mb: 2 }} data-testid="no-image-text">
+            <Typography
+              align="center"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+              data-testid="no-image-text"
+            >
               No image available
             </Typography>
           )}
 
-          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }} data-testid="hero-alignment">
+          <Typography
+            align="center"
+            sx={{ fontWeight: "bold", mb: 1 }}
+            data-testid="hero-alignment"
+          >
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 

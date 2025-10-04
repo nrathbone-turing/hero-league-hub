@@ -126,11 +126,7 @@ export default function UserDashboard() {
                 >
                   {chosenHero.name}
                 </Typography>
-                <Typography
-                  align="center"
-                  gutterBottom
-                  data-testid="hero-full-name"
-                >
+                <Typography align="center" gutterBottom data-testid="hero-full-name">
                   {chosenHero.full_name || "-"}
                 </Typography>
                 <Typography data-testid="hero-alias">
@@ -181,10 +177,19 @@ export default function UserDashboard() {
           {entrant ? (
             <Card sx={{ p: 2 }} data-testid="event-card">
               <CardContent>
-                <Typography variant="h6" align="center" sx={{ fontWeight: "bold", mb: 2 }}>
+                <Typography
+                  variant="h6"
+                  align="center"
+                  sx={{ fontWeight: "bold", mb: 2 }}
+                >
                   Registered Event
                 </Typography>
-                <Typography variant="h5" align="center" gutterBottom data-testid="event-name">
+                <Typography
+                  variant="h5"
+                  align="center"
+                  gutterBottom
+                  data-testid="event-name"
+                >
                   {entrant.event?.name || "Event"}
                 </Typography>
                 <Typography align="center" gutterBottom data-testid="event-date">
@@ -213,7 +218,11 @@ export default function UserDashboard() {
                 <Typography variant="h6" align="center" data-testid="event-hero-name">
                   {entrant.hero?.name}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="event-hero-full-name">
+                <Typography
+                  align="center"
+                  gutterBottom
+                  data-testid="event-hero-full-name"
+                >
                   {entrant.hero?.full_name || "-"}
                 </Typography>
                 <Typography align="center" gutterBottom data-testid="event-hero-alias">

@@ -45,7 +45,7 @@ describe("Heroes", () => {
     resolvePromise?.(defaultEmpty);
 
     await waitFor(() =>
-      expect(screen.queryByText(/loading heroes/i)).not.toBeInTheDocument(),
+      expect(screen.queryByText(/loading heroes/i)).not.toBeInTheDocument()
     );
   });
 
@@ -57,7 +57,7 @@ describe("Heroes", () => {
     await userEvent.type(input, "WillFail", { allAtOnce: true });
 
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(/failed to fetch heroes/i),
+      expect(screen.getByRole("alert")).toHaveTextContent(/failed to fetch heroes/i)
     );
   });
 
@@ -69,7 +69,7 @@ describe("Heroes", () => {
     await userEvent.type(input, "UnknownHero", { allAtOnce: true });
 
     await waitFor(() =>
-      expect(screen.getByText(/no heroes found/i)).toBeInTheDocument(),
+      expect(screen.getByText(/no heroes found/i)).toBeInTheDocument()
     );
   });
 
@@ -111,11 +111,12 @@ describe("Heroes - Pagination", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText((content, node) =>
-          node?.classList.contains("MuiTablePagination-displayedRows") &&
-          /of 60/.test(content),
-        ),
-      ).toBeInTheDocument(),
+        screen.getByText(
+          (content, node) =>
+            node?.classList.contains("MuiTablePagination-displayedRows") &&
+            /of 60/.test(content)
+        )
+      ).toBeInTheDocument()
     );
 
     expect(screen.getByRole("button", { name: /go to next page/i })).toBeEnabled();
@@ -171,7 +172,13 @@ describe("Heroes - Table and Dialog", () => {
   test("displays hero full_name, alias, and alignment in table", async () => {
     api.apiFetch.mockResolvedValue({
       results: [
-        { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+        {
+          id: 2,
+          name: "Batman",
+          full_name: "Bruce Wayne",
+          alias: "Dark Knight",
+          alignment: "good",
+        },
       ],
       page: 1,
       per_page: 25,
@@ -191,8 +198,20 @@ describe("Heroes - Table and Dialog", () => {
   test("allows sorting heroes by name", async () => {
     api.apiFetch.mockResolvedValue({
       results: [
-        { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
-        { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+        {
+          id: 1,
+          name: "Superman",
+          full_name: "Clark Kent",
+          alias: "Man of Steel",
+          alignment: "good",
+        },
+        {
+          id: 2,
+          name: "Batman",
+          full_name: "Bruce Wayne",
+          alias: "Dark Knight",
+          alignment: "good",
+        },
       ],
       page: 1,
       per_page: 25,
@@ -205,14 +224,14 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.type(input, "Test", { allAtOnce: true });
 
     await waitFor(() =>
-      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Superman"),
+      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Superman")
     );
 
     const nameHeader = screen.getByRole("button", { name: /^Name$/i });
     await userEvent.click(nameHeader);
 
     await waitFor(() =>
-      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Batman"),
+      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Batman")
     );
   });
 
@@ -251,7 +270,13 @@ describe("Heroes - Table and Dialog", () => {
   test("closes dialog when ESC pressed", async () => {
     api.apiFetch.mockResolvedValue({
       results: [
-        { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+        {
+          id: 1,
+          name: "Superman",
+          full_name: "Clark Kent",
+          alias: "Man of Steel",
+          alignment: "good",
+        },
       ],
       page: 1,
       per_page: 25,
@@ -267,9 +292,7 @@ describe("Heroes - Table and Dialog", () => {
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   test("shows 'No image available' when hero lacks image", async () => {
@@ -313,7 +336,12 @@ describe("Heroes - Table and Dialog", () => {
   test("dialog displays powerstats when present", async () => {
     api.apiFetch.mockResolvedValue({
       results: [
-        { id: 1, name: "Flash", alignment: "good", powerstats: { speed: 100, strength: 50 } },
+        {
+          id: 1,
+          name: "Flash",
+          alignment: "good",
+          powerstats: { speed: 100, strength: 50 },
+        },
       ],
       page: 1,
       per_page: 25,
@@ -328,7 +356,9 @@ describe("Heroes - Table and Dialog", () => {
     await userEvent.click(await screen.findByText("Flash"));
     const dialog = await screen.findByRole("dialog");
 
-    expect(within(dialog).getByRole("heading", { name: /powerstats/i })).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("heading", { name: /powerstats/i })
+    ).toBeInTheDocument();
     expect(within(dialog).getByText(/Speed/i)).toBeInTheDocument();
     expect(within(dialog).getByText(/Strength/i)).toBeInTheDocument();
   });
@@ -348,7 +378,10 @@ describe("Heroes - Table and Dialog", () => {
     renderWithRouter(
       <Routes>
         <Route path="/heroes" element={<Heroes />} />
-        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+        <Route
+          path="/dashboard"
+          element={<div data-testid="dashboard-page">Dashboard</div>}
+        />
       </Routes>,
       { route: "/heroes" }
     );
@@ -370,7 +403,10 @@ describe("Heroes - Table and Dialog", () => {
   test("Choose Hero (entrant exists): replaces hero after confirm", async () => {
     localStorage.setItem("token", "fake");
     localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
-    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+    localStorage.setItem(
+      "entrant_123",
+      JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } })
+    );
 
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
@@ -385,7 +421,10 @@ describe("Heroes - Table and Dialog", () => {
     renderWithRouter(
       <Routes>
         <Route path="/heroes" element={<Heroes />} />
-        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+        <Route
+          path="/dashboard"
+          element={<div data-testid="dashboard-page">Dashboard</div>}
+        />
       </Routes>,
       { route: "/heroes" }
     );
@@ -406,7 +445,10 @@ describe("Heroes - Table and Dialog", () => {
   test("Choose Hero (entrant exists): cancel confirm leaves hero unchanged", async () => {
     localStorage.setItem("token", "fake");
     localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
-    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+    localStorage.setItem(
+      "entrant_123",
+      JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } })
+    );
 
     vi.spyOn(window, "confirm").mockReturnValue(false);
 

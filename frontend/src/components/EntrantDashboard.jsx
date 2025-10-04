@@ -8,14 +8,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "../api";
-import {
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Box,
-} from "@mui/material";
+import { Card, CardContent, Typography, TextField, Button, Box } from "@mui/material";
 
 export default function EntrantDashboard({ eventId, onEntrantAdded }) {
   const [formData, setFormData] = useState({ name: "", alias: "" });
@@ -73,7 +66,7 @@ export default function EntrantDashboard({ eventId, onEntrantAdded }) {
         <Box
           component="form"
           onSubmit={handleSubmit}
-          noValidate   // <-- key: disable native validation so our handler runs
+          noValidate // <-- key: disable native validation so our handler runs
           sx={{ display: "flex", flexDirection: "column", gap: 2 }}
         >
           <TextField
@@ -85,9 +78,7 @@ export default function EntrantDashboard({ eventId, onEntrantAdded }) {
           <TextField
             label="Alias"
             value={formData.alias}
-            onChange={(e) =>
-              setFormData({ ...formData, alias: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
             required
           />
           <Button

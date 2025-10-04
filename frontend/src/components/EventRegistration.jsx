@@ -198,7 +198,9 @@ export default function EventRegistration() {
           loading={loadingHeroes}
           filterOptions={(x) => x}
           getOptionLabel={(option) =>
-            option?.name ? `${option.name}${option.alias ? ` (${option.alias})` : ""}` : ""
+            option?.name
+              ? `${option.name}${option.alias ? ` (${option.alias})` : ""}`
+              : ""
           }
           renderOption={(props, option) => (
             <li {...props} key={option.id} data-testid={`hero-option-${option.id}`}>

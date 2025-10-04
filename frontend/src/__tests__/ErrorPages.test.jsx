@@ -15,7 +15,7 @@ describe("Error Pages", () => {
 
     expect(screen.getByRole("heading", { name: "404" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: /page not found/i }),
+      screen.getByRole("heading", { name: /page not found/i })
     ).toBeInTheDocument();
   });
 
@@ -24,7 +24,7 @@ describe("Error Pages", () => {
 
     expect(screen.getByRole("heading", { name: "500" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: /something went wrong/i }),
+      screen.getByRole("heading", { name: /something went wrong/i })
     ).toBeInTheDocument();
   });
 });

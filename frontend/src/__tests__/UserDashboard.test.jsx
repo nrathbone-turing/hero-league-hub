@@ -15,7 +15,12 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
   localStorage.setItem("token", "fake-token");
   localStorage.setItem(
     "user",
-    JSON.stringify({ id: 1, username: "player1", email: "player1@example.com", is_admin: false })
+    JSON.stringify({
+      id: 1,
+      username: "player1",
+      email: "player1@example.com",
+      is_admin: false,
+    })
   );
 
   if (withHero) {
@@ -74,7 +79,9 @@ describe("UserDashboard", () => {
 
   test("renders welcome message with username", async () => {
     renderWithAuth();
-    expect(await screen.findByTestId("user-dashboard")).toHaveTextContent("Welcome, player1");
+    expect(await screen.findByTestId("user-dashboard")).toHaveTextContent(
+      "Welcome, player1"
+    );
   });
 
   test("renders hero prompt and event prompt when nothing chosen", async () => {
@@ -103,12 +110,20 @@ describe("UserDashboard", () => {
     const eventCard = await screen.findByTestId("event-card");
     expect(within(eventCard).getByTestId("event-name")).toHaveTextContent("Hero Cup");
     expect(within(eventCard).getByTestId("event-date")).toHaveTextContent("2025-09-12");
-    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent("published");
+    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent(
+      "published"
+    );
     expect(within(eventCard).getByTestId("event-entrants")).toHaveTextContent("16");
 
-    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent("Superman");
-    expect(within(eventCard).getByTestId("change-registration-btn")).toBeInTheDocument();
-    expect(within(eventCard).getByTestId("cancel-registration-btn")).toBeInTheDocument();
+    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent(
+      "Superman"
+    );
+    expect(
+      within(eventCard).getByTestId("change-registration-btn")
+    ).toBeInTheDocument();
+    expect(
+      within(eventCard).getByTestId("cancel-registration-btn")
+    ).toBeInTheDocument();
   });
 
   test("cancel registration clears entrant and reverts UI", async () => {

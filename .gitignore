@@ -6,16 +6,24 @@ env/
 venv/
 instance/
 .pytest_cache/
+.mypy_cache/
+coverage/
 
-# Node
+# Node / Frontend
 node_modules/
 dist/
 build/
 .cache/
 *.log
+coverage/
+.vite/
+
+# Linting / Formatting
+.eslintcache
 
 # Docker
 postgres_data/
+*.pid
 
 # Environment files
 .env

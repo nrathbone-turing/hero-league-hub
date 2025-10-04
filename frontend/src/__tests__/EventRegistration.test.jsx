@@ -6,8 +6,7 @@
 // - Asserts payload and localStorage persistence.
 
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AuthProvider from "../context/AuthContext";
 import EventRegistration from "../components/EventRegistration";

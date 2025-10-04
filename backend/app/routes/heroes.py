@@ -82,15 +82,18 @@ def search_heroes():
         end = start + per_page
         paginated = normalized[start:end]
 
-        return jsonify(
-            {
-                "results": paginated,
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "total_pages": (total + per_page - 1) // per_page,
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "results": paginated,
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page,
+                }
+            ),
+            200,
+        )
     except Exception:
         traceback.print_exc()
         return jsonify(error="Failed to fetch heroes"), 500
@@ -154,7 +157,7 @@ def get_hero_image(hero_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify(error=f"Failed to fetch hero image: {str(e)}"), 500
-    
+
 
 @heroes_bp.route("/browse", methods=["GET"])
 def browse_heroes():
@@ -176,15 +179,18 @@ def browse_heroes():
             hero_dict["proxy_image"] = f"/api/heroes/{h.id}/image"
             results.append(hero_dict)
 
-        return jsonify(
-            {
-                "results": results,
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "total_pages": (total + per_page - 1) // per_page,
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "results": results,
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page,
+                }
+            ),
+            200,
+        )
     except Exception:
         traceback.print_exc()
         return jsonify(error="Failed to browse heroes"), 500
