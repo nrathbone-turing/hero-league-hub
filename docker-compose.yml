@@ -3,6 +3,7 @@
 # Notes:
 # - Shared network for backend + db.
 # - Includes dev and test Postgres databases.
+# - Uses Pipenv for Python dependency management.
 # - Healthcheck ensures DB is ready before backend starts.
 
 services:
@@ -10,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile.backend
-    command: python -m backend.wsgi
+    command: pipenv run python -m backend.wsgi
     ports:
       - "5500:5500"
     volumes:
