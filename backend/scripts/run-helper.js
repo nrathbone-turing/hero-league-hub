@@ -4,23 +4,22 @@
 // Extras:
 // - Forces test env for pytest
 // - In Docker mode: ensures services are up, waits for DB, creates test DB if missing
+// - Dual-db upgrade (main + test) for local dev
 // - Pass-through of extra CLI args to underlying commands
 
 import { execSync } from "child_process";
 
 const args = process.argv.slice(2);
 const command = args[0];
-const passthrough = args.slice(1); // anything after the subcommand
+const passthrough = args.slice(1);
 
-// --- Mode detection & optional override ---
 const inPipenv = !!process.env.PIPENV_ACTIVE;
-const forced = (process.env.RUN_MODE || "").toLowerCase(); // 'docker'|'local'
+const forced = (process.env.RUN_MODE || "").toLowerCase();
 const useLocal = forced === "local" ? true : forced === "docker" ? false : inPipenv;
 const MODE = useLocal ? "LOCAL" : "DOCKER";
 
 const log = (m) => console.log(m);
 
-// Build docker exec with optional env overrides
 const dockerEnvFlags = (env = {}) =>
   Object.entries(env)
     .map(([k, v]) => `-e ${k}=${String(v).replace(/"/g, '\\"')}`)
@@ -45,19 +44,13 @@ const run = (cmd, env = {}) => {
 const runLocal = (cmd, env = {}) => run(`${baseLocal} ${cmd}`, env);
 const runDocker = (cmd, env = {}) => run(`${baseDocker(env)} ${cmd}`);
 
-// --- Docker helpers (no-ops in local mode) ---
-const ensureDockerUp = () => {
-  // Idempotent: starts (or keeps up) db+backend
-  run("docker compose up -d db backend");
-};
+// --- Docker helpers ---
+const ensureDockerUp = () => run("docker compose up -d db backend");
 
-const waitForDb = () => {
-  // Wait until Postgres is ready
+const waitForDb = () =>
   run('docker compose exec -T db bash -lc "until pg_isready -U postgres -h localhost; do sleep 1; done"');
-};
 
 const ensureTestDbDocker = (dbname = "heroleague_test") => {
-  // Create test DB inside the db container if missing
   const checkCmd = `docker compose exec -T db psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${dbname}'"`;
   try {
     const out = execSync(checkCmd, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
@@ -68,15 +61,13 @@ const ensureTestDbDocker = (dbname = "heroleague_test") => {
       log(`✅ Test database '${dbname}' exists`);
     }
   } catch {
-    // If the check fails, make a best effort to create
     log(`ℹ️ Could not verify presence of '${dbname}', attempting to create...`);
     run(`docker compose exec -T db createdb -U postgres ${dbname}`);
   }
 };
 
 const applyMigrationsIfNeeded = () => {
-  // Safe to run before tests; no-op if already up-to-date
-  runDocker('pipenv run flask --app backend/manage.py db upgrade', {
+  runDocker("pipenv run flask --app backend/manage.py db upgrade", {
     FLASK_ENV: "development",
   });
 };
@@ -85,7 +76,6 @@ const applyMigrationsIfNeeded = () => {
 const runTests = () => {
   if (MODE === "LOCAL") {
     log("🔧 Environment detected: LOCAL (pipenv)");
-    // Force test env locally
     runLocal(`pytest -q --disable-warnings backend/tests ${passthrough.join(" ")}`, {
       FLASK_ENV: "test",
     });
@@ -94,9 +84,7 @@ const runTests = () => {
     ensureDockerUp();
     waitForDb();
     ensureTestDbDocker("heroleague_test");
-    applyMigrationsIfNeeded(); // optional but helpful
-
-    // Force test env inside the backend container
+    applyMigrationsIfNeeded();
     runDocker(
       `pipenv run pytest -q --disable-warnings backend/tests ${passthrough.join(" ")}`,
       { FLASK_ENV: "test" }
@@ -110,7 +98,9 @@ const dbInit = () => {
   } else {
     ensureDockerUp();
     waitForDb();
-    runDocker("pipenv run flask --app backend/manage.py db init", { FLASK_ENV: "development" });
+    runDocker("pipenv run flask --app backend/manage.py db init", {
+      FLASK_ENV: "development",
+    });
   }
 };
 
@@ -129,33 +119,45 @@ const dbMigrate = () => {
   }
 };
 
+// ✅ Dual upgrade (main + test) for local; single for docker
 const dbUpgrade = () => {
   if (MODE === "LOCAL") {
-    runLocal("flask --app backend/manage.py db upgrade");
+    log("🏗️ Upgrading main and test databases...");
+    runLocal("flask --app backend/manage.py db upgrade", { FLASK_ENV: "development" });
+    runLocal("flask --app backend/manage.py db upgrade", { FLASK_ENV: "test" });
   } else {
     ensureDockerUp();
     waitForDb();
-    runDocker("pipenv run flask --app backend/manage.py db upgrade", { FLASK_ENV: "development" });
+    runDocker("pipenv run flask --app backend/manage.py db upgrade", {
+      FLASK_ENV: "development",
+    });
   }
 };
 
 const dbSeed = () => {
   if (MODE === "LOCAL") {
-    runLocal("python backend/manage.py seed-db");
+    log("🌱 Seeding local database...");
+    // Use Python module invocation so FlaskGroup registers properly
+    runLocal("python -m backend.manage seed-db", { FLASK_ENV: "development" });
   } else {
     ensureDockerUp();
     waitForDb();
-    runDocker("pipenv run python backend/manage.py seed-db", { FLASK_ENV: "development" });
+    log("🌱 Seeding database inside Docker...");
+    runDocker("pipenv run python -m backend.manage seed-db", {
+      FLASK_ENV: "development",
+    });
   }
 };
 
 const dbReset = () => {
   if (MODE === "LOCAL") {
-    runLocal("python backend/manage.py reset-db");
+    runLocal("python backend/manage.py reset-db", { FLASK_ENV: "development" });
   } else {
     ensureDockerUp();
     waitForDb();
-    runDocker("pipenv run python backend/manage.py reset-db", { FLASK_ENV: "development" });
+    runDocker("pipenv run python backend/manage.py reset-db", {
+      FLASK_ENV: "development",
+    });
   }
 };
 
