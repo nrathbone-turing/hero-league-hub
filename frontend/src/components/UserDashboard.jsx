@@ -1,14 +1,13 @@
 // File: frontend/src/components/UserDashboard.jsx
 // Purpose: Participant dashboard.
 // Notes:
-// - Syncs with backend on mount to clear stale localStorage after reseed.
-// - Uses namespaced keys: entrant_<id>, chosenHero_<id>
-// - Cancels registration but preserves chosenHero if no matches exist.
-// - Includes data-testid hooks for stable tests.
-// - Renders hero powerstats when available.
+// - Persists chosenHero across sessions, even if user unregisters.
+// - Cancels registration but does NOT wipe chosenHero unless matches exist.
+// - Syncs from localStorage on mount and when storage events fire.
+// - Renders hero powerstats and event details when available.
 
 import { useAuth } from "../context/AuthContext";
-import { apiFetch, deleteEntrant } from "../api";
+import { deleteEntrant } from "../api";
 import {
   Container,
   Typography,
@@ -43,6 +42,7 @@ export default function UserDashboard() {
       }
     }
 
+    // fallback: just hero
     const storedHero = heroKey ? localStorage.getItem(heroKey) : null;
     if (storedHero) {
       try {
@@ -53,36 +53,8 @@ export default function UserDashboard() {
     }
   }
 
-  // Sync localStorage on load + reseed safety check
   useEffect(() => {
     syncFromStorage();
-
-    async function syncWithApi() {
-      if (!user?.id) return;
-      try {
-        const entrants = await apiFetch(`/entrants?user_id=${user.id}`);
-        if (!entrants.length) {
-          // Clear ghost data if reseeded
-          localStorage.removeItem(`entrant_${user.id}`);
-          localStorage.removeItem(`chosenHero_${user.id}`);
-          setEntrant(null);
-          setChosenHero(null);
-        } else {
-          // Resync localStorage
-          localStorage.setItem(`entrant_${user.id}`, JSON.stringify(entrants[0]));
-          setEntrant(entrants[0]);
-          if (entrants[0].hero) {
-            localStorage.setItem(`chosenHero_${user.id}`, JSON.stringify(entrants[0].hero));
-            setChosenHero(entrants[0].hero);
-          }
-        }
-      } catch (err) {
-        console.error("❌ Failed to sync entrants with API:", err.message);
-      }
-    }
-
-    syncWithApi();
-
     const handler = () => syncFromStorage();
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
@@ -100,7 +72,7 @@ export default function UserDashboard() {
 
       localStorage.removeItem(`entrant_${user.id}`);
 
-      // Only clear chosenHero if entrant had matches
+      // Only clear hero if entrant had matches
       if (entrant.matches && entrant.matches.length > 0) {
         localStorage.removeItem(`chosenHero_${user.id}`);
         setChosenHero(null);
