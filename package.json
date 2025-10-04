@@ -10,7 +10,7 @@
 
     "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
-    "test": "node backend/scripts/run-helper.js test",
+    "test": "node backend/scripts/run-helper.js test && npm --prefix frontend run test",
 
     "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm test",
 
