@@ -6,7 +6,7 @@ from backend.app.models.models import Match
 from backend.app.extensions import db
 import traceback
 
-bp = Blueprint("matches", __name__, url_prefix="/matches")
+bp = Blueprint("matches", __name__)
 
 
 @bp.route("", methods=["POST"])
