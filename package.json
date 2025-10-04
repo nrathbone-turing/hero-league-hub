@@ -7,7 +7,7 @@
     "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
 
-    "test:backend": "npm run env:test -- docker compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
+    "test:backend": "cross-env FLASK_ENV=test TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test docker compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
     "test:frontend": "npm --prefix frontend run test",
     "test": "npm run test:backend && npm run test:frontend",
 
@@ -21,14 +21,15 @@
     "start:backend": "pipenv run python backend/wsgi.py",
     "dev:all": "docker compose down && docker compose up --build -d && npm run start:frontend",
 
-    "env:test": "export FLASK_ENV=test && export TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test",
-    "env:local": "export FLASK_ENV=development && export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/heroleague",
+    "env:test": "cross-env FLASK_ENV=test TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test",
+    "env:local": "cross-env FLASK_ENV=development DATABASE_URL=postgresql://postgres:postgres@localhost:5432/heroleague",
 
     "deps:sync": "pipenv requirements > backend/requirements.txt",
     "deps:update": "pipenv update"
   },
   "devDependencies": {
     "eslint-plugin-vitest-globals": "^1.5.0",
-    "history": "^5.3.0"
+    "history": "^5.3.0",
+    "cross-env": "^7.0.3"
   }
 }
