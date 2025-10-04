@@ -22,7 +22,7 @@ _Coming soon — include Analytics dashboard preview, event detail, and registra
 - **Backend:** Flask, Flask-Migrate, Flask-SQLAlchemy, Flask-JWT-Extended
 - **Frontend:** React, Vite, MUI (Material UI)
 - **Database:** Postgres 15 (via Docker)
-- **Dev Tools:** Docker Compose, Black, Flake8, Pytest
+- **Dev Tools:** Docker Compose, Black, Flake8, Pytest, Pipenv
 
 ---
 
@@ -82,30 +82,29 @@ docker compose down
 ---
 
 ## Database Management
-
 ```bash
 # Standard commands
-npm run db:init         # Initialize migrations
-npm run db:migrate      # Generate migration file
+npm run db:init         # Initialize migrations (only once)
+npm run db:migrate      # Generate new migration file
 npm run db:upgrade      # Apply migrations
 npm run db:seed         # Seed database
-npm run db:reset        # Drop/recreate + seed
+npm run db:reset        # Drop, recreate, and seed from scratch
 ```
 
 ### New Combined Scripts
-To simplify frequent full-stack workflows, these scripts handle container rebuilds, migrations, seeding, and tests automatically.
+To simplify full-stack workflows, these scripts handle rebuilds, migrations, seeding, and tests automatically.
 
 ```bash
-npm run docker:rebuild  # Stop, rebuild, and restart all containers in detached mode
-npm run db:refresh      # Drop, recreate, upgrade, and reseed the database
-npm run test:full       # Full rebuild -> migrate -> seed -> run backend + frontend tests
-npm run dev:all         # Rebuild containers and launch frontend dev server
-
+npm run docker:rebuild  # Stop, rebuild, and restart all containers
+npm run test:full       # Full rebuild --> migrate --> seed --> run backend + frontend tests
+npm run dev:all         # Rebuild containers and start frontend dev server
 ```
+
 #### Notes:
-- These can all be run from the **project root**
-- `test:full` ensures a clean environment before running both backend and frontend suites
-- `dev:all` is ideal for quickly spinning up the stack after a rebuild
+- All scripts run from the project root
+- `test:full` ensures a clean environment before running both suites
+- `dev:all` is ideal for quick restarts during active development
+
 ---
 
 ## Running Tests
@@ -124,8 +123,8 @@ npm test
 - Backend tests live in `backend/tests/` and use fixtures defined in `conftest.py`
 - Frontend tests live in `frontend/src/__tests__/` and rely on:
   - `setupTests.js` for global Vitest/RTL config
-  - `test-utils.jsx` for router and AuthContext rendering helpers
-- Backend tests connect to a dedicated Postgres test database via Docker (`heroleague_test`)
+  - `test-utils.jsx` for router + AuthContext rendering helpers
+- Backend tests connect to the Docker-managed Postgres test DB (`heroleague_test`)
 
 ---
 
@@ -216,18 +215,18 @@ npm test
 | Field | Type | Description |
 |--------|------|-------------|
 | `id` | Integer | Primary key |
-| `event_id` | FK → `events.id` | Event association |
+| `event_id` | FK --> `events.id` | Event association |
 | `round` | Integer | Match round number |
-| `entrant1_id` / `entrant2_id` | FK → `entrants.id` | Match participants |
+| `entrant1_id` / `entrant2_id` | FK --> `entrants.id` | Match participants |
 | `scores` | String | Score summary (e.g., `"2-1"`) |
-| `winner_id` | FK → `entrants.id` | Match winner |
+| `winner_id` | FK --> `entrants.id` | Match winner |
 
 ---
 
 **Relationships**
-- One **Event** → many **Entrants** and **Matches**  
-- One **User** → many **Entrants**  
-- One **Hero** → many **Entrants** (reused across events)  
+- One **Event** --> many **Entrants** and **Matches**  
+- One **User** --> many **Entrants**  
+- One **Hero** --> many **Entrants** (reused across events)  
 
 ---
 
