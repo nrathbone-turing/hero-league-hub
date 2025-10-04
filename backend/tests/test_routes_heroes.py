@@ -58,7 +58,10 @@ def test_search_heroes(client, monkeypatch):
     def fake_get(url, **kwargs):
         class FakeResp:
             ok = True
-            def json(self): return BATMAN_SEARCH
+
+            def json(self):
+                return BATMAN_SEARCH
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -89,7 +92,10 @@ def test_search_heroes_external_api_error(client, monkeypatch):
         class FakeResp:
             ok = False
             status_code = 503
-            def json(self): return {}
+
+            def json(self):
+                return {}
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -103,6 +109,7 @@ def test_search_heroes_pagination(client, monkeypatch):
     def fake_get(url, **kwargs):
         class FakeResp:
             ok = True
+
             def json(self):
                 return {
                     "results": [
@@ -110,6 +117,7 @@ def test_search_heroes_pagination(client, monkeypatch):
                         {"id": "644", "name": "Superman", "powerstats": {}},
                     ]
                 }
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -132,7 +140,12 @@ def test_search_heroes_pagination(client, monkeypatch):
 # Tests: Get by ID
 # ------------------------------
 def test_get_hero_from_db(client, session):
-    hero = Hero(id=70, name="Batman", image="http://batman.jpg", powerstats={"intelligence": 100})
+    hero = Hero(
+        id=70,
+        name="Batman",
+        image="http://batman.jpg",
+        powerstats={"intelligence": 100},
+    )
     session.add(hero)
     session.commit()
 
@@ -145,7 +158,10 @@ def test_get_hero_fetch_from_api(client, monkeypatch, session):
     def fake_get(url, **kwargs):
         class FakeResp:
             ok = True
-            def json(self): return BATMAN_SINGLE
+
+            def json(self):
+                return BATMAN_SINGLE
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -163,7 +179,10 @@ def test_get_hero_external_api_error(client, monkeypatch):
         class FakeResp:
             ok = False
             status_code = 404
-            def json(self): return {}
+
+            def json(self):
+                return {}
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -184,7 +203,10 @@ def test_normalize_hero_alignment_mapping(client, monkeypatch):
     def fake_get(url, **kwargs):
         class FakeResp:
             ok = True
-            def json(self): return {"results": [mock_result]}
+
+            def json(self):
+                return {"results": [mock_result]}
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)
@@ -200,7 +222,10 @@ def test_search_heroes_includes_alias(client, monkeypatch):
     def fake_get(url, **kwargs):
         class FakeResp:
             ok = True
-            def json(self): return BATMAN_SEARCH
+
+            def json(self):
+                return BATMAN_SEARCH
+
         return FakeResp()
 
     monkeypatch.setattr("backend.app.routes.heroes.requests.get", fake_get)

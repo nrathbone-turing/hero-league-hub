@@ -154,6 +154,7 @@ def test_signup_missing_fields(client):
 # Expiry + revocation tests
 # -------------------------
 
+
 def test_expired_token_denied(client):
     """Expired tokens should be rejected on protected routes."""
     client.post(
@@ -205,6 +206,7 @@ def test_password_is_hashed_in_db(client, session):
     assert resp.status_code == 201
 
     from backend.app.models.models import User
+
     user = session.query(User).filter_by(email="hash@example.com").first()
 
     # The hash should be different from the raw password

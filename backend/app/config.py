@@ -10,6 +10,7 @@ from datetime import timedelta
 if not os.getenv("DATABASE_URL"):
     load_dotenv(find_dotenv())
 
+
 class Config:
     # Database
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
@@ -28,7 +29,7 @@ class Config:
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     # External API
-    SUPERHERO_API_KEY = os.getenv("API_KEY")  # Required for SuperHero API proxy
+    SUPERHERO_API_KEY = os.getenv("API_KEY")
 
 
 class TestConfig(Config):

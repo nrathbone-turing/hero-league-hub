@@ -27,13 +27,17 @@ def bump_sequence(table_name: str):
     Set the sequence for `table_name.id` to MAX(id)+1 to ensure autoincrement
     does not collide with fixed IDs we just inserted.
     """
-    setval_sql = text("""
+    setval_sql = text(
+        """
         SELECT setval(
             pg_get_serial_sequence(:table, 'id'),
-            COALESCE((SELECT MAX(id) FROM """ + table_name + """), 0) + 1,
+            COALESCE((SELECT MAX(id) FROM """
+        + table_name
+        + """), 0) + 1,
             false
         )
-    """)
+    """
+    )
     db.session.execute(setval_sql, {"table": table_name})
 
 
@@ -42,11 +46,11 @@ def run():
     with app.app_context():
         print("🌱 Seeding database...")
 
-        events   = load_seed("events.json")
+        events = load_seed("events.json")
         entrants = load_seed("entrants.json")
-        matches  = load_seed("matches.json")
-        users    = load_seed("users.json")
-        heroes   = load_seed("superheros_all.json")
+        matches = load_seed("matches.json")
+        users = load_seed("users.json")
+        heroes = load_seed("superheros_all.json")
 
         # -------------------------
         # Phase 1: Events
@@ -120,7 +124,9 @@ def run():
                 db.session.add(admin)
 
             if not User.query.filter_by(email="demo@example.com").first():
-                demo = User(username="demo_user", email="demo@example.com", is_admin=False)
+                demo = User(
+                    username="demo_user", email="demo@example.com", is_admin=False
+                )
                 demo.set_password("password123")
                 db.session.add(demo)
 
