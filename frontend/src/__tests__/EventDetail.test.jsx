@@ -101,13 +101,9 @@ describe("EventDetail", () => {
     const idInput = await screen.findByLabelText(/entrant id/i);
     await userEvent.clear(idInput);
     await userEvent.type(idInput, "3");
-    await userEvent.click(
-      screen.getByRole("button", { name: /remove entrant/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /remove entrant/i }));
 
-    await waitFor(() =>
-      expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument());
   });
 
   test("renders match winner by entrant id", async () => {
@@ -153,9 +149,7 @@ describe("EventDetail", () => {
       name: "Hero Cup",
       date: "2025-09-12",
       status: "published",
-      entrants: [
-        { id: 5, name: "Dropped", alias: null, event_id: 1, dropped: true },
-      ],
+      entrants: [{ id: 5, name: "Dropped", alias: null, event_id: 1, dropped: true }],
       matches: [],
     });
 
@@ -184,12 +178,10 @@ describe("EventDetail - edge cases", () => {
 
     const idInput = await screen.findByLabelText(/entrant id/i);
     await userEvent.type(idInput, "5");
-    await userEvent.click(
-      screen.getByRole("button", { name: /remove entrant/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /remove entrant/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to remove entrant/i,
+      /failed to remove entrant/i
     );
   });
 
@@ -253,7 +245,7 @@ describe("EventDetail redirects", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/404"),
+      expect(screen.getByTestId("location").textContent).toBe("/404")
     );
   });
 
@@ -275,7 +267,7 @@ describe("EventDetail redirects", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/500"),
+      expect(screen.getByTestId("location").textContent).toBe("/500")
     );
   });
 });

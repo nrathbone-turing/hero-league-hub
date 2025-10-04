@@ -13,9 +13,7 @@ import { mockFetchSuccess } from "../setupTests";
 describe("EntrantDashboard", () => {
   test("renders form", () => {
     renderWithRouter(<EntrantDashboard eventId={1} />, { route: "/" });
-    expect(
-      screen.getByRole("heading", { name: /add entrant/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /add entrant/i })).toBeInTheDocument();
   });
 
   test("submits new entrant and triggers callback", async () => {
@@ -28,10 +26,9 @@ describe("EntrantDashboard", () => {
       dropped: false,
     });
 
-    renderWithRouter(
-      <EntrantDashboard eventId={1} onEntrantAdded={mockOnAdded} />,
-      { route: "/" },
-    );
+    renderWithRouter(<EntrantDashboard eventId={1} onEntrantAdded={mockOnAdded} />, {
+      route: "/",
+    });
     await userEvent.type(screen.getByLabelText(/name/i), "Wonder Woman");
     await userEvent.type(screen.getByLabelText(/alias/i), "Amazon Princess");
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
@@ -46,7 +43,7 @@ describe("EntrantDashboard - edge cases", () => {
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
     // expect inline error message
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to add entrant/i,
+      /failed to add entrant/i
     );
   });
 
@@ -57,7 +54,7 @@ describe("EntrantDashboard - edge cases", () => {
     await userEvent.type(screen.getByLabelText(/alias/i), "Oops");
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to add entrant/i,
+      /failed to add entrant/i
     );
   });
 
@@ -68,10 +65,9 @@ describe("EntrantDashboard - edge cases", () => {
       json: async () => ({ id: 10, name: "Flash", alias: "Barry" }),
     });
 
-    renderWithRouter(
-      <EntrantDashboard eventId={1} onEntrantAdded={mockOnAdded} />,
-      { route: "/" },
-    );
+    renderWithRouter(<EntrantDashboard eventId={1} onEntrantAdded={mockOnAdded} />, {
+      route: "/",
+    });
 
     await userEvent.type(screen.getByLabelText(/name/i), "Flash");
     await userEvent.type(screen.getByLabelText(/alias/i), "Barry");
@@ -83,7 +79,7 @@ describe("EntrantDashboard - edge cases", () => {
 
     // Wait for React to re-render disabled button
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /adding.../i })).toBeDisabled(),
+      expect(screen.getByRole("button", { name: /adding.../i })).toBeDisabled()
     );
 
     // Ensure callback only fired once

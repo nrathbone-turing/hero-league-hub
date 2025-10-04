@@ -78,7 +78,6 @@ export default function EventDashboard() {
     }
   }
 
-
   if (redirect500) return <Navigate to="/500" replace />;
 
   return (
@@ -141,9 +140,7 @@ export default function EventDashboard() {
               id="status"
               value={formData.status}
               label="Status"
-              onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               required
             >
               <MenuItem value="drafting">Drafting</MenuItem>

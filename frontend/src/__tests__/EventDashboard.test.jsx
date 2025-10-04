@@ -14,9 +14,7 @@ describe("EventDashboard", () => {
   test("renders events heading", async () => {
     mockFetchSuccess();
     renderWithRouter(<EventDashboard />, { route: "/" });
-    expect(
-      await screen.findByRole("heading", { name: /events/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /events/i })).toBeInTheDocument();
   });
 
   test("shows entrant counts", async () => {
@@ -62,9 +60,7 @@ describe("EventDashboard", () => {
     renderWithRouter(<EventDashboard />, { route: "/" });
     await userEvent.type(screen.getByLabelText(/name/i), "Test Event");
     await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(
-      screen.getByRole("button", { name: /create event/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
 
     expect(await screen.findByText(/0 entrants/i)).toBeInTheDocument();
   });
@@ -79,9 +75,7 @@ describe("EventDashboard - edge cases", () => {
 
   test("prevents event creation with missing fields", async () => {
     renderWithRouter(<EventDashboard />, { route: "/" });
-    await userEvent.click(
-      screen.getByRole("button", { name: /create event/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
     expect(screen.getByRole("form")).toBeInTheDocument();
   });
 
@@ -98,13 +92,11 @@ describe("EventDashboard - edge cases", () => {
     renderWithRouter(<EventDashboard />, { route: "/" });
     await userEvent.type(screen.getByLabelText(/event name/i), "Broken Event");
     await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(
-      screen.getByRole("button", { name: /create event/i }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
 
     // should render the error message
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to create event/i,
+      /failed to create event/i
     );
   });
 });

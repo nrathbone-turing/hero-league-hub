@@ -8,14 +8,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  Container,
-  Paper,
-  Box,
-  TextField,
-  Button,
-  Typography,
-} from "@mui/material";
+import { Container, Paper, Box, TextField, Button, Typography } from "@mui/material";
 
 export default function LoginForm() {
   const { login } = useAuth();
@@ -30,7 +23,7 @@ export default function LoginForm() {
       await login(email, password);
       navigate("/");
     } catch (err) {
-      console.error(err)
+      console.error(err);
       setMessage("❌ Login failed — please check your credentials");
     }
   };

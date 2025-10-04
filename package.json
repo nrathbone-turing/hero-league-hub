@@ -7,17 +7,20 @@
     "format:backend": "docker-compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
     "test:backend": "docker-compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
+
     "db:init": "docker-compose run --rm backend flask --app backend/manage.py db init",
     "db:migrate": "docker-compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
     "db:upgrade": "docker-compose run --rm backend flask --app backend/manage.py db upgrade",
     "db:clear": "docker-compose run --rm backend python backend/scripts/clear_db.py",
     "db:seed": "docker-compose run --rm backend python backend/scripts/seed_db.py",
     "db:reset": "npm run db:clear && npm run db:upgrade && npm run db:seed",
+
     "lint:frontend": "npm --prefix frontend run lint",
     "format:frontend": "npm --prefix frontend run format",
     "fix:frontend": "npm run format:frontend && npm run lint:frontend",
     "test:frontend": "npm --prefix frontend run test",
     "start:frontend": "npm --prefix frontend run dev",
+    
     "lint": "npm run lint:backend && npm run lint:frontend",
     "format": "npm run format:backend && npm run format:frontend",
     "fix": "npm run fix:backend && npm run fix:frontend",

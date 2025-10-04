@@ -266,16 +266,30 @@ export default function EventDetail() {
 
         {/* Middle - Entrants */}
         <Grid size={{ xs: 12, md: 3 }} sx={{ display: "flex" }}>
-          <Paper sx={{ flex: 1, p: 2, height: 575, display: "flex", flexDirection: "column" }}>
+          <Paper
+            sx={{
+              flex: 1,
+              p: 2,
+              height: 575,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <Typography variant="h6" gutterBottom>
               Entrants
             </Typography>
-            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }} data-testid="entrants-scroll">
+            <Box
+              sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
+              data-testid="entrants-scroll"
+            >
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     {["id", "name", "alias"].map((col) => (
-                      <TableCell key={col} sortDirection={entrantOrderBy === col ? entrantOrder : false}>
+                      <TableCell
+                        key={col}
+                        sortDirection={entrantOrderBy === col ? entrantOrder : false}
+                      >
                         <TableSortLabel
                           active={entrantOrderBy === col}
                           direction={entrantOrderBy === col ? entrantOrder : "asc"}
@@ -309,22 +323,45 @@ export default function EventDetail() {
 
         {/* Right - Matches */}
         <Grid size={{ xs: 12, md: 6 }} sx={{ display: "flex" }}>
-          <Paper sx={{ flex: 1, p: 2, height: 575, display: "flex", flexDirection: "column" }}>
+          <Paper
+            sx={{
+              flex: 1,
+              p: 2,
+              height: 575,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             <Typography variant="h6" gutterBottom>
               Matches
             </Typography>
-            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }} data-testid="matches-scroll">
+            <Box
+              sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
+              data-testid="matches-scroll"
+            >
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    {["id", "round", "entrant1_id", "entrant2_id", "scores", "winner_id"].map((col) => (
-                      <TableCell key={col} sortDirection={matchOrderBy === col ? matchOrder : false}>
+                    {[
+                      "id",
+                      "round",
+                      "entrant1_id",
+                      "entrant2_id",
+                      "scores",
+                      "winner_id",
+                    ].map((col) => (
+                      <TableCell
+                        key={col}
+                        sortDirection={matchOrderBy === col ? matchOrder : false}
+                      >
                         <TableSortLabel
                           active={matchOrderBy === col}
                           direction={matchOrderBy === col ? matchOrder : "asc"}
                           onClick={() => handleMatchSort(col)}
                         >
-                          {col.replace("_id", "").replace(/\b\w/g, (l) => l.toUpperCase())}
+                          {col
+                            .replace("_id", "")
+                            .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </TableSortLabel>
                       </TableCell>
                     ))}

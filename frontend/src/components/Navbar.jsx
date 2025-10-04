@@ -61,20 +61,10 @@ export default function Navbar() {
         <Box sx={{ display: "flex", gap: 2 }}>
           {!user ? (
             <>
-              <Button
-                component={Link}
-                to="/login"
-                variant="outlined"
-                color="primary"
-              >
+              <Button component={Link} to="/login" variant="outlined" color="primary">
                 Login
               </Button>
-              <Button
-                component={Link}
-                to="/signup"
-                variant="contained"
-                color="primary"
-              >
+              <Button component={Link} to="/signup" variant="contained" color="primary">
                 Signup
               </Button>
             </>
@@ -86,11 +76,7 @@ export default function Navbar() {
               >
                 Welcome {user.username}
               </Typography>
-              <Button
-                onClick={handleLogout}
-                variant="outlined"
-                color="secondary"
-              >
+              <Button onClick={handleLogout} variant="outlined" color="secondary">
                 Logout
               </Button>
             </>

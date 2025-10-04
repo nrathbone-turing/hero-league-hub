@@ -24,7 +24,7 @@ describe("App routing", () => {
     renderWithRouter(<App />, { route: "/" });
 
     expect(
-      await screen.findByRole("link", { name: /hero tournament manager/i }),
+      await screen.findByRole("link", { name: /hero tournament manager/i })
     ).toBeInTheDocument();
   });
 });
@@ -44,7 +44,7 @@ describe("App routing (auth happy path)", () => {
           username: "participant",
           email: "p@example.com",
           is_admin: false,
-        }),
+        })
       );
     });
 
@@ -59,9 +59,7 @@ describe("App routing (auth happy path)", () => {
     test("navigates to EventRegistration page when authenticated", async () => {
       renderWithRouter(<App />, { route: "/register-event" });
 
-      expect(
-        await screen.findByTestId("event-registration"),
-      ).toBeInTheDocument();
+      expect(await screen.findByTestId("event-registration")).toBeInTheDocument();
     });
   });
 
@@ -74,7 +72,7 @@ describe("App routing (auth happy path)", () => {
           username: "admin",
           email: "admin@example.com",
           is_admin: true,
-        }),
+        })
       );
     });
 
@@ -92,9 +90,7 @@ describe("App routing (auth happy path)", () => {
 
       const dashboard = await screen.findByTestId("event-dashboard");
       expect(dashboard).toBeInTheDocument();
-      expect(await screen.findByTestId("event-name")).toHaveTextContent(
-        "Hero Cup",
-      );
+      expect(await screen.findByTestId("event-name")).toHaveTextContent("Hero Cup");
     });
 
     test("navigates from EventDashboard → EventDetail", async () => {
@@ -122,9 +118,7 @@ describe("App routing (auth happy path)", () => {
       });
 
       await userEvent.click(eventName);
-      expect(
-        await screen.findByText(/Hero Cup — 2025-09-12/i),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Hero Cup — 2025-09-12/i)).toBeInTheDocument();
     });
   });
 });
@@ -140,11 +134,11 @@ describe("App routing (unauthenticated users)", () => {
         <App />
         <LocationSpy />
       </>,
-      { route: "/dashboard" },
+      { route: "/dashboard" }
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login"),
+      expect(screen.getByTestId("location").textContent).toBe("/login")
     );
   });
 
@@ -154,11 +148,11 @@ describe("App routing (unauthenticated users)", () => {
         <App />
         <LocationSpy />
       </>,
-      { route: "/heroes" },
+      { route: "/heroes" }
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login"),
+      expect(screen.getByTestId("location").textContent).toBe("/login")
     );
   });
 
@@ -168,11 +162,11 @@ describe("App routing (unauthenticated users)", () => {
         <App />
         <LocationSpy />
       </>,
-      { route: "/register-event" },
+      { route: "/register-event" }
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login"),
+      expect(screen.getByTestId("location").textContent).toBe("/login")
     );
   });
 });
@@ -200,11 +194,11 @@ describe("App - error handling", () => {
         <App />
         <LocationSpy />
       </>,
-      { route: "/events/999" },
+      { route: "/events/999" }
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/500"),
+      expect(screen.getByTestId("location").textContent).toBe("/500")
     );
   });
 
@@ -226,11 +220,11 @@ describe("App - error handling", () => {
         <App />
         <LocationSpy />
       </>,
-      { route: "/events/999" },
+      { route: "/events/999" }
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/404"),
+      expect(screen.getByTestId("location").textContent).toBe("/404")
     );
   });
 });

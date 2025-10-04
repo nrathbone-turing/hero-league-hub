@@ -53,7 +53,7 @@ describe("deleteEntrant", () => {
     await deleteEntrant(5);
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringMatching(/\/entrants\/5$/),
-      expect.objectContaining({ method: "DELETE" }),
+      expect.objectContaining({ method: "DELETE" })
     );
   });
 });

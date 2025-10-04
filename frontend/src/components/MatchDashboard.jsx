@@ -8,14 +8,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "../api";
-import {
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Box,
-} from "@mui/material";
+import { Card, CardContent, Typography, TextField, Button, Box } from "@mui/material";
 
 export default function MatchDashboard({ eventId, onMatchAdded }) {
   const [formData, setFormData] = useState({
@@ -93,41 +86,31 @@ export default function MatchDashboard({ eventId, onMatchAdded }) {
           <TextField
             label="Round"
             value={formData.round}
-            onChange={(e) =>
-              setFormData({ ...formData, round: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, round: e.target.value })}
             required
           />
           <TextField
             label="Entrant 1 ID"
             value={formData.entrant1_id}
-            onChange={(e) =>
-              setFormData({ ...formData, entrant1_id: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, entrant1_id: e.target.value })}
             required
           />
           <TextField
             label="Entrant 2 ID"
             value={formData.entrant2_id}
-            onChange={(e) =>
-              setFormData({ ...formData, entrant2_id: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, entrant2_id: e.target.value })}
             required
           />
           <TextField
             label="Scores"
             value={formData.scores}
-            onChange={(e) =>
-              setFormData({ ...formData, scores: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, scores: e.target.value })}
             required
           />
           <TextField
             label="Winner ID"
             value={formData.winner_id}
-            onChange={(e) =>
-              setFormData({ ...formData, winner_id: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, winner_id: e.target.value })}
           />
           <Button
             type="submit"
