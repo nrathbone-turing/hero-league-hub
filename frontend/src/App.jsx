@@ -1,8 +1,8 @@
 // File: frontend/src/App.jsx
 // Purpose: Root component for React app.
 // Notes:
-// - Wraps app in AuthProvider for global state.
-// - Protects Event routes with ProtectedRoute.
+// - App assumes it is already wrapped with AuthProvider (in main.jsx).
+// - Protects Event and EventRegistration routes with ProtectedRoute.
 // - Redirects based on user.is_admin flag.
 
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -10,13 +10,14 @@ import EventDashboard from "./components/EventDashboard";
 import EventDetail from "./components/EventDetail";
 import NotFoundPage from "./components/NotFoundPage";
 import ServerErrorPage from "./components/ServerErrorPage";
-import AuthProvider, { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import LoginForm from "./components/LoginForm";
 import SignupForm from "./components/SignupForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import UserDashboard from "./components/UserDashboard";
-import Heroes from "./components/Heroes"; 
+import Heroes from "./components/Heroes";
+import EventRegistration from "./components/EventRegistration";
 
 function RootRoutes() {
   const { user, isAuthenticated } = useAuth();
@@ -37,8 +38,30 @@ function RootRoutes() {
           )
         }
       />
-      <Route path="/dashboard" element={<UserDashboard />} />
-      <Route path="/heroes" element={<Heroes />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/heroes"
+        element={
+          <ProtectedRoute>
+            <Heroes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/register-event"
+        element={
+          <ProtectedRoute>
+            <EventRegistration />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/events"
         element={
@@ -66,12 +89,10 @@ function RootRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <div>
-        <Navbar />
-        <RootRoutes />
-      </div>
-    </AuthProvider>
+    <div>
+      <Navbar />
+      <RootRoutes />
+    </div>
   );
 }
 

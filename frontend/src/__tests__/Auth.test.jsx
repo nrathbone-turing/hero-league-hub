@@ -1,14 +1,17 @@
 // File: frontend/src/__tests__/Auth.test.jsx
 // Purpose: Tests frontend authentication with AuthContext + forms (Vitest).
 // Notes:
+// - Always uses renderWithRouter for Router + AuthProvider.
 // - Covers signup, login, logout, protected access, and persistence.
+// - Validation test explicitly overrides NODE_ENV to simulate real behavior.
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
-import AuthProvider, { useAuth } from "../context/AuthContext";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { Routes, Route } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import LoginForm from "../components/LoginForm";
 import SignupForm from "../components/SignupForm";
 import ProtectedRoute from "../components/ProtectedRoute";
+import { renderWithRouter } from "../test-utils";
 
 beforeEach(() => {
   localStorage.clear();
@@ -43,13 +46,7 @@ function ProtectedPage() {
 }
 
 test("signup form creates user", async () => {
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <SignupForm />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<SignupForm />);
 
   fireEvent.change(screen.getByLabelText(/username/i), {
     target: { value: "testuser" },
@@ -66,13 +63,7 @@ test("signup form creates user", async () => {
 });
 
 test("login form logs in", async () => {
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <LoginForm />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<LoginForm />);
 
   fireEvent.change(screen.getByLabelText(/email/i), {
     target: { value: "test@example.com" },
@@ -91,22 +82,19 @@ test("login form logs in", async () => {
 });
 
 test("unauthenticated user redirected from ProtectedRoute", async () => {
-  render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={["/protected"]}>
-        <Routes>
-          <Route path="/login" element={<div>Login Page</div>} />
-          <Route
-            path="/protected"
-            element={
-              <ProtectedRoute>
-                <ProtectedPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
+  renderWithRouter(
+    <Routes>
+      <Route path="/login" element={<div>Login Page</div>} />
+      <Route
+        path="/protected"
+        element={
+          <ProtectedRoute>
+            <ProtectedPage />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>,
+    { route: "/protected" }
   );
 
   expect(await screen.findByText(/login page/i)).toBeInTheDocument();
@@ -119,13 +107,7 @@ test("authenticated user sees protected content", async () => {
     return <ProtectedPage />;
   }
 
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <Harness />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<Harness />);
 
   await waitFor(() => expect(authApi).toBeDefined());
 
@@ -141,13 +123,7 @@ test("logout clears token and user", async () => {
     return <ProtectedPage />;
   }
 
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <Harness />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<Harness />);
 
   await authApi.login("test@example.com", "pw123");
   await waitFor(() => expect(authApi.token).toBe("fake-jwt-token"));
@@ -165,13 +141,7 @@ test("signup defaults to non-admin user", async () => {
     return <ProtectedPage />;
   }
 
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <Harness />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<Harness />);
 
   await authApi.signup("regular", "reg@example.com", "pw123");
 
@@ -199,13 +169,7 @@ test("login falls back to non-admin user if backend omits is_admin", async () =>
     return <ProtectedPage />;
   }
 
-  render(
-    <AuthProvider>
-      <MemoryRouter>
-        <Harness />
-      </MemoryRouter>
-    </AuthProvider>
-  );
+  renderWithRouter(<Harness />);
 
   await authApi.login("user@example.com", "pw123");
 
@@ -225,11 +189,7 @@ test("persists user and token in localStorage after login", async () => {
     return null;
   }
 
-  render(
-    <AuthProvider>
-      <Harness />
-    </AuthProvider>
-  );
+  renderWithRouter(<Harness />);
 
   await authApi.login("persist@example.com", "pw123");
 
@@ -244,4 +204,38 @@ test("persists user and token in localStorage after login", async () => {
     const savedToken = localStorage.getItem("token");
     expect(savedToken).toBe("fake-jwt-token");
   });
+});
+
+test("invalid token on startup triggers logout and redirect to login", async () => {
+  // Force NODE_ENV to non-test to enable validation
+  const oldEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "development";
+
+  // preload a bad token in localStorage
+  localStorage.setItem("token", "expired-token");
+
+  // mock /protected to reject with 401
+  global.fetch = vi.fn((url) => {
+    if (url.includes("/protected")) {
+      return Promise.resolve({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Invalid or expired token" }),
+      });
+    }
+    return Promise.reject(new Error("Unknown endpoint"));
+  });
+
+  renderWithRouter(
+    <Routes>
+      <Route path="/login" element={<div>Login Page</div>} />
+      <Route path="/protected" element={<div>Protected</div>} />
+    </Routes>,
+    { route: "/protected" }
+  );
+
+  expect(await screen.findByText(/login page/i)).toBeInTheDocument();
+
+  // restore NODE_ENV
+  process.env.NODE_ENV = oldEnv;
 });

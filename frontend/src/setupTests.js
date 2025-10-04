@@ -1,7 +1,7 @@
 // frontend/src/setupTests.js
 // Global test setup for Vitest:
 // - Adds matchers from @testing-library/jest-dom
-// - Provides fetch mocks
+// - Provides fetch mocks (default includes /protected + /events success)
 // - Swallows noisy console logs/warnings/errors during tests
 
 import "@testing-library/jest-dom";
@@ -10,13 +10,32 @@ import { vi } from "vitest";
 // Use Vite-style env variable
 process.env.VITE_API_URL = "http://localhost:3001";
 
-// Default fetch mock
+// Default fetch mock: include /protected + /events success
 beforeEach(() => {
-  global.fetch = vi.fn();
+  global.fetch = vi.fn((url) => {
+    if (url.includes("/protected")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ message: "Hello testuser!" }),
+      });
+    }
+    if (url.includes("/events")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => [],
+      });
+    }
+    // fallback generic success
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({}),
+    });
+  });
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 // Helpers

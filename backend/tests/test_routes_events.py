@@ -10,7 +10,9 @@ from backend.app.extensions import db
 from sqlalchemy import select
 
 
-def test_create_event(client, auth_header):
+def test_create_event(client, auth_user_and_header):
+    """Authenticated user can create an event."""
+    _, auth_header = auth_user_and_header
     response = client.post(
         "/api/events",
         json={
@@ -28,6 +30,7 @@ def test_create_event(client, auth_header):
 
 
 def test_get_events_with_counts(client, create_event, session):
+    """GET /api/events should return entrant counts."""
     event = create_event(name="Seed Event", status="published")
     e1 = Entrant(name="Alpha", alias="A", event_id=event.id)
     e2 = Entrant(name="Beta", alias="B", event_id=event.id)
@@ -41,7 +44,9 @@ def test_get_events_with_counts(client, create_event, session):
     assert seed_event["entrant_count"] == 2
 
 
-def test_update_event(client, create_event, auth_header):
+def test_update_event(client, create_event, auth_user_and_header):
+    """PUT /api/events/:id should update event fields."""
+    _, auth_header = auth_user_and_header
     event = create_event(status="drafting")
     response = client.put(
         f"/api/events/{event.id}", json={"status": "cancelled"}, headers=auth_header
@@ -53,7 +58,9 @@ def test_update_event(client, create_event, auth_header):
     assert result.status == "cancelled"
 
 
-def test_delete_event(client, create_event, auth_header):
+def test_delete_event(client, create_event, auth_user_and_header):
+    """DELETE /api/events/:id should remove an event."""
+    _, auth_header = auth_user_and_header
     event = create_event(status="drafting")
     response = client.delete(f"/api/events/{event.id}", headers=auth_header)
     assert response.status_code == 204
@@ -64,6 +71,7 @@ def test_delete_event(client, create_event, auth_header):
 
 
 def test_create_event_requires_auth(client):
+    """Creating an event without auth should fail."""
     resp = client.post(
         "/api/events",
         json={
@@ -77,6 +85,7 @@ def test_create_event_requires_auth(client):
 
 
 def test_get_events_sort_order(client, session):
+    """Events should be sorted by date desc → status priority → name asc."""
     # Status order priority mapping: published > drafting > completed > cancelled
     e1 = Event(name="Alpha", date="2025-09-10", status="drafting")
     e2 = Event(name="Beta", date="2025-09-12", status="published")

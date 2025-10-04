@@ -3,9 +3,12 @@
 // Notes:
 // - Stores current user and JWT token in localStorage.
 // - Uses centralized apiFetch for all API calls.
-// - Exposes signup, login, logout, and isAuthenticated.
+// - Exposes signup, login, logout, validateToken, and isAuthenticated.
+// - Skips token validation automatically during tests (NODE_ENV=test).
+// - Safe use of useNavigate (only called inside component, not top-level).
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 
 const AuthContext = createContext();
@@ -20,6 +23,8 @@ export default function AuthProvider({ children }) {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
+
+  const navigate = useNavigate();
 
   // persist token
   useEffect(() => {
@@ -39,6 +44,30 @@ export default function AuthProvider({ children }) {
     }
   }, [user]);
 
+  // -------------------------
+  // Helper: validate token
+  // -------------------------
+  const validateToken = useCallback(async () => {
+    if (!token) return false;
+    try {
+      const res = await apiFetch("/protected"); // backend validates JWT
+      console.log("✅ Token validated:", res);
+      return true;
+    } catch (err) {
+      console.warn("⚠️ Invalid/expired token, logging out:", err.message);
+      logout(true); // auto redirect on failure
+      return false;
+    }
+  }, [token]);
+
+  // run token validation once on mount (skip in tests)
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "test") {
+      validateToken();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Signup
   const signup = async (username, email, password) => {
     const data = await apiFetch("/signup", {
@@ -49,8 +78,10 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    const userData = data.user || { username, email };
-    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    const normalized = {
+      ...(data.user || { username, email }),
+      is_admin: data.user?.is_admin ?? false,
+    };
     setUser(normalized);
 
     return data;
@@ -66,23 +97,32 @@ export default function AuthProvider({ children }) {
     const newToken = data.access_token || data.token;
     if (newToken) setToken(newToken);
 
-    const userData = data.user || { username: email.split("@")[0], email };
-    const normalized = { ...userData, is_admin: userData.is_admin ?? false };
+    const normalized = {
+      ...(data.user || { username: email.split("@")[0], email }),
+      is_admin: data.user?.is_admin ?? false,
+    };
     setUser(normalized);
 
     return data;
   };
 
   // Logout
-  const logout = async () => {
-    try {
-      await apiFetch("/logout", { method: "DELETE" });
-    } catch (err) {
-      console.warn("⚠️ Logout API failed, clearing locally:", err.message);
-    }
-    setToken(null);
-    setUser(null);
-  };
+  const logout = useCallback(
+    async (redirect = false) => {
+      try {
+        await apiFetch("/logout", { method: "DELETE" });
+      } catch (err) {
+        console.warn("⚠️ Logout API failed, clearing locally:", err.message);
+      }
+      setToken(null);
+      setUser(null);
+
+      if (redirect) {
+        navigate("/login");
+      }
+    },
+    [navigate]
+  );
 
   const value = {
     user,
@@ -91,10 +131,9 @@ export default function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    validateToken,
     isAuthenticated: !!token,
   };
 
-  return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

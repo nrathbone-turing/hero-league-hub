@@ -9,6 +9,7 @@ import time
 
 
 def test_signup_creates_user(client):
+    """Test that POST /api/signup creates a user and returns JSON without password."""
     resp = client.post(
         "/api/signup",
         json={
@@ -19,11 +20,13 @@ def test_signup_creates_user(client):
     )
     assert resp.status_code == 201
     data = resp.get_json()
-    assert data["username"] == "alice"
-    assert "password" not in data  # password should not be returned
+    # User fields are nested under "user"
+    assert data["user"]["username"] == "alice"
+    assert "password" not in data["user"]
 
 
 def test_login_returns_token(client):
+    """Test that login with correct credentials returns an access token."""
     client.post(
         "/api/signup",
         json={"username": "bob", "email": "bob@example.com", "password": "secret"},
@@ -37,12 +40,14 @@ def test_login_returns_token(client):
 
 
 def test_protected_route_requires_auth(client):
+    """Protected route should reject missing Authorization header."""
     resp = client.get("/api/protected")
     assert resp.status_code == 401
     assert resp.get_json()["error"] == "Missing Authorization Header"
 
 
 def test_protected_route_with_auth(client):
+    """Protected route should succeed with a valid token."""
     client.post(
         "/api/signup",
         json={"username": "cathy", "email": "cathy@example.com", "password": "pass"},
@@ -59,6 +64,7 @@ def test_protected_route_with_auth(client):
 
 
 def test_logout_returns_ok(client):
+    """Logout endpoint should revoke token and return confirmation message."""
     client.post(
         "/api/signup",
         json={"username": "dave", "email": "dave@example.com", "password": "mypw"},
@@ -75,6 +81,7 @@ def test_logout_returns_ok(client):
 
 
 def test_login_with_wrong_password(client, session):
+    """Login should fail with incorrect password."""
     from backend.app.models.models import User
 
     user = User(username="edgeuser", email="edge@example.com")
@@ -90,6 +97,7 @@ def test_login_with_wrong_password(client, session):
 
 
 def test_signup_with_duplicate_email(client, session):
+    """Signup should fail if email already exists."""
     from backend.app.models.models import User
 
     user = User(username="dup", email="dup@example.com")
@@ -106,6 +114,7 @@ def test_signup_with_duplicate_email(client, session):
 
 
 def test_protected_route_with_invalid_token(client):
+    """Protected route should reject an invalid JWT."""
     headers = {"Authorization": "Bearer not.a.real.token"}
     resp = client.get("/api/protected", headers=headers)
 
@@ -114,13 +123,16 @@ def test_protected_route_with_invalid_token(client):
 
 
 def test_delete_event_requires_auth(client, create_event):
+    """Deleting an event without auth should fail."""
     event = create_event()
     resp = client.delete(f"/api/events/{event.id}")
     assert resp.status_code == 401
     assert resp.get_json()["error"] == "Missing Authorization Header"
 
 
-def test_create_entrant_with_auth(client, create_event, auth_header):
+def test_create_entrant_with_auth(client, create_event, auth_user_and_header):
+    """Authenticated user can create an entrant via /api/entrants."""
+    _, auth_header = auth_user_and_header
     event = create_event()
     data = {"name": "HeroEdge", "alias": "Edgecase", "event_id": event.id}
     resp = client.post("/api/entrants", json=data, headers=auth_header)
@@ -131,6 +143,7 @@ def test_create_entrant_with_auth(client, create_event, auth_header):
 
 
 def test_signup_missing_fields(client):
+    """Signup should return 400 if required fields are missing."""
     resp = client.post("/api/signup", json={"email": "no_user@example.com"})
     assert resp.status_code == 400
     error = resp.get_json()["error"].lower()
@@ -142,6 +155,7 @@ def test_signup_missing_fields(client):
 # -------------------------
 
 def test_expired_token_denied(client):
+    """Expired tokens should be rejected on protected routes."""
     client.post(
         "/api/signup",
         json={
@@ -155,7 +169,7 @@ def test_expired_token_denied(client):
     )
     token = login_resp.get_json()["access_token"]
 
-    time.sleep(2)  # short expiry in test config
+    time.sleep(2)  # short expiry in TestConfig
 
     headers = {"Authorization": f"Bearer {token}"}
     resp = client.get("/api/protected", headers=headers)
@@ -164,6 +178,7 @@ def test_expired_token_denied(client):
 
 
 def test_revoked_token_denied(client):
+    """Revoked (logged out) tokens should be rejected on protected routes."""
     client.post(
         "/api/signup",
         json={"username": "revoker", "email": "revoker@example.com", "password": "pw"},
@@ -174,7 +189,7 @@ def test_revoked_token_denied(client):
     token = login_resp.get_json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    client.delete("/api/logout", headers=headers)  # logout → revoke token
+    client.delete("/api/logout", headers=headers)  # revoke token
 
     resp = client.get("/api/protected", headers=headers)
     assert resp.status_code == 401
@@ -182,6 +197,7 @@ def test_revoked_token_denied(client):
 
 
 def test_password_is_hashed_in_db(client, session):
+    """Passwords should be hashed in the DB, not stored in plain text."""
     resp = client.post(
         "/api/signup",
         json={"username": "hashme", "email": "hash@example.com", "password": "rawpass"},

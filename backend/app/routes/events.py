@@ -7,7 +7,7 @@ from backend.app.models.models import Event, Entrant
 from backend.app.extensions import db
 import traceback
 
-bp = Blueprint("events", __name__, url_prefix="/events")
+bp = Blueprint("events", __name__)
 
 STATUS_ORDER = case(
     (Event.status == "published", 1),

@@ -154,3 +154,37 @@ def get_hero_image(hero_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify(error=f"Failed to fetch hero image: {str(e)}"), 500
+    
+
+@heroes_bp.route("/browse", methods=["GET"])
+def browse_heroes():
+    """
+    Return all heroes stored in DB, with pagination.
+    Used by frontend dropdowns (event registration, etc.).
+    """
+    try:
+        page = max(int(request.args.get("page", 1)), 1)
+        per_page = max(min(int(request.args.get("per_page", 50)), 100), 1)
+
+        query = Hero.query.order_by(Hero.name.asc())
+        total = query.count()
+        heroes = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        results = []
+        for h in heroes:
+            hero_dict = h.to_dict()
+            hero_dict["proxy_image"] = f"/api/heroes/{h.id}/image"
+            results.append(hero_dict)
+
+        return jsonify(
+            {
+                "results": results,
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": (total + per_page - 1) // per_page,
+            }
+        ), 200
+    except Exception:
+        traceback.print_exc()
+        return jsonify(error="Failed to browse heroes"), 500

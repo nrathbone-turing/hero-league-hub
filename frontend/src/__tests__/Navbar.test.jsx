@@ -1,23 +1,26 @@
 // File: frontend/src/__tests__/Navbar.test.jsx
 // Purpose: Tests for Navbar auth-aware UI and routing.
 // Notes:
+// - Uses shared renderWithRouter from test-utils (includes Router + AuthProvider).
 // - Covers logged out UI (login/signup links).
 // - Covers logged in UI (welcome + logout).
-// - Ensures logout clears localStorage and resets user.
-// - Verifies navigation works for /, /login, and /signup.
+// - Ensures Heroes and Events nav links appear and navigate.
 
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
-import AuthProvider, { useAuth } from "../context/AuthContext";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { Routes, Route } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import LoginForm from "../components/LoginForm";
 import SignupForm from "../components/SignupForm";
+import { renderWithRouter } from "../test-utils";
 
-// Test harness page to check navigation + auth state
+function HeroesPage() {
+  return <div data-testid="heroes-page">Heroes Page</div>;
+}
+
 function EventsPage() {
-  const { user } = useAuth();
-  return <div>Events Dashboard {user ? `(user: ${user.username})` : ""}</div>;
+  return <div data-testid="events-page">Events Page</div>;
 }
 
 // Harness to expose auth API to tests
@@ -29,24 +32,10 @@ function AuthTestHarness({ onReady }) {
   return null;
 }
 
-function renderWithRouter(initialEntries = ["/"], onAuthReady = () => {}) {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={initialEntries}>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<EventsPage />} />
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/signup" element={<SignupForm />} />
-        </Routes>
-        <AuthTestHarness onReady={onAuthReady} />
-      </MemoryRouter>
-    </AuthProvider>,
-  );
-}
-
 beforeEach(() => {
-  // Mock fetch for /login and /signup
+  localStorage.clear();
+  vi.resetAllMocks();
+
   global.fetch = vi.fn((url) => {
     if (url.endsWith("/login")) {
       return Promise.resolve({
@@ -72,29 +61,47 @@ afterEach(() => {
 
 describe("Navbar", () => {
   test("shows login/signup links when logged out", () => {
-    renderWithRouter();
+    renderWithRouter(
+      <>
+        <Navbar />
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/signup" element={<SignupForm />} />
+        </Routes>
+      </>
+    );
     expect(screen.getByRole("link", { name: /login/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /signup/i })).toBeInTheDocument();
   });
 
   test("navigates to login and signup pages", () => {
-    renderWithRouter();
+    renderWithRouter(
+      <>
+        <Navbar />
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/signup" element={<SignupForm />} />
+        </Routes>
+      </>
+    );
 
     fireEvent.click(screen.getByRole("link", { name: /login/i }));
     expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("link", { name: /signup/i }));
-    expect(
-      screen.getByRole("button", { name: /sign up/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign up/i })).toBeInTheDocument();
   });
 
   test("shows welcome + logout when logged in", async () => {
     let authApi;
-    renderWithRouter(["/"], (api) => (authApi = api));
+    renderWithRouter(
+      <>
+        <Navbar />
+        <AuthTestHarness onReady={(api) => (authApi = api)} />
+      </>
+    );
 
     await waitFor(() => expect(authApi).toBeDefined());
-
     await authApi.login("test@example.com", "password123");
 
     await waitFor(() => {
@@ -105,13 +112,16 @@ describe("Navbar", () => {
 
   test("logout clears token and resets user", async () => {
     let authApi;
-    renderWithRouter(["/"], (api) => (authApi = api));
+    renderWithRouter(
+      <>
+        <Navbar />
+        <AuthTestHarness onReady={(api) => (authApi = api)} />
+      </>
+    );
 
     await waitFor(() => expect(authApi).toBeDefined());
-
     await authApi.login("test@example.com", "password123");
 
-    // token should persist to localStorage
     await waitFor(() => {
       expect(localStorage.getItem("token")).toBe("fake-jwt-token");
     });
@@ -125,5 +135,31 @@ describe("Navbar", () => {
     await waitFor(() => {
       expect(screen.queryByText(/welcome/i)).not.toBeInTheDocument();
     });
+  });
+
+  test("navigates to Heroes page", () => {
+    renderWithRouter(
+      <>
+        <Navbar />
+        <Routes>
+          <Route path="/heroes" element={<HeroesPage />} />
+        </Routes>
+      </>
+    );
+    fireEvent.click(screen.getByTestId("nav-heroes"));
+    expect(screen.getByTestId("heroes-page")).toBeInTheDocument();
+  });
+
+  test("navigates to Events page", () => {
+    renderWithRouter(
+      <>
+        <Navbar />
+        <Routes>
+          <Route path="/events" element={<EventsPage />} />
+        </Routes>
+      </>
+    );
+    fireEvent.click(screen.getByTestId("nav-events"));
+    expect(screen.getByTestId("events-page")).toBeInTheDocument();
   });
 });

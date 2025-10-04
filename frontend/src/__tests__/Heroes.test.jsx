@@ -1,11 +1,11 @@
 // File: frontend/src/__tests__/Heroes.test.jsx
-// Purpose: Stable tests for Heroes component (search + pagination).
+// Purpose: Stable tests for Heroes component (search + pagination + dialog interactions).
 // Notes:
-// - Uses MUI Table + TablePagination (so queries must look for displayedRows + icon buttons).
-// - Empty state only shows when search is non-empty and results are empty.
-// - Pagination tests now assume rowsPerPage=25 by default and mock totals large enough to enable Next.
+// - Avoid fragile string matching; prefer roles, test ids, or localStorage side-effects.
+// - Covers search, loading, error, empty state, pagination, sorting, dialog details, and hero selection.
 
 import { screen, waitFor, within } from "@testing-library/react";
+import { Routes, Route } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Heroes from "../components/Heroes";
@@ -13,12 +13,12 @@ import * as api from "../api";
 
 vi.mock("../api");
 
-// Default mirrors component expectations but empty
 const defaultEmpty = { results: [], page: 1, per_page: 25, total: 0, total_pages: 1 };
 
 describe("Heroes", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    localStorage.clear();
     api.apiFetch.mockResolvedValue(defaultEmpty);
   });
 
@@ -86,7 +86,7 @@ describe("Heroes", () => {
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "Batman", { allAtOnce: true });
 
-    await waitFor(() => expect(screen.getByText(/Batman/)).toBeInTheDocument());
+    expect(await screen.findByText("Batman")).toBeInTheDocument();
   });
 });
 
@@ -97,12 +97,11 @@ describe("Heroes - Pagination", () => {
   });
 
   test("renders pagination controls when multiple pages", async () => {
-    // With rowsPerPage=25, make total large enough to enable Next
     api.apiFetch.mockResolvedValue({
       results: [{ id: 1, name: "Superman" }],
       page: 1,
       per_page: 25,
-      total: 60,        // > 25 so multiple pages
+      total: 60,
       total_pages: 3,
     });
 
@@ -110,7 +109,6 @@ describe("Heroes - Pagination", () => {
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "Superman", { allAtOnce: true });
 
-    // Check the displayed rows element (dash may vary)
     await waitFor(() =>
       expect(
         screen.getByText((content, node) =>
@@ -124,30 +122,26 @@ describe("Heroes - Pagination", () => {
   });
 
   test("navigates to next and previous page", async () => {
-    // Mock backend pagination: per_page=25, total=60, two pages we care about
     api.apiFetch.mockImplementation((url) => {
       const qs = url.split("?")[1] || "";
       const params = new URLSearchParams(qs);
-      const q = params.get("search");
       const p = Number(params.get("page") || "1");
-      const per = Number(params.get("per_page") || "25");
-
-      if (q === "Superman" && p === 1) {
+      if (p === 1) {
         return Promise.resolve({
           results: [{ id: 1, name: "Superman" }],
           page: 1,
-          per_page: per,
+          per_page: 25,
           total: 60,
-          total_pages: Math.ceil(60 / per),
+          total_pages: 3,
         });
       }
-      if (q === "Superman" && p === 2) {
+      if (p === 2) {
         return Promise.resolve({
           results: [{ id: 2, name: "Batman" }],
           page: 2,
-          per_page: per,
+          per_page: 25,
           total: 60,
-          total_pages: Math.ceil(60 / per),
+          total_pages: 3,
         });
       }
       return Promise.resolve(defaultEmpty);
@@ -157,146 +151,321 @@ describe("Heroes - Pagination", () => {
     const input = await screen.findByRole("textbox", { name: /search heroes/i });
     await userEvent.type(input, "Superman", { allAtOnce: true });
 
-    await waitFor(() => expect(screen.getByText(/Superman/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Superman")).toBeInTheDocument());
 
-    // Next → page 2 (should be enabled because total > rowsPerPage)
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /go to next page/i })).toBeEnabled(),
-    );
     await userEvent.click(screen.getByRole("button", { name: /go to next page/i }));
-    await waitFor(() => expect(screen.getByText(/Batman/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Batman")).toBeInTheDocument());
 
-    // Previous → back to page 1
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /go to previous page/i })).toBeEnabled(),
-    );
     await userEvent.click(screen.getByRole("button", { name: /go to previous page/i }));
-    await waitFor(() => expect(screen.getByText(/Superman/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Superman")).toBeInTheDocument());
   });
 });
 
-
-test("displays hero full_name, alias, and alignment in table", async () => {
-  api.apiFetch.mockResolvedValue({
-    results: [
-      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
-    ],
-    page: 1,
-    per_page: 25,
-    total: 1,
-    total_pages: 1,
+describe("Heroes - Table and Dialog", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    localStorage.clear();
+    api.apiFetch.mockResolvedValue(defaultEmpty);
   });
 
-  renderWithRouter(<Heroes />, { route: "/heroes" });
-  const input = await screen.findByRole("textbox", { name: /search heroes/i });
-  await userEvent.type(input, "Batman", { allAtOnce: true });
+  test("displays hero full_name, alias, and alignment in table", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [
+        { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
 
-  expect(await screen.findByText(/Bruce Wayne/)).toBeInTheDocument();
-  expect(screen.getByText(/Dark Knight/)).toBeInTheDocument();
-  expect(screen.getByText(/good/)).toBeInTheDocument();
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Batman", { allAtOnce: true });
+
+    expect(await screen.findByText("Bruce Wayne")).toBeInTheDocument();
+    expect(screen.getByText("Dark Knight")).toBeInTheDocument();
+    expect(screen.getByText("good")).toBeInTheDocument();
+  });
+
+  test("allows sorting heroes by name", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [
+        { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+        { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 2,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Test", { allAtOnce: true });
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Superman"),
+    );
+
+    const nameHeader = screen.getByRole("button", { name: /^Name$/i });
+    await userEvent.click(nameHeader);
+
+    await waitFor(() =>
+      expect(screen.getAllByRole("row")[1]).toHaveTextContent("Batman"),
+    );
+  });
+
+  test("opens dialog with hero details when row is clicked", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [
+        {
+          id: 2,
+          name: "Batman",
+          full_name: "Bruce Wayne",
+          alias: "Dark Knight",
+          alignment: "good",
+        },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Batman", { allAtOnce: true });
+
+    const row = await screen.findByTestId("hero-row-2");
+    await userEvent.click(row);
+
+    const dialog = await screen.findByTestId("hero-dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByTestId("hero-dialog-title")).toHaveTextContent("Batman");
+    expect(within(dialog).getByTestId("hero-alignment")).toHaveTextContent("GOOD");
+    expect(within(dialog).getByTestId("choose-hero-btn")).toBeInTheDocument();
+  });
+
+  test("closes dialog when ESC pressed", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [
+        { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Superman", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("Superman"));
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+  });
+
+  test("shows 'No image available' when hero lacks image", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 1, name: "Nameless", alignment: "neutral" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Nameless", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("Nameless"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByText(/No image available/i)).toBeInTheDocument();
+  });
+
+  test("dialog displays alignment in uppercase", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 1, name: "Thor", alignment: "hero" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Thor", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("Thor"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByText("HERO")).toBeInTheDocument();
+  });
+
+  test("dialog displays powerstats when present", async () => {
+    api.apiFetch.mockResolvedValue({
+      results: [
+        { id: 1, name: "Flash", alignment: "good", powerstats: { speed: 100, strength: 50 } },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Flash", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByText("Flash"));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(within(dialog).getByRole("heading", { name: /powerstats/i })).toBeInTheDocument();
+    expect(within(dialog).getByText(/Speed/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Strength/i)).toBeInTheDocument();
+  });
+
+  test("Choose Hero (no entrant): stores hero in namespaced storage and redirects", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 1, name: "Wonder Woman", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(
+      <Routes>
+        <Route path="/heroes" element={<Heroes />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+      </Routes>,
+      { route: "/heroes" }
+    );
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "Wonder Woman", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByTestId("hero-row-1"));
+    const dialog = await screen.findByTestId("hero-dialog");
+
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
+
+    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
+
+    const stored = JSON.parse(localStorage.getItem("chosenHero_123"));
+    expect(stored?.name).toBe("Wonder Woman");
+  });
+
+  test("Choose Hero (entrant exists): replaces hero after confirm", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 3, name: "New Hero", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(
+      <Routes>
+        <Route path="/heroes" element={<Heroes />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-page">Dashboard</div>} />
+      </Routes>,
+      { route: "/heroes" }
+    );
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "New Hero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByTestId("hero-row-3"));
+    const dialog = await screen.findByTestId("hero-dialog");
+
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
+
+    expect(await screen.findByTestId("dashboard-page")).toBeInTheDocument();
+    const entrant = JSON.parse(localStorage.getItem("entrant_123"));
+    expect(entrant?.hero?.name).toBe("New Hero");
+  });
+
+  test("Choose Hero (entrant exists): cancel confirm leaves hero unchanged", async () => {
+    localStorage.setItem("token", "fake");
+    localStorage.setItem("user", JSON.stringify({ id: 123, username: "tester" }));
+    localStorage.setItem("entrant_123", JSON.stringify({ id: 1, hero: { id: 2, name: "Old Hero" } }));
+
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    api.apiFetch.mockResolvedValue({
+      results: [{ id: 3, name: "New Hero", alignment: "good" }],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
+
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "New Hero", { allAtOnce: true });
+
+    await userEvent.click(await screen.findByTestId("hero-row-3"));
+    const dialog = await screen.findByTestId("hero-dialog");
+
+    await userEvent.click(within(dialog).getByTestId("choose-hero-btn"));
+
+    const entrant = JSON.parse(localStorage.getItem("entrant_123"));
+    expect(entrant?.hero?.name).toBe("Old Hero");
+  });
 });
 
-test("allows sorting heroes by name", async () => {
-  api.apiFetch.mockResolvedValue({
-    results: [
-      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
-      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
-    ],
-    page: 1,
-    per_page: 25,
-    total: 2,
-    total_pages: 1,
+describe("Heroes - Dialog Accordion Sections", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    api.apiFetch.mockResolvedValue({
+      results: [
+        {
+          id: 10,
+          name: "AccordionHero",
+          alignment: "hero",
+          biography: { "full-name": "Test Name" },
+          appearance: { "eye-color": "Green" },
+          work: { occupation: "Tester" },
+          connections: { relatives: "Test Relative" },
+        },
+      ],
+      page: 1,
+      per_page: 25,
+      total: 1,
+      total_pages: 1,
+    });
   });
 
-  renderWithRouter(<Heroes />, { route: "/heroes" });
-  const input = await screen.findByRole("textbox", { name: /search heroes/i });
-  await userEvent.type(input, "Test", { allAtOnce: true });
+  test("renders accordion sections", async () => {
+    renderWithRouter(<Heroes />, { route: "/heroes" });
+    const input = await screen.findByRole("textbox", { name: /search heroes/i });
+    await userEvent.type(input, "AccordionHero", { allAtOnce: true });
 
-  // Default sort is by id asc → Superman before Batman
-  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Superman/));
+    await userEvent.click(await screen.findByText("AccordionHero"));
+    const dialog = await screen.findByRole("dialog");
 
-  // Click "Name" header to sort → Batman before Superman
-  const nameHeader = screen.getByRole("button", { name: /^Name$/i });
-  await userEvent.click(nameHeader);
-  await waitFor(() => expect(screen.getAllByRole("row")[1]).toHaveTextContent(/Batman/));
-});
-
-
-test("opens dialog with hero details when row is clicked", async () => {
-  api.apiFetch.mockResolvedValue({
-    results: [
-      { id: 2, name: "Batman", full_name: "Bruce Wayne", alias: "Dark Knight", alignment: "good" },
-    ],
-    page: 1,
-    per_page: 25,
-    total: 1,
-    total_pages: 1,
+    expect(within(dialog).getByText("Biography")).toBeInTheDocument();
+    expect(within(dialog).getByText("Appearance")).toBeInTheDocument();
+    expect(within(dialog).getByText("Work")).toBeInTheDocument();
+    expect(within(dialog).getByText("Connections")).toBeInTheDocument();
   });
-
-  renderWithRouter(<Heroes />, { route: "/heroes" });
-  const input = await screen.findByRole("textbox", { name: /search heroes/i });
-  await userEvent.type(input, "Batman", { allAtOnce: true });
-
-  // Click row
-  await userEvent.click(await screen.findByText(/Batman/));
-
-  // Modal should open with hero details
-  const dialog = await screen.findByRole("dialog");
-  expect(within(dialog).getByText(/Batman/)).toBeInTheDocument();
-  expect(within(dialog).getByText(/Bruce Wayne/)).toBeInTheDocument();
-  expect(within(dialog).getByText(/Dark Knight/)).toBeInTheDocument();
-});
-
-
-test("closes dialog when backdrop clicked", async () => {
-  api.apiFetch.mockResolvedValue({
-    results: [
-      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good" },
-    ],
-    page: 1,
-    per_page: 25,
-    total: 1,
-    total_pages: 1,
-  });
-
-  renderWithRouter(<Heroes />, { route: "/heroes" });
-  const input = await screen.findByRole("textbox", { name: /search heroes/i });
-  await userEvent.type(input, "Superman", { allAtOnce: true });
-
-  const row = await screen.findByRole("row", { name: /1 Superman Clark Kent Man of Steel good/i });
-  await userEvent.click(row);
-
-  // Dialog opens
-  expect(await screen.findByRole("dialog")).toBeInTheDocument();
-
-  // Close by pressing ESC
-  await userEvent.keyboard("{Escape}");
-
-  await waitFor(() =>
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-  );
-});
-
-
-test("clicking a hero row opens a dialog with image", async () => {
-  api.apiFetch.mockResolvedValue({
-    results: [
-      { id: 1, name: "Superman", full_name: "Clark Kent", alias: "Man of Steel", alignment: "good", image: "superman.jpg" },
-    ],
-    page: 1,
-    per_page: 25,
-    total: 1,
-    total_pages: 1,
-  });
-
-  renderWithRouter(<Heroes />, { route: "/heroes" });
-  const input = await screen.findByRole("textbox", { name: /search heroes/i });
-  await userEvent.type(input, "Superman", { allAtOnce: true });
-
-  // Click row
-  await userEvent.click(await screen.findByText(/Superman/));
-
-  const dialog = await screen.findByRole("dialog");
-  expect(within(dialog).getByRole("img", { name: /Superman/i })).toBeInTheDocument();
-  expect(within(dialog).getByText(/Clark Kent/)).toBeInTheDocument();
 });

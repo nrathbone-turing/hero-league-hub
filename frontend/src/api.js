@@ -1,35 +1,28 @@
 // File: frontend/src/api.js
 // Purpose: Centralize API base URL and inject JWT auth headers into fetch calls.
 // Notes:
-// - Uses Vite's import.meta.env for environment variables.
-// - Always prefixes with /api (handled by Vite proxy in dev).
+// - Rely on /api prefix (handled by Vite proxy in dev, same-origin in prod).
 // - Wraps fetch calls with Authorization header if token exists.
 // - Adds console.error logging for failures.
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
 // Get headers including Authorization if token exists
-function getAuthHeaders() {
+function getAuthHeaders(customHeaders = {}) {
   const token = localStorage.getItem("token"); // matches AuthContext localStorage key
-  return token
-    ? {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      }
-    : { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...customHeaders,
+  };
 }
 
 // Generic fetch wrapper
 export async function apiFetch(endpoint, options = {}) {
-  const url = `${API_BASE_URL}/api${endpoint}`;
+  const url = `/api${endpoint}`; // <-- rely on proxy/same-origin
   console.log("🔎 apiFetch:", url, options);
 
   const res = await fetch(url, {
     ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...(options.headers || {}),
-    },
+    headers: getAuthHeaders(options.headers),
   });
 
   if (!res.ok) {

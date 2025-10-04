@@ -4,6 +4,7 @@ from sqlalchemy import Enum, CheckConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app.extensions import db
 from sqlalchemy.dialects.postgresql import JSON
+from datetime import datetime
 
 # Allowed event statuses
 EVENT_STATUSES = ("drafting", "published", "cancelled", "completed")
@@ -44,15 +45,16 @@ class Event(db.Model):
     def __repr__(self):
         return f"<Event {self.name} ({self.date}) - {self.status}>"
 
-    def to_dict(self, include_related=False):
+    def to_dict(self, include_related: bool = False, include_counts: bool = True):
         data = {
             "id": self.id,
             "name": self.name,
             "date": self.date,
             "rules": self.rules,
             "status": self.status,
-            "entrant_count": len(self.entrants) if self.entrants else 0,
         }
+        if include_counts:
+            data["entrant_count"] = len(self.entrants) if self.entrants else 0
         if include_related:
             data["entrants"] = [e.to_dict() for e in self.entrants]
             data["matches"] = [m.to_dict() for m in self.matches]
@@ -66,9 +68,45 @@ class Entrant(db.Model):
     name = db.Column(db.String(80), nullable=False)
     alias = db.Column(db.String(80), nullable=True)
     event_id = db.Column(db.Integer, db.ForeignKey("events.id"), nullable=False)
+
+    # Links
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    hero_id = db.Column(db.Integer, db.ForeignKey("heroes.id"), nullable=True)
+
     dropped = db.Column(db.Boolean, default=False, nullable=False)
 
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    # Relationships
     event = db.relationship("Event", back_populates="entrants")
+
+    user = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="entrants",
+        lazy="joined",
+        overlaps="created_entrants,updated_entrants"
+    )
+    hero = db.relationship("Hero", lazy="joined")
+
+    created_by = db.relationship(
+        "User",
+        foreign_keys=[created_by_id],
+        back_populates="created_entrants",
+        lazy="joined",
+        overlaps="entrants,updated_entrants"
+    )
+    updated_by = db.relationship(
+        "User",
+        foreign_keys=[updated_by_id],
+        back_populates="updated_entrants",
+        lazy="joined",
+        overlaps="entrants,created_entrants"
+    )
 
     def __repr__(self):
         status = "dropped" if self.dropped else "active"
@@ -80,14 +118,23 @@ class Entrant(db.Model):
         self.alias = None
         self.dropped = True
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_event: bool = False, include_hero: bool = False, include_user: bool = False):
+        data = {
             "id": self.id,
             "name": self.name,
             "alias": self.alias,
             "event_id": self.event_id,
+            "user_id": self.user_id,
+            "hero_id": self.hero_id,
             "dropped": self.dropped,
         }
+        if include_event and self.event:
+            data["event"] = self.event.to_dict(include_counts=True)
+        if include_hero and self.hero:
+            data["hero"] = self.hero.to_dict()
+        if include_user and self.user:
+            data["user"] = self.user.to_dict()
+        return data
 
 
 class Match(db.Model):
@@ -100,6 +147,12 @@ class Match(db.Model):
     entrant2_id = db.Column(db.Integer, db.ForeignKey("entrants.id"), nullable=True)
     scores = db.Column(db.String, nullable=True)
     winner_id = db.Column(db.Integer, db.ForeignKey("entrants.id"), nullable=True)
+
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -123,7 +176,6 @@ class Match(db.Model):
             "scores": self.scores,
             "winner_id": self.winner_id,
         }
-
         if include_names:
             e1 = db.session.get(Entrant, self.entrant1_id) if self.entrant1_id else None
             e2 = db.session.get(Entrant, self.entrant2_id) if self.entrant2_id else None
@@ -132,7 +184,6 @@ class Match(db.Model):
             data["entrant1"] = e1.to_dict() if e1 else None
             data["entrant2"] = e2.to_dict() if e2 else None
             data["winner"] = w.to_dict() if w else None
-
         return data
 
 
@@ -144,6 +195,25 @@ class User(db.Model):
     email = db.Column(db.String, unique=True, nullable=False)
     password_hash = db.Column(db.String, nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+
+    entrants = db.relationship(
+        "Entrant",
+        back_populates="user",
+        foreign_keys="Entrant.user_id",
+        overlaps="created_by,updated_by"
+    )
+    created_entrants = db.relationship(
+        "Entrant",
+        back_populates="created_by",
+        foreign_keys="Entrant.created_by_id",
+        overlaps="user,updated_by"
+    )
+    updated_entrants = db.relationship(
+        "Entrant",
+        back_populates="updated_by",
+        foreign_keys="Entrant.updated_by_id",
+        overlaps="user,created_by"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

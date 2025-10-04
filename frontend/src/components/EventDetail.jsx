@@ -187,6 +187,7 @@ export default function EventDetail() {
             label="Status"
             value={event.status || ""}
             onChange={handleStatusChange}
+            inputProps={{ "data-testid": "status-select" }}
           >
             <MenuItem value="drafting">Drafting</MenuItem>
             <MenuItem value="published">Published</MenuItem>
@@ -290,8 +291,14 @@ export default function EventDetail() {
                   {sortedEntrants?.map((entrant) => (
                     <TableRow key={entrant.id}>
                       <TableCell>{entrant.id}</TableCell>
-                      <TableCell>{entrant.dropped ? "Dropped" : entrant.name}</TableCell>
-                      <TableCell>{entrant.dropped ? "-" : entrant.alias}</TableCell>
+                      <TableCell>
+                        {entrant.dropped
+                          ? "Dropped"
+                          : entrant.user?.name || entrant.name}
+                      </TableCell>
+                      <TableCell>
+                        {entrant.dropped ? "-" : entrant.user?.alias || entrant.alias}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

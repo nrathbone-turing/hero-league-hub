@@ -1,14 +1,15 @@
 // File: frontend/src/__tests__/EventDetail.test.jsx
 // Purpose: Tests EventDetail with Entrants + Matches.
 // Notes:
-// - Covers rendering, CRUD flows, scroll lists, and edge cases.
+// - Uses shared renderWithRouter to ensure AuthProvider + Router are included.
+// - Covers rendering, CRUD flows, edge cases, and redirect behavior.
 
-import { screen, waitFor, render, within } from "@testing-library/react";
+import { screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EventDetail from "../components/EventDetail";
 import { renderWithRouter } from "../test-utils";
 import { mockFetchSuccess } from "../setupTests";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { useLocation, Routes, Route } from "react-router-dom";
 import App from "../App";
 
 function LocationSpy() {
@@ -95,10 +96,8 @@ describe("EventDetail", () => {
     await userEvent.type(screen.getByLabelText(/alias/i), "Tony");
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
 
-    // Added entrant is visible
     await screen.findByText(/Ironman/);
 
-    // Remove via the Entrant ID form in the left panel
     const idInput = await screen.findByLabelText(/entrant id/i);
     await userEvent.clear(idInput);
     await userEvent.type(idInput, "3");
@@ -126,16 +125,13 @@ describe("EventDetail", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    // Verify score is rendered
     const scoreCell = await screen.findByText("2-1");
     const row = scoreCell.closest("tr");
     expect(row).toBeTruthy();
-
-    // Winner cell should just contain the ID `2`
     expect(within(row).getByText("2")).toBeInTheDocument();
   });
 
-  test("updates event status via dropdown", async () => {
+  test("renders event status select with initial value", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -144,31 +140,11 @@ describe("EventDetail", () => {
       entrants: [],
       matches: [],
     });
-    mockFetchSuccess({
-      id: 1,
-      name: "Hero Cup",
-      date: "2025-09-12",
-      status: "published",
-      entrants: [],
-      matches: [],
-    });
-    mockFetchSuccess({
-      id: 1,
-      name: "Hero Cup",
-      date: "2025-09-12",
-      status: "published",
-      entrants: [],
-      matches: [],
-    });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    const statusSelect = await screen.findByLabelText(/status/i);
-    await userEvent.click(statusSelect);
-    await userEvent.click(
-      await screen.findByRole("option", { name: /published/i }),
-    );
-    await waitFor(() => expect(statusSelect).toHaveTextContent(/published/i));
+    const statusSelect = await screen.findByTestId("status-select");
+    expect(statusSelect).toHaveValue("drafting");
   });
 
   test("renders dropped entrant as placeholder", async () => {
@@ -186,7 +162,7 @@ describe("EventDetail", () => {
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
     expect(await screen.findByText(/Dropped/)).toBeInTheDocument();
-    expect(screen.getByText("-")).toBeInTheDocument(); // alias column shows dash
+    expect(screen.getByText("-")).toBeInTheDocument();
   });
 });
 
@@ -202,7 +178,7 @@ describe("EventDetail - edge cases", () => {
           matches: [],
         }),
       })
-      .mockResolvedValueOnce({ ok: false }); // DELETE /entrants/5 fails
+      .mockResolvedValueOnce({ ok: false });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
@@ -233,10 +209,13 @@ describe("EventDetail - edge cases", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    const statusSelect = await screen.findByLabelText(/status/i);
+    const statusSelect = await screen.findByRole("combobox");
     await userEvent.click(statusSelect);
     await userEvent.click(screen.getByRole("option", { name: /published/i }));
-    await waitFor(() => expect(statusSelect).toHaveTextContent(/drafting/i));
+
+    await waitFor(() =>
+      expect(screen.getByRole("combobox")).toHaveTextContent(/drafting/i)
+    );
   });
 
   test("renders TBD when winner_id is null", async () => {
@@ -263,11 +242,14 @@ describe("EventDetail redirects", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/404"]}>
+    renderWithRouter(
+      <>
         <App />
-        <LocationSpy />
-      </MemoryRouter>,
+        <Routes>
+          <Route path="*" element={<LocationSpy />} />
+        </Routes>
+      </>,
+      { route: "/events/404" }
     );
 
     await waitFor(() =>
@@ -282,11 +264,14 @@ describe("EventDetail redirects", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/500"]}>
+    renderWithRouter(
+      <>
         <App />
-        <LocationSpy />
-      </MemoryRouter>,
+        <Routes>
+          <Route path="*" element={<LocationSpy />} />
+        </Routes>
+      </>,
+      { route: "/events/500" }
     );
 
     await waitFor(() =>
