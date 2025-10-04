@@ -1,14 +1,17 @@
+// File: frontend/src/__tests__/App.test.jsx
 // Purpose: Routing tests for App component with Vitest.
 // Notes:
 // - Uses global fetch mock from setupTests.js.
+// - Always uses renderWithRouter to ensure Router + AuthProvider are present.
 // - Covers navbar, dashboard, event detail, error routes, and event registration.
 
-import { screen, waitFor, render } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App";
 import { renderWithRouter } from "../test-utils";
 import { mockFetchSuccess } from "../setupTests";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import React from "react";
 
 function LocationSpy() {
   const location = useLocation();
@@ -37,7 +40,11 @@ describe("App routing (auth happy path)", () => {
       localStorage.setItem("token", "fake-jwt-token");
       localStorage.setItem(
         "user",
-        JSON.stringify({ username: "participant", email: "p@example.com", is_admin: false })
+        JSON.stringify({
+          username: "participant",
+          email: "p@example.com",
+          is_admin: false,
+        }),
       );
     });
 
@@ -52,8 +59,9 @@ describe("App routing (auth happy path)", () => {
     test("navigates to EventRegistration page when authenticated", async () => {
       renderWithRouter(<App />, { route: "/register-event" });
 
-      // Less brittle: rely on data-testid rather than exact heading text
-      expect(await screen.findByTestId("event-registration")).toBeInTheDocument();
+      expect(
+        await screen.findByTestId("event-registration"),
+      ).toBeInTheDocument();
     });
   });
 
@@ -62,25 +70,41 @@ describe("App routing (auth happy path)", () => {
       localStorage.setItem("token", "fake-jwt-token");
       localStorage.setItem(
         "user",
-        JSON.stringify({ username: "admin", email: "admin@example.com", is_admin: true })
+        JSON.stringify({
+          username: "admin",
+          email: "admin@example.com",
+          is_admin: true,
+        }),
       );
     });
 
     test("redirects / to EventDashboard", async () => {
       mockFetchSuccess([
-        { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+        {
+          id: 1,
+          name: "Hero Cup",
+          date: "2025-09-12",
+          status: "published",
+        },
       ]);
 
       renderWithRouter(<App />, { route: "/" });
 
       const dashboard = await screen.findByTestId("event-dashboard");
       expect(dashboard).toBeInTheDocument();
-      expect(await screen.findByTestId("event-name")).toHaveTextContent("Hero Cup");
+      expect(await screen.findByTestId("event-name")).toHaveTextContent(
+        "Hero Cup",
+      );
     });
 
     test("navigates from EventDashboard → EventDetail", async () => {
       mockFetchSuccess([
-        { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+        {
+          id: 1,
+          name: "Hero Cup",
+          date: "2025-09-12",
+          status: "published",
+        },
       ]);
 
       renderWithRouter(<App />, { route: "/events" });
@@ -98,7 +122,9 @@ describe("App routing (auth happy path)", () => {
       });
 
       await userEvent.click(eventName);
-      expect(await screen.findByText(/Hero Cup — 2025-09-12/i)).toBeInTheDocument();
+      expect(
+        await screen.findByText(/Hero Cup — 2025-09-12/i),
+      ).toBeInTheDocument();
     });
   });
 });
@@ -109,41 +135,44 @@ describe("App routing (unauthenticated users)", () => {
   });
 
   test("redirects unauthenticated user to /login for /dashboard", async () => {
-    render(
-      <MemoryRouter initialEntries={["/dashboard"]}>
+    renderWithRouter(
+      <>
         <App />
         <LocationSpy />
-      </MemoryRouter>
+      </>,
+      { route: "/dashboard" },
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login")
+      expect(screen.getByTestId("location").textContent).toBe("/login"),
     );
   });
 
   test("redirects unauthenticated user to /login for /heroes", async () => {
-    render(
-      <MemoryRouter initialEntries={["/heroes"]}>
+    renderWithRouter(
+      <>
         <App />
         <LocationSpy />
-      </MemoryRouter>
+      </>,
+      { route: "/heroes" },
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login")
+      expect(screen.getByTestId("location").textContent).toBe("/login"),
     );
   });
 
   test("redirects unauthenticated user to /login for /register-event", async () => {
-    render(
-      <MemoryRouter initialEntries={["/register-event"]}>
+    renderWithRouter(
+      <>
         <App />
         <LocationSpy />
-      </MemoryRouter>
+      </>,
+      { route: "/register-event" },
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("location").textContent).toBe("/login")
+      expect(screen.getByTestId("location").textContent).toBe("/login"),
     );
   });
 });
@@ -166,11 +195,12 @@ describe("App - error handling", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/999"]}>
+    renderWithRouter(
+      <>
         <App />
         <LocationSpy />
-      </MemoryRouter>,
+      </>,
+      { route: "/events/999" },
     );
 
     await waitFor(() =>
@@ -179,11 +209,7 @@ describe("App - error handling", () => {
   });
 
   test("renders NotFoundPage on unknown route", async () => {
-    render(
-      <MemoryRouter initialEntries={["/does-not-exist"]}>
-        <App />
-      </MemoryRouter>,
-    );
+    renderWithRouter(<App />, { route: "/does-not-exist" });
 
     expect(await screen.findByTestId("notfound-page")).toBeInTheDocument();
   });
@@ -195,11 +221,12 @@ describe("App - error handling", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/999"]}>
+    renderWithRouter(
+      <>
         <App />
         <LocationSpy />
-      </MemoryRouter>,
+      </>,
+      { route: "/events/999" },
     );
 
     await waitFor(() =>
