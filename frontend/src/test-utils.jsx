@@ -1,8 +1,8 @@
 // File: frontend/src/test-utils.js
 // Purpose: Custom render utilities for Vitest.
 // Notes:
-// - Wraps components in MemoryRouter and AuthProvider so both routing and auth context are available.
-// - Extend later with more providers (Redux, other contexts, etc).
+// - Ensures MemoryRouter always wraps AuthProvider so useNavigate has context.
+// - Extend later with more providers if needed.
 
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
