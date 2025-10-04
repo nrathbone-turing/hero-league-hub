@@ -177,17 +177,18 @@ export default function EventRegistration() {
             margin="normal"
             required
             data-testid="event-select"
-            role="menuitem"
           >
-            {events.map((event) => (
-              <MenuItem
-                key={event.id}
-                value={event.id}
-                data-testid={`event-option-${event.id}`}
-              >
-                {event.name} ({event.date || "TBA"})
-              </MenuItem>
-            ))}
+            {events
+              .filter((event) => event.status === "published")
+              .map((event) => (
+                <MenuItem
+                  key={event.id}
+                  value={event.id}
+                  data-testid={`event-option-${event.id}`}
+                >
+                  {event.name} ({event.date || "TBA"})
+                </MenuItem>
+              ))}
           </TextField>
         )}
 
