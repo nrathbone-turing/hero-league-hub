@@ -82,11 +82,17 @@ export default function UserDashboard() {
 
   useEffect(() => {
     syncFromStorage();
-    syncWithBackend(); // new: backend cross-check
+
+    // Delay backend sync slightly to avoid race with localStorage
+    const timeout = setTimeout(() => syncWithBackend(), 150);
 
     const handler = () => syncFromStorage();
     window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+
+    return () => {
+      window.removeEventListener("storage", handler);
+      clearTimeout(timeout);
+    };
   }, [user?.id]);
 
   async function handleCancelRegistration() {
