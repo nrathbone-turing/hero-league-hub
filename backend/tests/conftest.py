@@ -179,12 +179,29 @@ def mock_hero_api():
 
 @pytest.fixture(scope="session")
 def seed_full_db(app):
-    """Seed full dataset once per session for analytics tests."""
+    """Reset and seed database for analytics tests.
+    Ensures the seed data is loaded into the *test* database
+    (not the default local/dev DB).
+    """
+    import os
     from backend.scripts import seed_db
+    from backend.app.extensions import db
+    from sqlalchemy import create_engine, text
+
+    test_db_url = os.getenv(
+        "TEST_DATABASE_URL", "postgresql://postgres:postgres@db:5432/heroleague_test"
+    )
+
+    # Ensure connection points to test DB
+    engine = create_engine(test_db_url)
+    conn = engine.connect()
 
     with app.app_context():
+        db.session.bind = conn
+
         print("🔄 Resetting tables for analytics seed...")
-        db.session.execute(text("""
+        db.session.execute(
+            text("""
             TRUNCATE TABLE
                 matches,
                 entrants,
@@ -192,9 +209,12 @@ def seed_full_db(app):
                 heroes,
                 events
             RESTART IDENTITY CASCADE;
-        """))
+        """)
+        )
         db.session.commit()
 
         print("🌱 Seeding database for analytics tests (session scope)...")
         seed_db.run()
         print("✅ Analytics seed complete (shared for all analytics tests).")
+
+        conn.close()
