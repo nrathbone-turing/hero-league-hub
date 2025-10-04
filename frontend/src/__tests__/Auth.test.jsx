@@ -2,6 +2,7 @@
 // Purpose: Tests frontend authentication with AuthContext + forms (Vitest).
 // Notes:
 // - Covers signup, login, logout, protected access, and persistence.
+// - Validation test explicitly overrides NODE_ENV to simulate real behavior.
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
@@ -244,4 +245,41 @@ test("persists user and token in localStorage after login", async () => {
     const savedToken = localStorage.getItem("token");
     expect(savedToken).toBe("fake-jwt-token");
   });
+});
+
+test("invalid token on startup triggers logout and redirect to login", async () => {
+  // Force NODE_ENV to non-test to enable validation
+  const oldEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = "development";
+
+  // preload a bad token in localStorage
+  localStorage.setItem("token", "expired-token");
+
+  // mock /protected to reject with 401
+  global.fetch = vi.fn((url) => {
+    if (url.includes("/protected")) {
+      return Promise.resolve({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Invalid or expired token" }),
+      });
+    }
+    return Promise.reject(new Error("Unknown endpoint"));
+  });
+
+  render(
+    <AuthProvider>
+      <MemoryRouter initialEntries={["/protected"]}>
+        <Routes>
+          <Route path="/login" element={<div>Login Page</div>} />
+          <Route path="/protected" element={<div>Protected</div>} />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>
+  );
+
+  expect(await screen.findByText(/login page/i)).toBeInTheDocument();
+
+  // restore NODE_ENV
+  process.env.NODE_ENV = oldEnv;
 });
