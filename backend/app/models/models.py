@@ -137,10 +137,11 @@ class Entrant(db.Model):
         }
         if include_event and self.event:
             data["event"] = self.event.to_dict(include_counts=True)
-        if include_hero and self.hero:
-            data["hero"] = self.hero.to_dict()
-        if include_user and self.user:
-            data["user"] = self.user.to_dict()
+        if include_user:
+            data["user"] = self.user.to_dict() if self.user else {"id": self.user_id}
+        if include_hero:
+            data["hero"] = self.hero.to_dict() if self.hero else {"id": self.hero_id}
+
         return data
 
 
