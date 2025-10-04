@@ -1,21 +1,27 @@
-# backend/app/config.py
-# Loads environment variables from root .env
-# Defaults provided for dev/testing
+# File: backend/app/config.py
+# Purpose: Flask configuration for all environments (Dev, Test, Prod)
+# Notes:
+# - Uses Postgres for both dev and test environments (no SQLite fallback).
+# - TestConfig uses TEST_DATABASE_URL for isolated test DB.
+# - JWT + API key defaults for test speed and CI consistency.
 
 import os
 from dotenv import load_dotenv, find_dotenv
 from datetime import timedelta
 
-# Only load .env if running outside Docker (no DATABASE_URL provided)
+# Load .env only if running outside Docker (local dev)
 if not os.getenv("DATABASE_URL"):
     load_dotenv(find_dotenv())
 
 
 class Config:
+    """Base configuration shared across all environments."""
+
     # Database
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     if not SQLALCHEMY_DATABASE_URI:
         raise ValueError("DATABASE_URL environment variable is required")
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # JWT
@@ -25,19 +31,28 @@ class Config:
     JWT_ALGORITHM = "HS256"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 
-    # CORS / other app configs
+    # CORS / Frontend
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     # External API
-    SUPERHERO_API_KEY = os.getenv("API_KEY")
+    SUPERHERO_API_KEY = os.getenv("API_KEY", "demo-key")
+
+
+class DevConfig(Config):
+    """Used for local development."""
+    DEBUG = True
 
 
 class TestConfig(Config):
+    """Used during pytest / CI — connects to dedicated Postgres test DB."""
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"check_same_thread": False}}
-    JWT_SECRET_KEY = "test-secret"
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=1)
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql://postgres:postgres@db:5432/heroleague_test"
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Disable external API in tests
+    # Faster test cycles
+    JWT_SECRET_KEY = "test-secret"
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=2)
     SUPERHERO_API_KEY = "test-key"
