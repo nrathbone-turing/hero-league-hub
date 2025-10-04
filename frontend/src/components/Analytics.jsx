@@ -1,8 +1,7 @@
 // File: frontend/src/components/Analytics.jsx
 // Purpose: Displays analytics dashboards for hero usage, win rates, and event trends.
 // Notes:
-// - Includes aria-labels and data-testids for stable testing.
-// - Currently uses mock data (API integration planned later).
+// - Added data-testid for each chart and slice for testing stability.
 
 import {
   Container,
@@ -51,13 +50,8 @@ export default function Analytics() {
   const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
 
   return (
-    <Container sx={{ mt: 4 }} data-testid="analytics-page">
-      <Typography
-        variant="h4"
-        align="center"
-        gutterBottom
-        data-testid="analytics-title"
-      >
+    <Container sx={{ mt: 4 }} data-testid="analytics-container">
+      <Typography variant="h4" align="center" gutterBottom>
         Hero League Analytics
       </Typography>
 
@@ -67,22 +61,23 @@ export default function Analytics() {
           onChange={(e, newVal) => setTab(newVal)}
           centered
           variant="fullWidth"
-          aria-label="Analytics Tabs"
-          data-testid="analytics-tabs"
         >
-          <Tab label="Hero Usage" data-testid="tab-usage" />
-          <Tab label="Win Rates" data-testid="tab-winrates" />
-          <Tab label="Participation" data-testid="tab-participation" />
+          <Tab label="Hero Usage" />
+          <Tab label="Win Rates" />
+          <Tab label="Participation" />
         </Tabs>
       </Paper>
 
-      {/* --- HERO USAGE --- */}
       {tab === 0 && (
-        <Box textAlign="center" aria-label="Hero Usage Chart" data-testid="chart-usage">
+        <Box
+          textAlign="center"
+          aria-label="Hero Usage Chart"
+          data-testid="chart-usage"
+        >
           <Typography variant="h6" gutterBottom>
             Hero Usage Distribution
           </Typography>
-          <PieChart width={400} height={300} aria-label="Hero Usage Pie Chart">
+          <PieChart width={400} height={300}>
             <Pie
               data={mockHeroUsage}
               cx="50%"
@@ -106,9 +101,12 @@ export default function Analytics() {
         </Box>
       )}
 
-      {/* --- WIN RATES --- */}
       {tab === 1 && (
-        <Box textAlign="center" aria-label="Hero Win Rates Chart" data-testid="chart-winrates">
+        <Box
+          textAlign="center"
+          aria-label="Win Rates Chart"
+          data-testid="chart-winrates"
+        >
           <Typography variant="h6" gutterBottom>
             Hero Win Rates (%)
           </Typography>
@@ -117,21 +115,23 @@ export default function Analytics() {
             height={300}
             data={mockWinRates}
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-            aria-label="Hero Win Rates Bar Chart"
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="hero" />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar dataKey="winRate" fill="#82ca9d" data-testid="bar-winrates" />
+            <Bar dataKey="winRate" fill="#82ca9d" />
           </BarChart>
         </Box>
       )}
 
-      {/* --- PARTICIPATION --- */}
       {tab === 2 && (
-        <Box textAlign="center" aria-label="Event Participation Chart" data-testid="chart-participation">
+        <Box
+          textAlign="center"
+          aria-label="Participation Chart"
+          data-testid="chart-participation"
+        >
           <Typography variant="h6" gutterBottom>
             Event Participation
           </Typography>
@@ -140,18 +140,13 @@ export default function Analytics() {
             height={300}
             data={mockParticipation}
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-            aria-label="Event Participation Bar Chart"
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="event" />
             <YAxis />
             <Tooltip />
             <Legend />
-            <Bar
-              dataKey="participants"
-              fill="#ffc658"
-              data-testid="bar-participation"
-            />
+            <Bar dataKey="participants" fill="#ffc658" />
           </BarChart>
         </Box>
       )}
