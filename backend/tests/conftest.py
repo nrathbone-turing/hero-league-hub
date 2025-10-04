@@ -5,6 +5,7 @@
 # - create_event, create_user, create_hero, seed_event_with_entrants
 # - auth_user_and_header (User + JWT header)
 # - mock_hero_api (patch Superhero API)
+# - seed_full_db (runs full seed_db script once per session for analytics tests)
 
 import pytest
 from backend.app import create_app
@@ -13,12 +14,12 @@ from backend.app.extensions import db
 from backend.app.config import TestConfig
 from flask_jwt_extended import create_access_token
 from unittest.mock import patch
+from sqlalchemy import text
 
 
 # ------------------------------
 # Core fixtures
 # ------------------------------
-
 
 @pytest.fixture(scope="session")
 def app():
@@ -28,10 +29,14 @@ def app():
 
 
 @pytest.fixture(autouse=True)
-def reset_db(app):
+def reset_db(app, request):
     """Reset schema before each test to ensure isolation.
-    Drops and recreates tables around every test.
+    Skips analytics tests, which rely on full seed data.
     """
+    if "analytics" in request.keywords:
+        yield
+        return
+
     with app.app_context():
         db.drop_all()
         db.create_all()
@@ -56,7 +61,6 @@ def session(app):
 # ------------------------------
 # Entity creators
 # ------------------------------
-
 
 @pytest.fixture
 def create_event(session):
@@ -143,7 +147,6 @@ def auth_user_and_header(app, session):
 # API mocking helpers
 # ------------------------------
 
-
 @pytest.fixture
 def mock_hero_api():
     """Monkeypatch requests.get to fake Superhero API response."""
@@ -170,3 +173,34 @@ def mock_hero_api():
 
     with patch("backend.app.routes.heroes.requests.get", return_value=DummyResp()):
         yield
+
+
+# ------------------------------
+# Analytics seed fixture
+# ------------------------------
+
+@pytest.fixture(scope="function")
+def seed_full_db(app):
+    """Reset and seed database for analytics tests.
+    - Truncates all data before seeding to avoid duplicate key errors.
+    - Keeps fixed IDs from the seed files valid on every test run.
+    """
+    from backend.scripts import seed_db
+    from backend.app.extensions import db
+
+    with app.app_context():
+        print("🔄 Resetting tables for analytics seed...")
+        db.session.execute(text("""
+            TRUNCATE TABLE
+                matches,
+                entrants,
+                users,
+                heroes,
+                events
+            RESTART IDENTITY CASCADE;
+        """))
+        db.session.commit()
+
+        print("🌱 Seeding database for analytics test...")
+        seed_db.run()
+        print("✅ Analytics seed complete.")
