@@ -187,6 +187,7 @@ export default function EventDetail() {
             label="Status"
             value={event.status || ""}
             onChange={handleStatusChange}
+            inputProps={{ "data-testid": "status-select" }}
           >
             <MenuItem value="drafting">Drafting</MenuItem>
             <MenuItem value="published">Published</MenuItem>
