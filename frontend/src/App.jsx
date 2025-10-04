@@ -1,7 +1,7 @@
 // File: frontend/src/App.jsx
 // Purpose: Root component for React app.
 // Notes:
-// - Wraps app in AuthProvider for global state.
+// - App assumes it is already wrapped with AuthProvider (in main.jsx).
 // - Protects Event and EventRegistration routes with ProtectedRoute.
 // - Redirects based on user.is_admin flag.
 
@@ -10,7 +10,7 @@ import EventDashboard from "./components/EventDashboard";
 import EventDetail from "./components/EventDetail";
 import NotFoundPage from "./components/NotFoundPage";
 import ServerErrorPage from "./components/ServerErrorPage";
-import AuthProvider, { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import LoginForm from "./components/LoginForm";
 import SignupForm from "./components/SignupForm";
@@ -89,12 +89,10 @@ function RootRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <div>
-        <Navbar />
-        <RootRoutes />
-      </div>
-    </AuthProvider>
+    <div>
+      <Navbar />
+      <RootRoutes />
+    </div>
   );
 }
 
