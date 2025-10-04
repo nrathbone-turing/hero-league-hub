@@ -17,12 +17,14 @@ exclude = '''
       \.git
     | \.venv
     | venv
+    | backend/venv
+    | backend/.venv
+    | site-packages
+    | __pycache__
     | build
     | dist
     | migrations
-    | __pycache__
-    | backend/tests/__pycache__
-    | docker
+    | tests
   )/
 )
 '''
