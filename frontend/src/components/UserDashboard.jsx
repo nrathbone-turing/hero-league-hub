@@ -3,11 +3,11 @@
 // Notes:
 // - Persists chosenHero across sessions, even if user unregisters.
 // - Cancels registration but does NOT wipe chosenHero unless matches exist.
-// - Syncs from localStorage on mount and when storage events fire.
+// - Syncs with backend first to prevent stale localStorage after reseeding.
 // - Renders hero powerstats and event details when available.
 
 import { useAuth } from "../context/AuthContext";
-import { deleteEntrant } from "../api";
+import { deleteEntrant, apiFetch } from "../api";
 import {
   Container,
   Typography,
@@ -53,8 +53,37 @@ export default function UserDashboard() {
     }
   }
 
+  async function syncWithBackend() {
+    if (!user?.id) return;
+    try {
+      const entrants = await apiFetch(`/entrants?user_id=${user.id}`);
+      if (entrants && entrants.length > 0) {
+        const backendEntrant = entrants[0];
+        setEntrant(backendEntrant);
+        if (backendEntrant.hero) setChosenHero(backendEntrant.hero);
+
+        // keep localStorage in sync
+        localStorage.setItem(`entrant_${user.id}`, JSON.stringify(backendEntrant));
+        if (backendEntrant.hero) {
+          localStorage.setItem(
+            `chosenHero_${user.id}`,
+            JSON.stringify(backendEntrant.hero)
+          );
+        }
+      } else {
+        // No backend entrant → clear stale storage
+        setEntrant(null);
+        localStorage.removeItem(`entrant_${user.id}`);
+      }
+    } catch (err) {
+      console.error("❌ Failed to sync with backend entrants", err);
+    }
+  }
+
   useEffect(() => {
     syncFromStorage();
+    syncWithBackend(); // new: backend cross-check
+
     const handler = () => syncFromStorage();
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
