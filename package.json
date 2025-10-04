@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:backend": "docker-compose run --rm backend flake8 /app/backend",
-    "format:backend": "docker-compose run --rm backend black /app/backend",
+    "lint:backend": "docker-compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
+    "format:backend": "docker-compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
     "test:backend": "docker-compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
 
@@ -21,8 +21,11 @@
     "test:frontend": "npm --prefix frontend run test",
     "start:frontend": "npm --prefix frontend run dev",
 
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "format": "npm run format:backend && npm run format:frontend",
+    "fix": "npm run fix:backend && npm run fix:frontend",
     "test": "npm run test:backend && npm run test:frontend",
-    "check": "npm run lint:backend && npm run lint:frontend"
+    "check": "npm run lint && npm run test"
   },
   "devDependencies": {
     "history": "^5.3.0"
