@@ -11,7 +11,7 @@ from backend.app.models.models import Entrant, Match, Hero
 from backend.app.extensions import db
 import traceback
 
-bp = Blueprint("entrants", __name__, url_prefix="/entrants")
+bp = Blueprint("entrants", __name__)
 
 
 # ------------------------
