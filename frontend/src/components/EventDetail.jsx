@@ -1,9 +1,9 @@
 // File: frontend/src/components/EventDetail.jsx
 // Purpose: Detailed view of a single event with entrants, matches, and status controls.
 // Notes:
-// - Adds TableSortLabel sorting to Entrants and Matches tables.
-// - Default sort by ID ascending. Sorting is client-side only.
-// - Keeps all other dashboards, layout, and UI unchanged.
+// - Entrants table now shows User.username (or fallback) as Name and Hero.name as Alias.
+// - Added sticky headers to Entrants and Matches tables.
+// - Keeps sorting logic for both tables.
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate, Link as RouterLink } from "react-router-dom";
@@ -282,7 +282,7 @@ export default function EventDetail() {
               sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
               data-testid="entrants-scroll"
             >
-              <Table size="small">
+              <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
                     {["id", "name", "alias"].map((col) => (
@@ -308,10 +308,10 @@ export default function EventDetail() {
                       <TableCell>
                         {entrant.dropped
                           ? "Dropped"
-                          : entrant.user?.name || entrant.name}
+                          : entrant.user?.username || entrant.name || "-"}
                       </TableCell>
                       <TableCell>
-                        {entrant.dropped ? "-" : entrant.user?.alias || entrant.alias}
+                        {entrant.dropped ? "-" : entrant.hero?.name || entrant.alias || "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -339,7 +339,7 @@ export default function EventDetail() {
               sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
               data-testid="matches-scroll"
             >
-              <Table size="small">
+              <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
                     {[
@@ -372,10 +372,16 @@ export default function EventDetail() {
                     <TableRow key={m.id}>
                       <TableCell>{m.id}</TableCell>
                       <TableCell>{m.round}</TableCell>
-                      <TableCell>{m.entrant1_id}</TableCell>
-                      <TableCell>{m.entrant2_id}</TableCell>
+                      <TableCell>
+                        {m.entrant1 ? `${m.entrant1.user?.username} (${m.entrant1.hero?.name})` : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {m.entrant2 ? `${m.entrant2.user?.username} (${m.entrant2.hero?.name})` : "-"}
+                      </TableCell>
                       <TableCell>{m.scores}</TableCell>
-                      <TableCell>{m.winner_id || "TBD"}</TableCell>
+                      <TableCell>
+                        {m.winner ? `${m.winner.user?.username} (${m.winner.hero?.name})` : "TBD"}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
