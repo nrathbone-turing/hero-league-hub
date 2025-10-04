@@ -7,19 +7,23 @@
     "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
 
-    "test:backend": "cross-env FLASK_ENV=test TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test docker compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
+    "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
     "test": "npm run test:backend && npm run test:frontend",
+    "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm test",
 
-    "db:init": "docker compose run --rm backend flask --app backend/manage.py db init",
-    "db:migrate": "docker compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
-    "db:upgrade": "docker compose run --rm backend flask --app backend/manage.py db upgrade",
-    "db:seed": "docker compose run --rm backend python backend/manage.py seed-db",
-    "db:reset": "npm run db:drop && npm run db:create && npm run db:upgrade && npm run db:seed",
+    "db:init": "node backend/scripts/run-helper.js db:init",
+    "db:migrate": "node backend/scripts/run-helper.js db:migrate",
+    "db:upgrade": "node backend/scripts/run-helper.js db:upgrade",
+    "db:seed": "node backend/scripts/run-helper.js db:seed",
+    "db:reset": "node backend/scripts/run-helper.js db:reset",
+    "db:refresh": "npm run db:reset",
 
     "start:frontend": "npm --prefix frontend run dev",
     "start:backend": "pipenv run python backend/wsgi.py",
-    "dev:all": "docker compose down && docker compose up --build -d && npm run start:frontend",
+    "dev:all": "npm run docker:rebuild && npm run start:frontend",
+
+    "docker:rebuild": "docker compose down && docker compose up --build -d",
 
     "env:test": "cross-env FLASK_ENV=test TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test",
     "env:local": "cross-env FLASK_ENV=development DATABASE_URL=postgresql://postgres:postgres@localhost:5432/heroleague",
@@ -28,8 +32,8 @@
     "deps:update": "pipenv update"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "eslint-plugin-vitest-globals": "^1.5.0",
-    "history": "^5.3.0",
-    "cross-env": "^7.0.3"
+    "history": "^5.3.0"
   }
 }
