@@ -1,0 +1,28 @@
+[tool.pytest.ini_options]
+pythonpath = [
+  ".",          # root of repo
+  "backend",    # allows `from backend.app import create_app`
+]
+testpaths = [
+  "backend/tests"
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.git
+    | \.venv
+    | venv
+    | build
+    | dist
+    | migrations
+    | __pycache__
+    | backend/tests/__pycache__
+    | docker
+  )/
+)
+'''
