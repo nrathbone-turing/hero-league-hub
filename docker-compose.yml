@@ -56,7 +56,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # Persistent database data
       - postgres_data:/var/lib/postgresql/data
+      # Initialization scripts
+      - ./backend/scripts/initdb:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -66,7 +69,7 @@ services:
       - hero-league-net
 
 volumes:
-  postgres_data:
+  postgres_data: {}
 
 networks:
   hero-league-net:
