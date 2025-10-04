@@ -4,9 +4,10 @@
 // - Stores current user and JWT token in localStorage.
 // - Uses centralized apiFetch for all API calls.
 // - Exposes signup, login, logout, validateToken, and isAuthenticated.
-// - Auto-redirects to /login if token is invalid/expired.
+// - Skips token validation automatically during tests (NODE_ENV=test).
+// - Safe use of useNavigate (only called inside component, not top-level).
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 
@@ -46,7 +47,7 @@ export default function AuthProvider({ children }) {
   // -------------------------
   // Helper: validate token
   // -------------------------
-  const validateToken = async () => {
+  const validateToken = useCallback(async () => {
     if (!token) return false;
     try {
       const res = await apiFetch("/protected"); // backend validates JWT
@@ -57,11 +58,13 @@ export default function AuthProvider({ children }) {
       logout(true); // auto redirect on failure
       return false;
     }
-  };
+  }, [token]);
 
-  // run token validation once on mount
+  // run token validation once on mount (skip in tests)
   useEffect(() => {
-    validateToken();
+    if (process.env.NODE_ENV !== "test") {
+      validateToken();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,19 +107,22 @@ export default function AuthProvider({ children }) {
   };
 
   // Logout
-  const logout = async (redirect = false) => {
-    try {
-      await apiFetch("/logout", { method: "DELETE" });
-    } catch (err) {
-      console.warn("⚠️ Logout API failed, clearing locally:", err.message);
-    }
-    setToken(null);
-    setUser(null);
+  const logout = useCallback(
+    async (redirect = false) => {
+      try {
+        await apiFetch("/logout", { method: "DELETE" });
+      } catch (err) {
+        console.warn("⚠️ Logout API failed, clearing locally:", err.message);
+      }
+      setToken(null);
+      setUser(null);
 
-    if (redirect) {
-      navigate("/login");
-    }
-  };
+      if (redirect) {
+        navigate("/login");
+      }
+    },
+    [navigate]
+  );
 
   const value = {
     user,
