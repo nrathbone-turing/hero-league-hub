@@ -1,8 +1,9 @@
 // File: frontend/src/__tests__/EventDetail.test.jsx
 // Purpose: Tests EventDetail with Entrants + Matches.
 // Notes:
-// - Uses shared renderWithRouter to ensure AuthProvider + Router are included.
-// - Covers rendering, CRUD flows, edge cases, and redirect behavior.
+// - Uses renderWithRouter to include AuthProvider + Router.
+// - Covers rendering, CRUD flows, edge cases, and redirects.
+// - Updated text matchers for flexible DOM rendering (spans, MUI).
 
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -18,7 +19,7 @@ function LocationSpy() {
 }
 
 beforeEach(() => {
-  localStorage.setItem("token", "fake-jwt-token"); // bypass ProtectedRoute
+  localStorage.setItem("token", "fake-jwt-token");
   global.fetch = vi.fn();
 });
 
@@ -80,7 +81,7 @@ describe("EventDetail", () => {
       entrants: [{ id: 3, name: "Ironman", alias: "Tony" }],
       matches: [],
     });
-    mockFetchSuccess({}); // DELETE /entrants/3
+    mockFetchSuccess({}); // DELETE success
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -103,30 +104,42 @@ describe("EventDetail", () => {
     await userEvent.type(idInput, "3");
     await userEvent.click(screen.getByRole("button", { name: /remove entrant/i }));
 
-    await waitFor(() => expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument()
+    );
   });
 
-test("renders match winner by entrant name and alias", async () => {
-  mockFetchSuccess({
-    id: 1,
-    name: "Hero Cup",
-    date: "2025-09-12",
-    status: "published",
-    entrants: [
-      { id: 1, name: "Spiderman", alias: "Webslinger", user: { username: "Spiderman" }, hero: { name: "Webslinger" } },
-      { id: 2, name: "Batman", alias: "Dark Knight", user: { username: "Batman" }, hero: { name: "Dark Knight" } },
-    ],
-    matches: [{ id: 10, round: 1, scores: "2-1", winner_id: 2, winner: { user: { username: "Batman" }, hero: { name: "Dark Knight" } } }],
+  test("renders match winner by entrant name and alias", async () => {
+    mockFetchSuccess({
+      id: 1,
+      name: "Hero Cup",
+      date: "2025-09-12",
+      status: "published",
+      entrants: [
+        { id: 1, name: "Spiderman", alias: "Webslinger" },
+        { id: 2, name: "Batman", alias: "Dark Knight" },
+      ],
+      matches: [
+        {
+          id: 10,
+          round: 1,
+          scores: "2-1",
+          winner_id: 2,
+          winner: { id: 2, name: "Batman", alias: "Dark Knight" },
+        },
+      ],
+    });
+
+    renderWithRouter(<EventDetail />, { route: "/events/1" });
+
+    expect(await screen.findByText("2-1")).toBeInTheDocument();
+    // Flexible matcher handles MUI <span> wrapping
+    expect(
+      await screen.findByText((_, el) =>
+        el?.textContent?.includes("Batman (Dark Knight)")
+      )
+    ).toBeInTheDocument();
   });
-
-  renderWithRouter(<EventDetail />, { route: "/events/1" });
-
-  // still validate the score shows up
-  expect(await screen.findByText("2-1")).toBeInTheDocument();
-
-  // validate the winner text is rendered with user + hero
-  expect(await screen.findByText(/Batman \(Dark Knight\)/)).toBeInTheDocument();
-});
 
   test("renders event status select with initial value", async () => {
     mockFetchSuccess({
@@ -139,7 +152,6 @@ test("renders match winner by entrant name and alias", async () => {
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
-
     const statusSelect = await screen.findByTestId("status-select");
     expect(statusSelect).toHaveValue("drafting");
   });
@@ -150,7 +162,7 @@ test("renders match winner by entrant name and alias", async () => {
       name: "Hero Cup",
       date: "2025-09-12",
       status: "published",
-      entrants: [{ id: 5, name: "Dropped", alias: null, event_id: 1, dropped: true }],
+      entrants: [{ id: 5, name: "Dropped", alias: null, dropped: true }],
       matches: [],
     });
 
@@ -212,18 +224,19 @@ describe("EventDetail - edge cases", () => {
   });
 
   test("renders TBD when winner_id is null", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        id: 1,
-        name: "Hero Cup",
-        entrants: [{ id: 1, name: "Spidey", alias: "Webhead" }],
-        matches: [{ id: 101, round: 1, scores: "1-1", winner_id: null }],
-      }),
+    mockFetchSuccess({
+      id: 1,
+      name: "Hero Cup",
+      entrants: [{ id: 1, name: "Spidey", alias: "Webhead" }],
+      matches: [{ id: 101, round: 1, scores: "1-1", winner_id: null }],
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
-    expect(await screen.findByText(/tbd/i)).toBeInTheDocument();
+
+    // More robust search for “TBD” in flexible MUI markup
+    expect(
+      await screen.findByText((_, el) => el?.textContent?.toLowerCase().includes("tbd"))
+    ).toBeInTheDocument();
   });
 });
 
