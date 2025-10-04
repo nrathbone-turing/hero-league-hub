@@ -2,12 +2,13 @@
 # Purpose: Load initial data into the Hero League Hub database.
 # Notes:
 # - Safe for repeated runs via TRUNCATE + RESTART IDENTITY.
-# - Requires that migrations have been applied (tables exist).
+# - Works with existing Flask app context (e.g., during tests).
 # - Seeds events, heroes, users, entrants, and matches with fixed IDs.
 
 import os
 import json
 from sqlalchemy import inspect, text
+from flask import current_app
 from backend.app import create_app
 from backend.app.extensions import db
 from backend.app.models import Event, Entrant, Match, User, Hero
@@ -49,12 +50,20 @@ def bump_sequence(table_name: str):
 
 
 def run():
-    """Main seeding workflow."""
-    app = create_app()
-    with app.app_context():
+    """Main seeding workflow (reuses current Flask app if available)."""
+    # Reuse active Flask app if inside app context (e.g., during pytest)
+    app = current_app._get_current_object() if current_app else create_app()
+    ctx_pushed = False
+
+    if not current_app:
+        ctx = app.app_context()
+        ctx.push()
+        ctx_pushed = True
+
+    try:
         print("🌱 Seeding database...")
 
-        # Check if migrations were run
+        # Verify tables exist
         inspector = inspect(db.engine)
         if "events" not in inspector.get_table_names():
             raise RuntimeError(
@@ -63,7 +72,7 @@ def run():
 
         reset_tables()
 
-        # --- Load seed files ---
+        # --- Load seed data ---
         events = load_seed("events.json")
         entrants = load_seed("entrants.json")
         matches = load_seed("matches.json")
@@ -150,6 +159,9 @@ def run():
         print(f"✅ Inserted {len(matches)} matches")
 
         print("\n🎉 Seed complete! All sequences bumped and data loaded successfully.")
+    finally:
+        if ctx_pushed:
+            ctx.pop()
 
 
 if __name__ == "__main__":
