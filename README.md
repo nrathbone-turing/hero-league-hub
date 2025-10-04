@@ -92,9 +92,10 @@ npm run db:reset        # Drop, recreate, and seed from scratch
 ```
 
 ### New Combined Scripts
-To simplify full-stack workflows, these scripts handle rebuilds, migrations, seeding, and tests automatically.
-
+To simplify full-stack workflows, these scripts automatically detect your environment (Docker or local Pipenv)
+and handle rebuilds, migrations, seeding, and testing accordingly.
 ```bash
+npm test                # Runs backend + frontend tests (auto Docker/local detection)
 npm run docker:rebuild  # Stop, rebuild, and restart all containers
 npm run test:full       # Full rebuild --> migrate --> seed --> run backend + frontend tests
 npm run dev:all         # Rebuild containers and start frontend dev server
