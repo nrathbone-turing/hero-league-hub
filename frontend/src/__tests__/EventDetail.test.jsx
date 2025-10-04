@@ -1,14 +1,15 @@
 // File: frontend/src/__tests__/EventDetail.test.jsx
 // Purpose: Tests EventDetail with Entrants + Matches.
 // Notes:
-// - Covers rendering, CRUD flows, scroll lists, and edge cases.
+// - Uses shared renderWithRouter to ensure AuthProvider + Router are included.
+// - Covers rendering, CRUD flows, edge cases, and redirect behavior.
 
-import { screen, waitFor, render, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import EventDetail from "../components/EventDetail";
 import { renderWithRouter } from "../test-utils";
 import { mockFetchSuccess } from "../setupTests";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { useLocation, Routes, Route } from "react-router-dom";
 import App from "../App";
 
 function LocationSpy() {
@@ -126,12 +127,11 @@ describe("EventDetail", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    // Verify score is rendered
     const scoreCell = await screen.findByText("2-1");
     const row = scoreCell.closest("tr");
     expect(row).toBeTruthy();
 
-    // Winner cell should just contain the ID `2`
+    // Winner cell shows `2` (entrant ID)
     expect(within(row).getByText("2")).toBeInTheDocument();
   });
 
@@ -141,14 +141,6 @@ describe("EventDetail", () => {
       name: "Hero Cup",
       date: "2025-09-12",
       status: "drafting",
-      entrants: [],
-      matches: [],
-    });
-    mockFetchSuccess({
-      id: 1,
-      name: "Hero Cup",
-      date: "2025-09-12",
-      status: "published",
       entrants: [],
       matches: [],
     });
@@ -263,11 +255,14 @@ describe("EventDetail redirects", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/404"]}>
+    renderWithRouter(
+      <>
         <App />
-        <LocationSpy />
-      </MemoryRouter>,
+        <Routes>
+          <Route path="*" element={<LocationSpy />} />
+        </Routes>
+      </>,
+      { route: "/events/404" }
     );
 
     await waitFor(() =>
@@ -282,11 +277,14 @@ describe("EventDetail redirects", () => {
       json: async () => ({}),
     });
 
-    render(
-      <MemoryRouter initialEntries={["/events/500"]}>
+    renderWithRouter(
+      <>
         <App />
-        <LocationSpy />
-      </MemoryRouter>,
+        <Routes>
+          <Route path="*" element={<LocationSpy />} />
+        </Routes>
+      </>,
+      { route: "/events/500" }
     );
 
     await waitFor(() =>
