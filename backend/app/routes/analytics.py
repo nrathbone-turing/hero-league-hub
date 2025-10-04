@@ -6,7 +6,7 @@
 
 from flask import Blueprint, jsonify
 
-bp = Blueprint("analytics", __name__, url_prefix="/api/analytics")
+bp = Blueprint("analytics", __name__)
 
 
 @bp.route("/heroes", methods=["GET"])
