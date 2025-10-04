@@ -106,26 +106,27 @@ describe("EventDetail", () => {
     await waitFor(() => expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument());
   });
 
-  test("renders match winner by entrant id", async () => {
-    mockFetchSuccess({
-      id: 1,
-      name: "Hero Cup",
-      date: "2025-09-12",
-      status: "published",
-      entrants: [
-        { id: 1, name: "Spiderman", alias: "Webslinger" },
-        { id: 2, name: "Batman", alias: "Dark Knight" },
-      ],
-      matches: [{ id: 10, round: 1, scores: "2-1", winner_id: 2 }],
-    });
-
-    renderWithRouter(<EventDetail />, { route: "/events/1" });
-
-    const scoreCell = await screen.findByText("2-1");
-    const row = scoreCell.closest("tr");
-    expect(row).toBeTruthy();
-    expect(within(row).getByText("2")).toBeInTheDocument();
+test("renders match winner by entrant name and alias", async () => {
+  mockFetchSuccess({
+    id: 1,
+    name: "Hero Cup",
+    date: "2025-09-12",
+    status: "published",
+    entrants: [
+      { id: 1, name: "Spiderman", alias: "Webslinger", user: { username: "Spiderman" }, hero: { name: "Webslinger" } },
+      { id: 2, name: "Batman", alias: "Dark Knight", user: { username: "Batman" }, hero: { name: "Dark Knight" } },
+    ],
+    matches: [{ id: 10, round: 1, scores: "2-1", winner_id: 2, winner: { user: { username: "Batman" }, hero: { name: "Dark Knight" } } }],
   });
+
+  renderWithRouter(<EventDetail />, { route: "/events/1" });
+
+  // still validate the score shows up
+  expect(await screen.findByText("2-1")).toBeInTheDocument();
+
+  // validate the winner text is rendered with user + hero
+  expect(await screen.findByText(/Batman \(Dark Knight\)/)).toBeInTheDocument();
+});
 
   test("renders event status select with initial value", async () => {
     mockFetchSuccess({
