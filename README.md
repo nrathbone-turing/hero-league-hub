@@ -3,6 +3,13 @@
 Participant-facing app for managing hero event registrations, matches, and analytics.
 Built with **Flask (backend)**, **React + Vite (frontend)**, and **Postgres** for persistence.
 
+## New Feature Highlights
+- Analytics dashboards show hero usage, win rates, and event participation trends
+- Participant-facing event pages let users track standings and match results
+- Personalized player dashboard connects hero selection, event progress, and stats
+
+## Screenshots
+
 ## Getting Started
 
 You can run Hero League Hub in two ways: **locally (no Docker required)** or **with Docker Compose**.
@@ -281,7 +288,10 @@ npm test
 - `MUI Select` components require test environment mocking for stable interaction  
 - `localStorage` persistence is used for MVP; dynamic fetching planned for future releases  
 - Issues accessing images from [Superhero API](https://superheroapi.com/index.html) with backend auth  
-- Seed resets currently clear all data (including user-created records); persistence separation not yet implemented  
+- Seed resets currently clear all data (including user-created records); persistence separation not yet implemented
+- Analytics endpoints use aggregated mock data for now
+- Some admin controls still visible on event detail pages for user-facing experience
+- Hero image fetching from external API may fail intermittently
 
 ## Future Improvements
 - Add analytics tab for win/loss trends and entrant performance  
