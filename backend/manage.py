@@ -18,10 +18,14 @@ migrate = Migrate(app, db, directory="backend/migrations")
 
 @cli.command("drop-db")
 def drop_db():
-    """Drop all tables in the current database."""
-    click.echo("💥 Dropping all tables...")
-    db.drop_all()
-    click.echo("🧹 Database dropped.")
+    """Fully drop and recreate the public schema."""
+    from sqlalchemy import text
+
+    click.echo("💥 Dropping entire schema (public)...")
+    db.session.execute(text("DROP SCHEMA public CASCADE;"))
+    db.session.execute(text("CREATE SCHEMA public;"))
+    db.session.commit()
+    click.echo("🧹 Database schema fully reset.")
 
 
 @cli.command("create-db")
