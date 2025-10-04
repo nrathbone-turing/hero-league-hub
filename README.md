@@ -93,12 +93,19 @@ npm run db:reset        # Drop/recreate + seed
 ```
 
 ### New Combined Scripts
-```bash
-npm run docker:rebuild  # Stop, rebuild, restart containers
-npm run db:refresh      # Drop + recreate + seed DB
-npm run test:full       # Full rebuild --> seed --> run backend tests
-```
+To simplify frequent full-stack workflows, these scripts handle container rebuilds, migrations, seeding, and tests automatically.
 
+```bash
+npm run docker:rebuild  # Stop, rebuild, and restart all containers in detached mode
+npm run db:refresh      # Drop, recreate, upgrade, and reseed the database
+npm run test:full       # Full rebuild -> migrate -> seed -> run backend + frontend tests
+npm run dev:all         # Rebuild containers and launch frontend dev server
+
+```
+#### Notes:
+- These can all be run from the **project root**
+- `test:full` ensures a clean environment before running both backend and frontend suites
+- `dev:all` is ideal for quickly spinning up the stack after a rebuild
 ---
 
 ## Running Tests
