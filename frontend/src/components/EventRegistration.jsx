@@ -1,11 +1,8 @@
 // File: frontend/src/components/EventRegistration.jsx
 // Purpose: Register logged-in users for an event with hero selection.
 // Notes:
-// - Loads first page of heroes on mount so dropdown is populated.
-// - Typing triggers server-side search, always capped at 25 results.
-// - Persists entrant + chosen hero per user in localStorage.
-// - Sends user_id (from AuthContext) with registration.
-// - Includes data-testid hooks for stable testing.
+// - Always persists entrant + chosenHero in localStorage after registration.
+// - Updates chosenHero key on hero re-selection so dashboard reflects immediately.
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -66,7 +63,7 @@ export default function EventRegistration() {
         const data = await apiFetch(`/heroes?search=a&page=1&per_page=${PAGE_SIZE}`);
         setHeroOptions(data.results || []);
 
-        // Pre-populate if a hero is already chosen
+        // Pre-populate hero if saved
         const storedHero = localStorage.getItem(`chosenHero_${user?.id}`);
         if (storedHero) {
           try {
@@ -84,7 +81,7 @@ export default function EventRegistration() {
     })();
   }, [user?.id]);
 
-  // Server-side search when typing
+  // Server-side search
   async function handleHeroSearch(term) {
     latestTerm.current = term;
     if (!term) return;
@@ -119,6 +116,7 @@ export default function EventRegistration() {
         body: JSON.stringify({ ...formData, user_id: user.id }),
       });
 
+      // Always persist entrant and hero
       localStorage.setItem(`entrant_${user.id}`, JSON.stringify(entrant));
       if (entrant.hero) {
         localStorage.setItem(`chosenHero_${user.id}`, JSON.stringify(entrant.hero));
@@ -143,7 +141,7 @@ export default function EventRegistration() {
       )}
 
       <form onSubmit={handleSubmit} data-testid="registration-form">
-        {/* User info (readonly) */}
+        {/* User info */}
         <TextField
           label="User"
           value={user?.username || ""}
@@ -161,7 +159,7 @@ export default function EventRegistration() {
           data-testid="email-field"
         />
 
-        {/* Events select */}
+        {/* Events */}
         {loadingEvents ? (
           <Box textAlign="center" mt={2} data-testid="loading-events">
             <CircularProgress />
@@ -181,11 +179,7 @@ export default function EventRegistration() {
             {events
               .filter((event) => event.status === "published")
               .map((event) => (
-                <MenuItem
-                  key={event.id}
-                  value={event.id}
-                  data-testid={`event-option-${event.id}`}
-                >
+                <MenuItem key={event.id} value={event.id}>
                   {event.name} ({event.date || "TBA"})
                 </MenuItem>
               ))}
@@ -203,16 +197,13 @@ export default function EventRegistration() {
               : ""
           }
           renderOption={(props, option) => (
-            <li {...props} key={option.id} data-testid={`hero-option-${option.id}`}>
+            <li {...props} key={option.id}>
               {option.name} ({option.alias || "No alias"})
             </li>
           )}
           value={heroOptions.find((h) => h.id === formData.hero_id) || null}
           onChange={(_, newValue) =>
-            setFormData((prev) => ({
-              ...prev,
-              hero_id: newValue?.id || "",
-            }))
+            setFormData((prev) => ({ ...prev, hero_id: newValue?.id || "" }))
           }
           onInputChange={(_, newInput) => {
             if (newInput && newInput.length > 1) {
@@ -226,25 +217,11 @@ export default function EventRegistration() {
               margin="normal"
               fullWidth
               required
-              data-testid="hero-autocomplete"
             />
           )}
           ListboxProps={{ style: { maxHeight: 300, overflow: "auto" } }}
           noOptionsText={loadingHeroes ? "Loading..." : "No options"}
         />
-
-        {/* Helper text */}
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ mt: 1, display: "block" }}
-          data-testid="browse-heroes-caption"
-        >
-          Not sure who to pick?{" "}
-          <Link href="/heroes" target="_blank" rel="noopener">
-            Browse characters
-          </Link>
-        </Typography>
 
         {/* Notes */}
         <TextField
@@ -256,17 +233,11 @@ export default function EventRegistration() {
           margin="normal"
           multiline
           rows={3}
-          data-testid="notes-field"
         />
 
         {/* Submit */}
         <Box sx={{ mt: 3, textAlign: "center" }}>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            data-testid="register-btn"
-          >
+          <Button type="submit" variant="contained" color="primary">
             Register
           </Button>
         </Box>

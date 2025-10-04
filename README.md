@@ -278,14 +278,16 @@ npm test
 ---
 
 ## Known Issues
-- MUI Select components require test environment mocking for stable interaction
-- LocalStorage persistence is used for MVP; dynamic fetching planned for future releases
-- Issues accessing images from [Superhero API](https://superheroapi.com/index.html) in a way that works with backend auth
+- `MUI Select` components require test environment mocking for stable interaction  
+- `localStorage` persistence is used for MVP; dynamic fetching planned for future releases  
+- Issues accessing images from [Superhero API](https://superheroapi.com/index.html) with backend auth  
+- Seed resets currently clear all data (including user-created records); persistence separation not yet implemented  
 
 ## Future Improvements
-- Add analytics tab for win/loss trends and entrant performance
-- Replace localStorage with API-based entrant fetching
-- Enhance error handling and loading UX across components
+- Add analytics tab for win/loss trends and entrant performance  
+- Replace `localStorage` with API-based entrant fetching  
+- Enhance error handling and loading UX across components  
+
 
 ---
 

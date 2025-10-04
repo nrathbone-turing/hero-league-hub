@@ -1,13 +1,13 @@
 // File: frontend/src/components/UserDashboard.jsx
 // Purpose: Participant dashboard.
 // Notes:
-// - Uses namespaced keys: entrant_<id>, chosenHero_<id>
-// - Cancels registration but preserves chosenHero if no matches exist.
-// - Includes data-testid hooks for stable tests.
-// - Renders hero powerstats when available.
+// - Persists chosenHero across sessions, even if user unregisters.
+// - Cancels registration but does NOT wipe chosenHero unless matches exist.
+// - Syncs with backend first to prevent stale localStorage after reseeding.
+// - Renders hero powerstats and event details when available.
 
 import { useAuth } from "../context/AuthContext";
-import { deleteEntrant } from "../api";
+import { deleteEntrant, apiFetch } from "../api";
 import {
   Container,
   Typography,
@@ -42,6 +42,7 @@ export default function UserDashboard() {
       }
     }
 
+    // fallback: just hero
     const storedHero = heroKey ? localStorage.getItem(heroKey) : null;
     if (storedHero) {
       try {
@@ -52,11 +53,46 @@ export default function UserDashboard() {
     }
   }
 
+  async function syncWithBackend() {
+    if (!user?.id) return;
+    try {
+      const entrants = await apiFetch(`/entrants?user_id=${user.id}`);
+      if (entrants && entrants.length > 0) {
+        const backendEntrant = entrants[0];
+        setEntrant(backendEntrant);
+        if (backendEntrant.hero) setChosenHero(backendEntrant.hero);
+
+        // keep localStorage in sync
+        localStorage.setItem(`entrant_${user.id}`, JSON.stringify(backendEntrant));
+        if (backendEntrant.hero) {
+          localStorage.setItem(
+            `chosenHero_${user.id}`,
+            JSON.stringify(backendEntrant.hero)
+          );
+        }
+      } else {
+        // No backend entrant → clear stale storage
+        setEntrant(null);
+        localStorage.removeItem(`entrant_${user.id}`);
+      }
+    } catch (err) {
+      console.error("❌ Failed to sync with backend entrants", err);
+    }
+  }
+
   useEffect(() => {
     syncFromStorage();
+
+    // Delay backend sync slightly to avoid race with localStorage
+    const timeout = setTimeout(() => syncWithBackend(), 150);
+
     const handler = () => syncFromStorage();
     window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+
+    return () => {
+      window.removeEventListener("storage", handler);
+      clearTimeout(timeout);
+    };
   }, [user?.id]);
 
   async function handleCancelRegistration() {
@@ -71,7 +107,7 @@ export default function UserDashboard() {
 
       localStorage.removeItem(`entrant_${user.id}`);
 
-      // Only clear chosenHero if entrant had matches
+      // Only clear hero if entrant had matches
       if (entrant.matches && entrant.matches.length > 0) {
         localStorage.removeItem(`chosenHero_${user.id}`);
         setChosenHero(null);

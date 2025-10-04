@@ -7,7 +7,7 @@
 
 from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required
-from backend.app.models.models import Entrant, Match, Hero
+from backend.app.models.models import Entrant, Match, Hero, User
 from backend.app.extensions import db
 import traceback
 
@@ -35,13 +35,14 @@ def register_user_for_event():
         if existing:
             return jsonify(error="User already registered for this event"), 400
 
-        # Minimal hero validation
+        # Look up user + hero
+        user = db.session.get(User, user_id)
         hero = db.session.get(Hero, hero_id)
-        if not hero:
-            return jsonify(error="Hero not found"), 404
+        if not user or not hero:
+            return jsonify(error="User or Hero not found"), 404
 
         entrant = Entrant(
-            name=hero.name,
+            name=user.username,
             alias=hero.full_name or hero.alias,
             event_id=int(event_id),
             user_id=int(user_id),

@@ -1,8 +1,8 @@
 // File: frontend/src/__tests__/EventDetail.test.jsx
-// Purpose: Tests EventDetail with Entrants + Matches.
+// Purpose: Robust EventDetail tests using structural queries (no fragile text matching).
 // Notes:
-// - Uses shared renderWithRouter to ensure AuthProvider + Router are included.
-// - Covers rendering, CRUD flows, edge cases, and redirect behavior.
+// - Uses data-testid attributes for stability with MUI rendering.
+// - Tests cover rendering, CRUD actions, edge cases, and redirect behavior.
 
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -18,7 +18,7 @@ function LocationSpy() {
 }
 
 beforeEach(() => {
-  localStorage.setItem("token", "fake-jwt-token"); // bypass ProtectedRoute
+  localStorage.setItem("token", "fake-jwt-token");
   global.fetch = vi.fn();
 });
 
@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe("EventDetail", () => {
-  test("renders event name and date", async () => {
+  test("renders event header with name and date", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -40,11 +40,18 @@ describe("EventDetail", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    expect(await screen.findByText(/Hero Cup/)).toBeInTheDocument();
-    expect(await screen.findByText(/2025-09-12/)).toBeInTheDocument();
+    // Wait explicitly until loading spinner disappears
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading event/i)).not.toBeInTheDocument();
+    });
+
+    const headings = await screen.findAllByRole("heading");
+    const headerText = headings.map((h) => h.textContent).join(" ");
+    expect(headerText).toContain("Hero Cup");
+    expect(headerText).toContain("2025-09-12");
   });
 
-  test("renders entrants list", async () => {
+  test("renders entrants table and lists entrant rows", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -58,11 +65,15 @@ describe("EventDetail", () => {
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
-    expect(await screen.findByText(/Spiderman/)).toBeInTheDocument();
-    expect(await screen.findByText(/Batman/)).toBeInTheDocument();
+
+    const entrantsTable = await screen.findByTestId("entrants-table");
+    const rows = within(entrantsTable).getAllByRole("row");
+    const text = rows.map((r) => r.textContent).join(" ");
+    expect(text).toContain("Spiderman");
+    expect(text).toContain("Batman");
   });
 
-  test("adds and removes entrant", async () => {
+  test("adds and removes entrant successfully", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -80,7 +91,7 @@ describe("EventDetail", () => {
       entrants: [{ id: 3, name: "Ironman", alias: "Tony" }],
       matches: [],
     });
-    mockFetchSuccess({}); // DELETE /entrants/3
+    mockFetchSuccess({}); // DELETE success
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -96,17 +107,22 @@ describe("EventDetail", () => {
     await userEvent.type(screen.getByLabelText(/alias/i), "Tony");
     await userEvent.click(screen.getByRole("button", { name: /add entrant/i }));
 
-    await screen.findByText(/Ironman/);
+    const entrantsTable = await screen.findByTestId("entrants-table");
+    await waitFor(() =>
+      expect(within(entrantsTable).getByText("Ironman")).toBeInTheDocument()
+    );
 
     const idInput = await screen.findByLabelText(/entrant id/i);
     await userEvent.clear(idInput);
     await userEvent.type(idInput, "3");
     await userEvent.click(screen.getByRole("button", { name: /remove entrant/i }));
 
-    await waitFor(() => expect(screen.queryByText(/Ironman/)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(within(entrantsTable).queryByText("Ironman")).not.toBeInTheDocument()
+    );
   });
 
-  test("renders match winner by entrant id", async () => {
+  test("renders match table with winner name and alias", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -116,18 +132,27 @@ describe("EventDetail", () => {
         { id: 1, name: "Spiderman", alias: "Webslinger" },
         { id: 2, name: "Batman", alias: "Dark Knight" },
       ],
-      matches: [{ id: 10, round: 1, scores: "2-1", winner_id: 2 }],
+      matches: [
+        {
+          id: 10,
+          round: 1,
+          scores: "2-1",
+          winner_id: 2,
+          winner: { id: 2, name: "Batman", hero: { name: "Dark Knight" } },
+        },
+      ],
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    const scoreCell = await screen.findByText("2-1");
-    const row = scoreCell.closest("tr");
-    expect(row).toBeTruthy();
-    expect(within(row).getByText("2")).toBeInTheDocument();
+    const matchTable = await screen.findByTestId("matches-table");
+    const rows = within(matchTable).getAllByRole("row");
+    const rowText = rows.map((r) => r.textContent).join(" ");
+    expect(rowText).toMatch(/Batman/);
+    expect(rowText).toMatch(/Dark Knight/);
   });
 
-  test("renders event status select with initial value", async () => {
+  test("shows status select with correct initial value", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
@@ -138,30 +163,32 @@ describe("EventDetail", () => {
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
-
-    const statusSelect = await screen.findByTestId("status-select");
-    expect(statusSelect).toHaveValue("drafting");
+    const select = await screen.findByTestId("status-select");
+    expect(select).toHaveValue("drafting");
   });
 
-  test("renders dropped entrant as placeholder", async () => {
+  test("renders dropped entrant row as placeholder", async () => {
     mockFetchSuccess({
       id: 1,
       name: "Hero Cup",
       date: "2025-09-12",
       status: "published",
-      entrants: [{ id: 5, name: "Dropped", alias: null, event_id: 1, dropped: true }],
+      entrants: [{ id: 5, name: "Dropped", alias: null, dropped: true }],
       matches: [],
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    expect(await screen.findByText(/Dropped/)).toBeInTheDocument();
-    expect(screen.getByText("-")).toBeInTheDocument();
+    const entrantsTable = await screen.findByTestId("entrants-table");
+    const rows = within(entrantsTable).getAllByRole("row");
+    const droppedRow = rows.find((r) => r.textContent.includes("Dropped"));
+    expect(droppedRow).toBeTruthy();
+    expect(droppedRow.textContent).toContain("-");
   });
 });
 
 describe("EventDetail - edge cases", () => {
-  test("remove entrant failure shows alert", async () => {
+  test("remove entrant failure triggers alert", async () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -185,7 +212,7 @@ describe("EventDetail - edge cases", () => {
     );
   });
 
-  test("status update failure reverts value", async () => {
+  test("status update failure reverts select to previous value", async () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
@@ -201,8 +228,8 @@ describe("EventDetail - edge cases", () => {
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
 
-    const statusSelect = await screen.findByRole("combobox");
-    await userEvent.click(statusSelect);
+    const select = await screen.findByRole("combobox");
+    await userEvent.click(select);
     await userEvent.click(screen.getByRole("option", { name: /published/i }));
 
     await waitFor(() =>
@@ -210,24 +237,25 @@ describe("EventDetail - edge cases", () => {
     );
   });
 
-  test("renders TBD when winner_id is null", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        id: 1,
-        name: "Hero Cup",
-        entrants: [{ id: 1, name: "Spidey", alias: "Webhead" }],
-        matches: [{ id: 101, round: 1, scores: "1-1", winner_id: null }],
-      }),
+  test("renders TBD when match winner is null", async () => {
+    mockFetchSuccess({
+      id: 1,
+      name: "Hero Cup",
+      entrants: [{ id: 1, name: "Spidey", alias: "Webhead" }],
+      matches: [{ id: 101, round: 1, scores: "1-1", winner_id: null }],
     });
 
     renderWithRouter(<EventDetail />, { route: "/events/1" });
-    expect(await screen.findByText(/tbd/i)).toBeInTheDocument();
+
+    const matchTable = await screen.findByTestId("matches-table");
+    const rows = within(matchTable).getAllByRole("row");
+    const tbdRow = rows.find((r) => /tbd/i.test(r.textContent));
+    expect(tbdRow).toBeTruthy();
   });
 });
 
 describe("EventDetail redirects", () => {
-  test("navigates to /404 on 404 response", async () => {
+  test("redirects to /404 on 404 response", async () => {
     global.fetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -249,7 +277,7 @@ describe("EventDetail redirects", () => {
     );
   });
 
-  test("navigates to /500 on 500 response", async () => {
+  test("redirects to /500 on 500 response", async () => {
     global.fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,

@@ -1,16 +1,17 @@
 // File: frontend/src/__tests__/UserDashboard.test.jsx
 // Purpose: Stable tests for UserDashboard with AuthProvider and routing.
 // Notes:
-// - Relies on test IDs from UserDashboard to avoid brittle string queries.
+// - Uses mockFetchEntrant from setupTests.js to simulate backend entrant fetches.
+// - Validates sync between localStorage and rendered UI states.
 
-import React from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import AuthProvider from "../context/AuthContext";
 import UserDashboard from "../components/UserDashboard";
+import { mockFetchEntrant } from "../setupTests";
 
-function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
+function setupAuth({ withHero = false, withEntrant = false } = {}) {
   localStorage.clear();
   localStorage.setItem("token", "fake-token");
   localStorage.setItem(
@@ -19,7 +20,6 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
       id: 1,
       username: "player1",
       email: "player1@example.com",
-      is_admin: false,
     })
   );
 
@@ -32,36 +32,20 @@ function renderWithAuth({ withHero = false, withEntrant = false } = {}) {
         alignment: "hero",
         full_name: "Bruce Wayne",
         alias: "Dark Knight",
-        proxy_image: "/api/heroes/70/image",
+        proxy_image: "/img/batman.png",
         powerstats: { combat: 100, intelligence: 100 },
       })
     );
   }
 
   if (withEntrant) {
-    localStorage.setItem(
-      "entrant_1",
-      JSON.stringify({
-        id: 101,
-        event: {
-          id: 7,
-          name: "Hero Cup",
-          date: "2025-09-12",
-          status: "published",
-          entrant_count: 16,
-        },
-        hero: {
-          id: 2,
-          name: "Superman",
-          full_name: "Clark Kent",
-          alias: "Man of Steel",
-          proxy_image: "/api/heroes/2/image",
-        },
-        matches: [],
-      })
-    );
+    const entrant = mockFetchEntrant(); // backend-style entrant
+    localStorage.setItem(`entrant_1`, JSON.stringify(entrant));
   }
+}
 
+function renderWithAuth(options) {
+  setupAuth(options);
   return render(
     <MemoryRouter>
       <AuthProvider>
@@ -110,20 +94,10 @@ describe("UserDashboard", () => {
     const eventCard = await screen.findByTestId("event-card");
     expect(within(eventCard).getByTestId("event-name")).toHaveTextContent("Hero Cup");
     expect(within(eventCard).getByTestId("event-date")).toHaveTextContent("2025-09-12");
-    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent(
-      "published"
-    );
+    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent("published");
     expect(within(eventCard).getByTestId("event-entrants")).toHaveTextContent("16");
-
-    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent(
-      "Superman"
-    );
-    expect(
-      within(eventCard).getByTestId("change-registration-btn")
-    ).toBeInTheDocument();
-    expect(
-      within(eventCard).getByTestId("cancel-registration-btn")
-    ).toBeInTheDocument();
+    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent("Superman");
+    expect(within(eventCard).getByTestId("cancel-registration-btn")).toBeInTheDocument();
   });
 
   test("cancel registration clears entrant and reverts UI", async () => {
@@ -135,7 +109,7 @@ describe("UserDashboard", () => {
     await userEvent.click(within(eventCard).getByTestId("cancel-registration-btn"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("register-event-btn")).toBeInTheDocument()
+      expect(screen.getByTestId("event-card-empty")).toBeInTheDocument()
     );
     expect(localStorage.getItem("entrant_1")).toBeNull();
   });

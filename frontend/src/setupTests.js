@@ -1,7 +1,8 @@
-// frontend/src/setupTests.js
+// File: frontend/src/setupTests.js
 // Global test setup for Vitest:
 // - Adds matchers from @testing-library/jest-dom
 // - Provides fetch mocks (default includes /protected + /events success)
+// - Adds helpers for entrants
 // - Swallows noisy console logs/warnings/errors during tests
 
 import "@testing-library/jest-dom";
@@ -25,6 +26,12 @@ beforeEach(() => {
         json: async () => [],
       });
     }
+    if (url.includes("/entrants")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => [],
+      });
+    }
     // fallback generic success
     return Promise.resolve({
       ok: true,
@@ -38,7 +45,10 @@ afterEach(() => {
   localStorage.clear();
 });
 
-// Helpers
+// ----------------
+// Mock Data Helpers
+// ----------------
+
 export const mockEventsList = [
   { id: 1, name: "Hero Cup", date: "2025-09-12", status: "open" },
   { id: 2, name: "Villain Showdown", date: "2025-09-13", status: "closed" },
@@ -52,7 +62,49 @@ export function mockFetchFailure(error = { error: "API Error" }) {
   global.fetch.mockResolvedValueOnce({ ok: false, json: async () => error });
 }
 
-// Save originals
+/**
+ * Mocks a successful entrant fetch from /entrants
+ * Example:
+ * mockFetchEntrant({ id: 101, user: { username: "player1" } });
+ */
+export function mockFetchEntrant(overrides = {}) {
+  const defaultEntrant = {
+    id: 101,
+    event: {
+      id: 7,
+      name: "Hero Cup",
+      date: "2025-09-12",
+      status: "published",
+      entrant_count: 16,
+    },
+    hero: {
+      id: 2,
+      name: "Superman",
+      full_name: "Clark Kent",
+      alias: "Man of Steel",
+      proxy_image: "/img/superman.png",
+    },
+    user: {
+      id: 1,
+      username: "player1",
+    },
+    matches: [],
+  };
+
+  const entrant = { ...defaultEntrant, ...overrides };
+
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => entrant,
+  });
+
+  return entrant;
+}
+
+// ----------------
+// Console Swallows
+// ----------------
+
 const originalError = console.error;
 const originalWarn = console.warn;
 const originalLog = console.log;
@@ -63,19 +115,16 @@ beforeAll(() => {
       if (/not wrapped in act/.test(args[0])) return;
       if (/MUI: The prop `xs` of `Grid` is deprecated/.test(args[0])) return;
       if (/React Router Future Flag Warning/.test(args[0])) return;
-      // swallow ALL other errors
       return;
     };
 
     console.warn = (...args) => {
       if (/React Router Future Flag Warning/.test(args[0])) return;
       if (/MUI:/.test(args[0])) return;
-      // swallow ALL other warnings
       return;
     };
 
     console.log = () => {
-      // swallow ALL logs in tests
       return;
     };
   }

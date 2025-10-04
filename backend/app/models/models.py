@@ -1,4 +1,8 @@
 # File: backend/app/models/models.py
+# Purpose: Core SQLAlchemy models for the Hero League Hub backend.
+# Notes:
+# - Updated Match.to_dict() to include entrant and winner relationships.
+# - Event.to_dict() now calls Match.to_dict(include_entrants=True) for frontend compatibility.
 
 from sqlalchemy import Enum, CheckConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -12,7 +16,7 @@ EVENT_STATUSES = ("drafting", "published", "cancelled", "completed")
 # Possible alignments (canonical values used in this app)
 HERO_ALIGNMENTS = ("hero", "villain", "antihero", "unknown")
 
-# Mapping from API raw values to the canonical values
+# Mapping from API raw values to canonical alignment strings
 API_ALIGNMENT_MAP = {
     "good": "hero",
     "bad": "villain",
@@ -46,6 +50,7 @@ class Event(db.Model):
         return f"<Event {self.name} ({self.date}) - {self.status}>"
 
     def to_dict(self, include_related: bool = False, include_counts: bool = True):
+        """Serialize Event, optionally with entrants and matches."""
         data = {
             "id": self.id,
             "name": self.name,
@@ -56,8 +61,12 @@ class Event(db.Model):
         if include_counts:
             data["entrant_count"] = len(self.entrants) if self.entrants else 0
         if include_related:
-            data["entrants"] = [e.to_dict() for e in self.entrants]
-            data["matches"] = [m.to_dict() for m in self.matches]
+            data["entrants"] = [
+                e.to_dict(include_user=True, include_hero=True) for e in self.entrants
+            ]
+            data["matches"] = [
+                m.to_dict(include_entrants=True) for m in self.matches
+            ]
         return data
 
 
@@ -126,6 +135,7 @@ class Entrant(db.Model):
         include_hero: bool = False,
         include_user: bool = False,
     ):
+        """Serialize Entrant with optional relationships."""
         data = {
             "id": self.id,
             "name": self.name,
@@ -137,10 +147,10 @@ class Entrant(db.Model):
         }
         if include_event and self.event:
             data["event"] = self.event.to_dict(include_counts=True)
-        if include_hero and self.hero:
-            data["hero"] = self.hero.to_dict()
-        if include_user and self.user:
-            data["user"] = self.user.to_dict()
+        if include_user:
+            data["user"] = self.user.to_dict() if self.user else {"id": self.user_id}
+        if include_hero:
+            data["hero"] = self.hero.to_dict() if self.hero else {"id": self.hero_id}
         return data
 
 
@@ -175,7 +185,8 @@ class Match(db.Model):
     def __repr__(self):
         return f"<Match Event {self.event_id} Round {self.round}>"
 
-    def to_dict(self, include_names=False):
+    def to_dict(self, include_entrants=False):
+        """Serialize Match, optionally including entrant and winner objects."""
         data = {
             "id": self.id,
             "event_id": self.event_id,
@@ -185,14 +196,20 @@ class Match(db.Model):
             "scores": self.scores,
             "winner_id": self.winner_id,
         }
-        if include_names:
+        if include_entrants:
             e1 = db.session.get(Entrant, self.entrant1_id) if self.entrant1_id else None
             e2 = db.session.get(Entrant, self.entrant2_id) if self.entrant2_id else None
             w = db.session.get(Entrant, self.winner_id) if self.winner_id else None
 
-            data["entrant1"] = e1.to_dict() if e1 else None
-            data["entrant2"] = e2.to_dict() if e2 else None
-            data["winner"] = w.to_dict() if w else None
+            data["entrant1"] = (
+                e1.to_dict(include_user=True, include_hero=True) if e1 else None
+            )
+            data["entrant2"] = (
+                e2.to_dict(include_user=True, include_hero=True) if e2 else None
+            )
+            data["winner"] = (
+                w.to_dict(include_user=True, include_hero=True) if w else None
+            )
         return data
 
 
@@ -242,7 +259,7 @@ class User(db.Model):
 class Hero(db.Model):
     __tablename__ = "heroes"
 
-    id = db.Column(db.Integer, primary_key=True)  # external API ID
+    id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(128))
     name = db.Column(db.String(128), nullable=False)
     image = db.Column(db.String(256))

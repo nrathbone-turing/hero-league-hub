@@ -1,4 +1,9 @@
 # File: backend/app/routes/events.py
+# Purpose: Event CRUD + list routes with entrant/match expansion.
+# Notes:
+# - Keeps STATUS_ORDER + aggregated list endpoint.
+# - Single-event fetch embeds entrants (with user/hero) and matches (entrant1/2/winner expanded).
+# - Removes deprecated include_names usage.
 
 from flask import Blueprint, request, jsonify, abort
 from sqlalchemy import func, case, asc, desc
@@ -58,8 +63,8 @@ def get_events():
             .group_by(Event.id)
             .order_by(
                 desc(Event.date),  # newest first
-                STATUS_ORDER,  # published → drafting → completed → cancelled
-                asc(Event.name),  # alphabetical
+                STATUS_ORDER,      # published → drafting → completed → cancelled
+                asc(Event.name),   # alphabetical
             )
             .all()
         )
@@ -95,8 +100,36 @@ def get_event(event_id):
         event = db.session.get(Event, event_id)
         if not event:
             abort(404)
-        data = event.to_dict(include_related=True)
-        data["matches"] = [m.to_dict(include_names=True) for m in event.matches]
+
+        # Base event dict
+        data = event.to_dict(include_counts=True)
+
+        # Entrants expanded
+        data["entrants"] = [
+            e.to_dict(include_user=True, include_hero=True) for e in event.entrants
+        ]
+
+        # Matches expanded with entrant1, entrant2, winner
+        matches = []
+        for m in event.matches:
+            match_data = m.to_dict()
+            e1 = db.session.get(Entrant, m.entrant1_id) if m.entrant1_id else None
+            e2 = db.session.get(Entrant, m.entrant2_id) if m.entrant2_id else None
+            w = db.session.get(Entrant, m.winner_id) if m.winner_id else None
+
+            match_data["entrant1"] = (
+                e1.to_dict(include_user=True, include_hero=True) if e1 else None
+            )
+            match_data["entrant2"] = (
+                e2.to_dict(include_user=True, include_hero=True) if e2 else None
+            )
+            match_data["winner"] = (
+                w.to_dict(include_user=True, include_hero=True) if w else None
+            )
+            matches.append(match_data)
+
+        data["matches"] = matches
+
         return jsonify(data), 200
     except Exception as e:
         traceback.print_exc()
