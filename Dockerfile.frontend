@@ -1,18 +1,25 @@
 # File: Dockerfile.frontend
+# Purpose: Build and run Vite React frontend in development mode
+# Notes:
+# - Uses Node 20 Alpine for lightweight image
+# - Keeps node_modules cached between builds
+# - Exposes port 3000 for frontend dev server
+
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy dependency manifests
+# Copy dependency manifests first (for efficient caching)
 COPY frontend/package*.json ./
 
-# Install deps
+# Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Copy rest of frontend
+# Copy frontend source
 COPY frontend/ /app
 
+# Expose Vite dev server port
 EXPOSE 3000
 
-# Run vite dev server
+# Default command
 CMD ["npm", "run", "dev", "--", "--host"]
