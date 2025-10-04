@@ -5,7 +5,7 @@
 # - create_event, create_user, create_hero, seed_event_with_entrants
 # - auth_user_and_header (User + JWT header)
 # - mock_hero_api (patch Superhero API)
-# - seed_full_db (runs full seed_db script once per session for analytics tests)
+# - seed_full_db (session-scoped seed for analytics tests)
 
 import pytest
 from backend.app import create_app
@@ -30,8 +30,8 @@ def app():
 
 @pytest.fixture(autouse=True)
 def reset_db(app, request):
-    """Reset schema before each test to ensure isolation.
-    Skips analytics tests, which rely on full seed data.
+    """Reset schema before each test for isolation.
+    Skips analytics tests (they reuse a large seeded DB).
     """
     if "analytics" in request.keywords:
         yield
@@ -46,13 +46,13 @@ def reset_db(app, request):
 
 @pytest.fixture
 def client(app):
-    """Provide Flask test client for making HTTP requests in tests."""
+    """Provide Flask test client for making HTTP requests."""
     return app.test_client()
 
 
 @pytest.fixture
 def session(app):
-    """Provide SQLAlchemy session for direct DB access in tests."""
+    """Provide SQLAlchemy session for direct DB access."""
     with app.app_context():
         yield db.session
         db.session.rollback()
@@ -114,7 +114,7 @@ def create_hero(session):
 
 @pytest.fixture
 def seed_event_with_entrants(session, create_event):
-    """Seed an event with two default entrants for testing matches."""
+    """Seed a published event with two entrants for match tests."""
 
     def _seed_event_with_entrants():
         event = create_event(name="Match Cup", status="published")
@@ -129,9 +129,7 @@ def seed_event_with_entrants(session, create_event):
 
 @pytest.fixture
 def auth_user_and_header(app, session):
-    """Provide (user, header) tuple with a valid JWT bound to a real User.
-    Use this fixture when tests need both the logged-in user and auth header.
-    """
+    """Provide (user, header) tuple with a valid JWT."""
     user = User(username="authuser", email="auth@test.com")
     user.set_password("password")
     session.add(user)
@@ -176,17 +174,13 @@ def mock_hero_api():
 
 
 # ------------------------------
-# Analytics seed fixture
+# Analytics seed fixture (session-scoped)
 # ------------------------------
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def seed_full_db(app):
-    """Reset and seed database for analytics tests.
-    - Truncates all data before seeding to avoid duplicate key errors.
-    - Keeps fixed IDs from the seed files valid on every test run.
-    """
+    """Seed full dataset once per session for analytics tests."""
     from backend.scripts import seed_db
-    from backend.app.extensions import db
 
     with app.app_context():
         print("🔄 Resetting tables for analytics seed...")
@@ -201,6 +195,6 @@ def seed_full_db(app):
         """))
         db.session.commit()
 
-        print("🌱 Seeding database for analytics test...")
+        print("🌱 Seeding database for analytics tests (session scope)...")
         seed_db.run()
-        print("✅ Analytics seed complete.")
+        print("✅ Analytics seed complete (shared for all analytics tests).")
