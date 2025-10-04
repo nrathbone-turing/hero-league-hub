@@ -18,14 +18,15 @@ def detect_database_url():
     load_dotenv(find_dotenv())
 
     db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        raise ValueError("DATABASE_URL environment variable is required")
+    if not db_url or db_url.startswith("${"):
+        # Fallback to sane local default if misconfigured or template literal
+        db_url = "postgresql://postgres:postgres@localhost:5432/heroleague"
 
     # Inside Docker
     if os.getenv("DOCKER_ENV", "false").lower() == "true":
         return db_url
 
-    # Outside Docker → swap @db for @localhost if present
+    # Outside Docker → replace @db: with @localhost:
     return db_url.replace("@db:", "@localhost:")
 
 
@@ -60,10 +61,11 @@ class DevConfig(Config):
 class TestConfig(Config):
     """Used during pytest / CI — connects to dedicated Postgres test DB."""
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "TEST_DATABASE_URL",
-        "postgresql://postgres:postgres@localhost:5432/heroleague_test",
-    )
+
+    SQLALCHEMY_DATABASE_URI = os.getenv("TEST_DATABASE_URL")
+    if not SQLALCHEMY_DATABASE_URI or SQLALCHEMY_DATABASE_URI.startswith("${"):
+        SQLALCHEMY_DATABASE_URI = "postgresql://postgres:postgres@localhost:5432/heroleague_test"
+
     JWT_SECRET_KEY = "test-secret"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=2)
     SUPERHERO_API_KEY = "test-key"
