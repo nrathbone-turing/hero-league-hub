@@ -1,19 +1,37 @@
 # File: Dockerfile.backend
+# Purpose: Build Flask backend using Pipenv for dependency management.
+# Notes:
+# - Uses root-level Pipfile + Pipfile.lock for consistency with local dev.
+# - Keeps image slim by disabling cache and removing build deps.
+# - Exposes port 5500 (Flask default for this app).
+
 FROM python:3.11-slim
 
-# Ensure backend is importable
+# Prevent Python from writing .pyc files + force unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency files from project root
+COPY Pipfile Pipfile.lock ./
+
+# Install dependencies via Pipenv (system-wide, no virtualenv)
+RUN pip install --no-cache-dir pipenv && \
+    pipenv install --deploy --ignore-pipfile && \
+    rm -rf /root/.cache
 
 # Copy backend code
 COPY backend /app/backend
 
+# Expose Flask port
 EXPOSE 5500
 
-# Run via module so "backend" is a proper package
-CMD ["python", "-m", "backend.wsgi"]
+# Default command: run Flask app
+CMD ["pipenv", "run", "python", "-m", "backend.wsgi"]
