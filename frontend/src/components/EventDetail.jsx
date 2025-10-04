@@ -140,11 +140,19 @@ export default function EventDetail() {
 
   if (!event) return <Navigate to="/404" replace />;
 
-  // Generic sort helper
+  // Sort helper
   const sortData = (array, orderBy, order) => {
     return [...(array || [])].sort((a, b) => {
-      const valA = a[orderBy] ?? "";
-      const valB = b[orderBy] ?? "";
+      let valA, valB;
+
+      if (orderBy === "entrant1" || orderBy === "entrant2" || orderBy === "winner") {
+        valA = a[orderBy]?.user?.username || a[`${orderBy}_id`] || "";
+        valB = b[orderBy]?.user?.username || b[`${orderBy}_id`] || "";
+      } else {
+        valA = a[orderBy] ?? "";
+        valB = b[orderBy] ?? "";
+      }
+
       if (valA < valB) return order === "asc" ? -1 : 1;
       if (valA > valB) return order === "asc" ? 1 : -1;
       return 0;
@@ -308,7 +316,7 @@ export default function EventDetail() {
                       <TableCell>
                         {entrant.dropped
                           ? "Dropped"
-                          : entrant.user?.username || entrant.name || "-"}
+                          : entrant.name || entrant.user?.username || "-"}
                       </TableCell>
                       <TableCell>
                         {entrant.dropped ? "-" : entrant.hero?.name || entrant.alias || "-"}
@@ -345,10 +353,10 @@ export default function EventDetail() {
                     {[
                       "id",
                       "round",
-                      "entrant1_id",
-                      "entrant2_id",
+                      "entrant1",
+                      "entrant2",
                       "scores",
-                      "winner_id",
+                      "winner",
                     ].map((col) => (
                       <TableCell
                         key={col}
@@ -359,9 +367,7 @@ export default function EventDetail() {
                           direction={matchOrderBy === col ? matchOrder : "asc"}
                           onClick={() => handleMatchSort(col)}
                         >
-                          {col
-                            .replace("_id", "")
-                            .replace(/\b\w/g, (l) => l.toUpperCase())}
+                          {col.charAt(0).toUpperCase() + col.slice(1)}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -373,14 +379,14 @@ export default function EventDetail() {
                       <TableCell>{m.id}</TableCell>
                       <TableCell>{m.round}</TableCell>
                       <TableCell>
-                        {m.entrant1 ? `${m.entrant1.user?.username} (${m.entrant1.hero?.name})` : "-"}
+                        {m.entrant1 ? `${m.entrant1.name} (${m.entrant1.hero?.name})` : "-"}
                       </TableCell>
                       <TableCell>
-                        {m.entrant2 ? `${m.entrant2.user?.username} (${m.entrant2.hero?.name})` : "-"}
+                        {m.entrant2 ? `${m.entrant2.name} (${m.entrant2.hero?.name})` : "-"}
                       </TableCell>
                       <TableCell>{m.scores}</TableCell>
                       <TableCell>
-                        {m.winner ? `${m.winner.user?.username} (${m.winner.hero?.name})` : "TBD"}
+                        {m.winner ? `${m.winner.name} (${m.winner.hero?.name})` : "-"}
                       </TableCell>
                     </TableRow>
                   ))}
