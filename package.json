@@ -6,32 +6,26 @@
     "lint:backend": "docker compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
     "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
-    "test:backend": "docker compose run --rm -e TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test -w /app backend pytest -q --disable-warnings backend/tests",
+
+    "test:backend": "npm run env:test -- docker compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
+    "test:frontend": "npm --prefix frontend run test",
+    "test": "npm run test:backend && npm run test:frontend",
 
     "db:init": "docker compose run --rm backend flask --app backend/manage.py db init",
     "db:migrate": "docker compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
     "db:upgrade": "docker compose run --rm backend flask --app backend/manage.py db upgrade",
-    "db:drop": "docker compose run --rm backend python backend/manage.py drop-db",
-    "db:create": "docker compose run --rm backend python backend/manage.py create-db",
     "db:seed": "docker compose run --rm backend python backend/manage.py seed-db",
-    "db:reset": "docker compose run --rm backend python backend/manage.py reset-db",
+    "db:reset": "npm run db:drop && npm run db:create && npm run db:upgrade && npm run db:seed",
 
-    "lint:frontend": "npm --prefix frontend run lint",
-    "format:frontend": "npm --prefix frontend run format",
-    "fix:frontend": "npm run format:frontend && npm run lint:frontend",
-    "test:frontend": "npm --prefix frontend run test",
     "start:frontend": "npm --prefix frontend run dev",
+    "start:backend": "pipenv run python backend/wsgi.py",
+    "dev:all": "docker compose down && docker compose up --build -d && npm run start:frontend",
 
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "format": "npm run format:backend && npm run format:frontend",
-    "fix": "npm run fix:backend && npm run fix:frontend",
-    "test": "npm run test:backend && npm run test:frontend",
-    "check": "npm run lint && npm run test",
+    "env:test": "export FLASK_ENV=test && export TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test",
+    "env:local": "export FLASK_ENV=development && export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/heroleague",
 
-    "docker:rebuild": "docker compose down && docker compose up --build -d",
-    "db:refresh": "npm run db:drop && npm run db:create && npm run db:upgrade && npm run db:seed",
-    "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm run test:backend && npm run test:frontend",
-    "dev:all": "npm run docker:rebuild && npm run start:frontend"
+    "deps:sync": "pipenv requirements > backend/requirements.txt",
+    "deps:update": "pipenv update"
   },
   "devDependencies": {
     "eslint-plugin-vitest-globals": "^1.5.0",
