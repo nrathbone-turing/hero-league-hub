@@ -1,8 +1,9 @@
 // File: frontend/src/components/Analytics.jsx
 // Purpose: Displays analytics dashboards for hero usage, win rates, and event trends.
 // Notes:
-// - Fetches from /api/analytics endpoints with fallback mock data.
-// - Includes aria-labels and data-testid for testing.
+// - Fetches from live /api/analytics endpoints with graceful fallback.
+// - Normalizes field names for consistency between mock and live data.
+// - Adds robust data-testid and aria-label support for testing.
 
 import {
   Container,
@@ -28,6 +29,7 @@ import {
 import { useState, useEffect } from "react";
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export default function Analytics() {
   const [tab, setTab] = useState(0);
@@ -38,38 +40,48 @@ export default function Analytics() {
     participation: [],
   });
 
-  // fallback for offline/local tests
+  // fallback for offline/local testing
   const fallbackData = {
     heroes: [
-      { hero_name: "Superman", usage_count: 20, win_rate: 0.75 },
-      { hero_name: "Batman", usage_count: 15, win_rate: 0.68 },
-      { hero_name: "Wonder Woman", usage_count: 10, win_rate: 0.6 },
-      { hero_name: "Spiderman", usage_count: 8, win_rate: 0.54 },
+      { name: "Superman", usage_rate: 0.3, win_rate: 0.75 },
+      { name: "Batman", usage_rate: 0.25, win_rate: 0.68 },
+      { name: "Wonder Woman", usage_rate: 0.2, win_rate: 0.6 },
+      { name: "Spiderman", usage_rate: 0.15, win_rate: 0.54 },
     ],
     participation: [
-      { event_name: "Hero Cup", participants: 16 },
-      { event_name: "Villain Showdown", participants: 12 },
-      { event_name: "Battle Royale", participants: 20 },
+      { event: "Hero Cup", participants: 16 },
+      { event: "Villain Showdown", participants: 12 },
+      { event: "Battle Royale", participants: 20 },
     ],
+    results: [],
   };
 
   useEffect(() => {
     async function fetchData() {
       try {
         const [heroesRes, resultsRes, usageRes] = await Promise.all([
-          fetch("/api/analytics/heroes"),
-          fetch("/api/analytics/results"),
-          fetch("/api/analytics/usage"),
+          fetch(`${API_BASE}/api/analytics/heroes`),
+          fetch(`${API_BASE}/api/analytics/results`),
+          fetch(`${API_BASE}/api/analytics/usage`),
         ]);
 
         const [heroes, results, usage] = await Promise.all([
           heroesRes.ok ? heroesRes.json() : { heroes: fallbackData.heroes },
           resultsRes.ok ? resultsRes.json() : { events: [] },
-          usageRes.ok ? usageRes.json() : { participation: fallbackData.participation },
+          usageRes.ok
+            ? usageRes.json()
+            : { participation: fallbackData.participation },
         ]);
 
+        const normalizedHeroes =
+          heroes.heroes?.map((h) => ({
+            name: h.name || h.hero_name || "Unknown Hero",
+            usage_rate: h.usage_rate ?? h.usage_count ?? 0,
+            win_rate: h.win_rate ?? 0,
+          })) || fallbackData.heroes;
+
         setData({
-          heroes: heroes.heroes || fallbackData.heroes,
+          heroes: normalizedHeroes,
           results: results.events || [],
           participation: usage.participation || fallbackData.participation,
         });
@@ -120,6 +132,7 @@ export default function Analytics() {
         </Tabs>
       </Paper>
 
+      {/* HERO USAGE TAB */}
       {tab === 0 && (
         <Box
           aria-label="Hero Usage Chart"
@@ -137,13 +150,13 @@ export default function Analytics() {
               labelLine={false}
               outerRadius={100}
               fill="#8884d8"
-              dataKey="usage_count"
+              dataKey="usage_rate"
             >
               {data.heroes.map((entry, i) => (
                 <Cell
                   key={i}
                   fill={COLORS[i % COLORS.length]}
-                  data-testid={`usage-slice-${entry.hero_name}`}
+                  data-testid={`usage-slice-${entry.name}`}
                 />
               ))}
             </Pie>
@@ -153,6 +166,7 @@ export default function Analytics() {
         </Box>
       )}
 
+      {/* HERO WIN RATES TAB */}
       {tab === 1 && (
         <Box
           aria-label="Hero Win Rates Chart"
@@ -169,7 +183,7 @@ export default function Analytics() {
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hero_name" />
+            <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
             <Legend />
@@ -178,6 +192,7 @@ export default function Analytics() {
         </Box>
       )}
 
+      {/* EVENT PARTICIPATION TAB */}
       {tab === 2 && (
         <Box
           aria-label="Event Participation Chart"
@@ -194,7 +209,7 @@ export default function Analytics() {
             margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="event_name" />
+            <XAxis dataKey="event" />
             <YAxis />
             <Tooltip />
             <Legend />
