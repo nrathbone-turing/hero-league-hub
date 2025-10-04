@@ -13,6 +13,7 @@ from backend.app.routes.matches import bp as matches_bp
 from backend.app.routes.auth import auth_bp
 from backend.app.blocklist import jwt_blocklist
 from backend.app.routes.heroes import heroes_bp
+from backend.app.routes.analytics import bp as analytics_bp
 
 
 def create_app(config_class=Config):
@@ -71,6 +72,7 @@ def create_app(config_class=Config):
     app.register_blueprint(matches_bp, url_prefix="/api/matches")
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(heroes_bp, url_prefix="/api/heroes")
+    app.register_blueprint(analytics_bp, url_prefix="/api/analytics")
 
     return app
 

@@ -55,6 +55,15 @@ export default function Navbar() {
           >
             Events
           </Button>
+          <Button 
+            color="inherit" 
+            component={Link} 
+            to="/analytics"
+            data-testid="nav-analytics"
+          >
+            Analytics
+          </Button>
+
         </Box>
 
         {/* Right: Auth-aware actions */}

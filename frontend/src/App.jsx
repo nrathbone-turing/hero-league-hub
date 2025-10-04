@@ -18,6 +18,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import UserDashboard from "./components/UserDashboard";
 import Heroes from "./components/Heroes";
 import EventRegistration from "./components/EventRegistration";
+import Analytics from "./components/Analytics";
 
 function RootRoutes() {
   const { user, isAuthenticated } = useAuth();
@@ -75,6 +76,14 @@ function RootRoutes() {
         element={
           <ProtectedRoute>
             <EventDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Analytics />
           </ProtectedRoute>
         }
       />
