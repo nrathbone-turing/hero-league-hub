@@ -1,7 +1,9 @@
 // File: frontend/src/components/Analytics.jsx
-// Purpose: Displays analytics dashboards for hero usage, win rates, and event trends.
+// Purpose: Displays analytics dashboards using backend data.
 // Notes:
-// - Added data-testid for each chart and slice for testing stability.
+// - Fetches from /api/analytics endpoints (heroes, results, usage).
+// - Adds loading/error handling and empty-state fallbacks.
+// - Preserves test IDs for stable tests and accessibility.
 
 import {
   Container,
@@ -10,6 +12,7 @@ import {
   Paper,
   Tabs,
   Tab,
+  CircularProgress,
 } from "@mui/material";
 import {
   PieChart,
@@ -23,34 +26,50 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiFetch } from "../api";
 
-const mockHeroUsage = [
-  { name: "Superman", value: 20 },
-  { name: "Batman", value: 15 },
-  { name: "Wonder Woman", value: 10 },
-  { name: "Spiderman", value: 8 },
-];
-
-const mockWinRates = [
-  { hero: "Superman", winRate: 75 },
-  { hero: "Batman", winRate: 68 },
-  { hero: "Wonder Woman", winRate: 60 },
-  { hero: "Spiderman", winRate: 54 },
-];
-
-const mockParticipation = [
-  { event: "Hero Cup", participants: 16 },
-  { event: "Villain Showdown", participants: 12 },
-  { event: "Battle Royale", participants: 20 },
-];
+const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
 
 export default function Analytics() {
   const [tab, setTab] = useState(0);
-  const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"];
+  const [heroData, setHeroData] = useState([]);
+  const [winRateData, setWinRateData] = useState([]);
+  const [usageData, setUsageData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function fetchAnalytics(endpoint, setter) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch(`/analytics/${endpoint}`);
+      if (!data) throw new Error("Empty response");
+      if (endpoint === "heroes") setter(data.heroes || []);
+      else if (endpoint === "results") setter(data.events || []);
+      else if (endpoint === "usage") setter(data.participation || []);
+    } catch (err) {
+      console.error(`❌ Failed to load ${endpoint} analytics:`, err);
+      setError(`Failed to load ${endpoint} analytics`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (tab === 0 && heroData.length === 0) fetchAnalytics("heroes", setHeroData);
+    if (tab === 1 && winRateData.length === 0) fetchAnalytics("results", setWinRateData);
+    if (tab === 2 && usageData.length === 0) fetchAnalytics("usage", setUsageData);
+  }, [tab]);
+
+  const renderEmpty = (msg) => (
+    <Typography data-testid="empty-state" color="text.secondary">
+      {msg}
+    </Typography>
+  );
 
   return (
-    <Container sx={{ mt: 4 }} data-testid="analytics-container">
+    <Container sx={{ mt: 4 }} data-testid="analytics-page">
       <Typography variant="h4" align="center" gutterBottom>
         Hero League Analytics
       </Typography>
@@ -61,93 +80,102 @@ export default function Analytics() {
           onChange={(e, newVal) => setTab(newVal)}
           centered
           variant="fullWidth"
+          aria-label="Analytics category tabs"
         >
-          <Tab label="Hero Usage" />
-          <Tab label="Win Rates" />
-          <Tab label="Participation" />
+          <Tab label="Hero Usage" data-testid="tab-usage" />
+          <Tab label="Win Rates" data-testid="tab-winrates" />
+          <Tab label="Participation" data-testid="tab-participation" />
         </Tabs>
       </Paper>
 
-      {tab === 0 && (
-        <Box
-          textAlign="center"
-          aria-label="Hero Usage Chart"
-          data-testid="chart-usage"
-        >
+      {loading && (
+        <Box textAlign="center" data-testid="loading-spinner">
+          <CircularProgress />
+        </Box>
+      )}
+      {error && (
+        <Typography color="error" align="center" data-testid="error-msg">
+          {error}
+        </Typography>
+      )}
+
+      {!loading && !error && tab === 0 && (
+        <Box textAlign="center" data-testid="chart-usage" aria-label="Hero Usage Chart">
           <Typography variant="h6" gutterBottom>
             Hero Usage Distribution
           </Typography>
-          <PieChart width={400} height={300}>
-            <Pie
-              data={mockHeroUsage}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              outerRadius={100}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {mockHeroUsage.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                  data-testid={`usage-slice-${entry.name}`}
-                />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
+          {heroData.length === 0 ? (
+            renderEmpty("No hero data available")
+          ) : (
+            <PieChart width={400} height={300}>
+              <Pie
+                data={heroData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={100}
+                fill="#8884d8"
+                dataKey="usage_count"
+                nameKey="hero_name"
+              >
+                {heroData.map((entry, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          )}
         </Box>
       )}
 
-      {tab === 1 && (
-        <Box
-          textAlign="center"
-          aria-label="Win Rates Chart"
-          data-testid="chart-winrates"
-        >
+      {!loading && !error && tab === 1 && (
+        <Box textAlign="center" data-testid="chart-winrates" aria-label="Hero Win Rate Chart">
           <Typography variant="h6" gutterBottom>
             Hero Win Rates (%)
           </Typography>
-          <BarChart
-            width={500}
-            height={300}
-            data={mockWinRates}
-            margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hero" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="winRate" fill="#82ca9d" />
-          </BarChart>
+          {winRateData.length === 0 ? (
+            renderEmpty("No match result data available")
+          ) : (
+            <BarChart
+              width={500}
+              height={300}
+              data={winRateData}
+              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="hero_name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="win_rate" fill="#82ca9d" />
+            </BarChart>
+          )}
         </Box>
       )}
 
-      {tab === 2 && (
-        <Box
-          textAlign="center"
-          aria-label="Participation Chart"
-          data-testid="chart-participation"
-        >
+      {!loading && !error && tab === 2 && (
+        <Box textAlign="center" data-testid="chart-participation" aria-label="Event Participation Chart">
           <Typography variant="h6" gutterBottom>
             Event Participation
           </Typography>
-          <BarChart
-            width={500}
-            height={300}
-            data={mockParticipation}
-            margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="event" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="participants" fill="#ffc658" />
-          </BarChart>
+          {usageData.length === 0 ? (
+            renderEmpty("No participation data available")
+          ) : (
+            <BarChart
+              width={500}
+              height={300}
+              data={usageData}
+              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="event_name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="participants" fill="#ffc658" />
+            </BarChart>
+          )}
         </Box>
       )}
     </Container>
