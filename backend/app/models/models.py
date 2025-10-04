@@ -18,7 +18,7 @@ API_ALIGNMENT_MAP = {
     "bad": "villain",
     "neutral": "antihero",
     None: "unknown",
-    "": "unknown"
+    "": "unknown",
 }
 
 
@@ -77,7 +77,9 @@ class Entrant(db.Model):
 
     # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
@@ -89,7 +91,7 @@ class Entrant(db.Model):
         foreign_keys=[user_id],
         back_populates="entrants",
         lazy="joined",
-        overlaps="created_entrants,updated_entrants"
+        overlaps="created_entrants,updated_entrants",
     )
     hero = db.relationship("Hero", lazy="joined")
 
@@ -98,14 +100,14 @@ class Entrant(db.Model):
         foreign_keys=[created_by_id],
         back_populates="created_entrants",
         lazy="joined",
-        overlaps="entrants,updated_entrants"
+        overlaps="entrants,updated_entrants",
     )
     updated_by = db.relationship(
         "User",
         foreign_keys=[updated_by_id],
         back_populates="updated_entrants",
         lazy="joined",
-        overlaps="entrants,created_entrants"
+        overlaps="entrants,created_entrants",
     )
 
     def __repr__(self):
@@ -118,7 +120,12 @@ class Entrant(db.Model):
         self.alias = None
         self.dropped = True
 
-    def to_dict(self, include_event: bool = False, include_hero: bool = False, include_user: bool = False):
+    def to_dict(
+        self,
+        include_event: bool = False,
+        include_hero: bool = False,
+        include_user: bool = False,
+    ):
         data = {
             "id": self.id,
             "name": self.name,
@@ -150,7 +157,9 @@ class Match(db.Model):
 
     # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     updated_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
@@ -200,19 +209,19 @@ class User(db.Model):
         "Entrant",
         back_populates="user",
         foreign_keys="Entrant.user_id",
-        overlaps="created_by,updated_by"
+        overlaps="created_by,updated_by",
     )
     created_entrants = db.relationship(
         "Entrant",
         back_populates="created_by",
         foreign_keys="Entrant.created_by_id",
-        overlaps="user,updated_by"
+        overlaps="user,updated_by",
     )
     updated_entrants = db.relationship(
         "Entrant",
         back_populates="updated_by",
         foreign_keys="Entrant.updated_by_id",
-        overlaps="user,created_by"
+        overlaps="user,created_by",
     )
 
     def set_password(self, password):
