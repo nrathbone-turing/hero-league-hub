@@ -291,8 +291,14 @@ export default function EventDetail() {
                   {sortedEntrants?.map((entrant) => (
                     <TableRow key={entrant.id}>
                       <TableCell>{entrant.id}</TableCell>
-                      <TableCell>{entrant.dropped ? "Dropped" : entrant.name}</TableCell>
-                      <TableCell>{entrant.dropped ? "-" : entrant.alias}</TableCell>
+                      <TableCell>
+                        {entrant.dropped
+                          ? "Dropped"
+                          : entrant.user?.name || entrant.name}
+                      </TableCell>
+                      <TableCell>
+                        {entrant.dropped ? "-" : entrant.user?.alias || entrant.alias}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
