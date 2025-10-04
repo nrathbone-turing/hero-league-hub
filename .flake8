@@ -1,0 +1,13 @@
+# .flake8
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude =
+    venv,
+    .venv,
+    __pycache__,
+    migrations,
+    .pytest_cache,
+    .mypy_cache,
+    backend/tests/__pycache__,
+    backend/migrations
