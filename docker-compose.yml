@@ -5,8 +5,6 @@
 # - Includes dev and test Postgres databases.
 # - Healthcheck ensures DB is ready before backend starts.
 
-version: "3.9"
-
 services:
   backend:
     build:
