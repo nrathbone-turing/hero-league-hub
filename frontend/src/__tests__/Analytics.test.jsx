@@ -73,9 +73,7 @@ describe("Analytics Component", () => {
     renderWithRouter(<Analytics />);
 
     // Wait for initial chart
-    await waitFor(() =>
-      expect(screen.getByTestId("chart-usage")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByTestId("chart-usage")).toBeInTheDocument());
 
     // Switch to Win Rates tab
     await userEvent.click(screen.getByTestId("tab-winrates"));

@@ -8,14 +8,7 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  useTheme,
-} from "@mui/material";
+import { AppBar, Toolbar, Typography, Button, Box, useTheme } from "@mui/material";
 
 export default function Navbar() {
   const { user, logout } = useAuth();

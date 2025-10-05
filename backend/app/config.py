@@ -26,8 +26,8 @@ def normalize_host(url: str) -> str:
 
     return (
         url.replace("@db:", "@localhost:")
-           .replace("@db/", "@localhost/")
-           .replace("://db:", "://localhost:")
+        .replace("@db/", "@localhost/")
+        .replace("://db:", "://localhost:")
     )
 
 
@@ -79,6 +79,7 @@ class Config:
 # ------------------------
 class DevConfig(Config):
     """Used for local development."""
+
     DEBUG = True
 
 
@@ -87,6 +88,7 @@ class DevConfig(Config):
 # ------------------------
 class TestConfig(Config):
     """Used during pytest / CI — connects to dedicated Postgres test DB."""
+
     TESTING = True
 
     # Load test database URL from env

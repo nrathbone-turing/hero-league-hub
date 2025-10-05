@@ -4,14 +4,22 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:backend": "docker compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
-    "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
+    "lint:backend": "node backend/scripts/run-helper.js lint:backend",
+    "lint:frontend": "node backend/scripts/run-helper.js lint:frontend",
+    "lint": "node backend/scripts/run-helper.js lint",
+
+    "format:backend": "node backend/scripts/run-helper.js format:backend",
+    "format:frontend": "node backend/scripts/run-helper.js format:frontend",
+    "format": "node backend/scripts/run-helper.js format",
+
     "fix:backend": "npm run format:backend && npm run lint:backend",
+    "fix:frontend": "npm run format:frontend && npm run lint:frontend",
+    "fix": "npm run format && npm run lint",
 
     "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
     "test": "node backend/scripts/run-helper.js test && npm --prefix frontend run test",
-
+    
     "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm test",
 
     "db:init": "node backend/scripts/run-helper.js db:init",
@@ -36,6 +44,7 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "eslint-plugin-vitest-globals": "^1.5.0",
-    "history": "^5.3.0"
+    "history": "^5.3.0",
+    "jsdom": "^27.0.0"
   }
 }

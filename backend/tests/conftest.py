@@ -21,6 +21,7 @@ from sqlalchemy import text
 # Core fixtures
 # ------------------------------
 
+
 @pytest.fixture(scope="session")
 def app():
     """Create a Flask app instance for testing with TestConfig."""
@@ -61,6 +62,7 @@ def session(app):
 # ------------------------------
 # Entity creators
 # ------------------------------
+
 
 @pytest.fixture
 def create_event(session):
@@ -145,6 +147,7 @@ def auth_user_and_header(app, session):
 # API mocking helpers
 # ------------------------------
 
+
 @pytest.fixture
 def mock_hero_api():
     """Monkeypatch requests.get to fake Superhero API response."""
@@ -177,6 +180,7 @@ def mock_hero_api():
 # Analytics seed fixture (session-scoped)
 # ------------------------------
 
+
 @pytest.fixture(scope="session")
 def seed_full_db(app):
     """Reset and seed the same test DB used by the Flask app."""
@@ -188,7 +192,8 @@ def seed_full_db(app):
         print(f"📀 Using app DB engine: {db.engine.url}")
 
         db.session.execute(
-            text("""
+            text(
+                """
             TRUNCATE TABLE
                 matches,
                 entrants,
@@ -196,7 +201,8 @@ def seed_full_db(app):
                 heroes,
                 events
             RESTART IDENTITY CASCADE;
-        """)
+        """
+            )
         )
         db.session.commit()
 

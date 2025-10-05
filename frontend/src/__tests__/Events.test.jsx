@@ -1,102 +1,153 @@
 // File: frontend/src/__tests__/Events.test.jsx
-// Purpose: Tests for Events component.
+// Purpose: Stable unit tests for <Events /> list rendering.
 // Notes:
-// - Relies on global fetch mock for /events.
-// - Covers rendering list, form submission, placeholder images, status spacing, scrollable list, and entrant count.
+// - Uses local vi.mock to avoid race conditions from global fixtures.
+// - Covers: (1) Empty array → "No events found"
+//            (2) Published data → table renders & filters correctly.
 
-import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { screen, waitFor } from "@testing-library/react";
 import { renderWithRouter } from "../test-utils";
 import Events from "../components/Events";
-import { mockFetchSuccess } from "../setupTests";
+import * as api from "../api";
 
-describe("Events", () => {
-  test("renders events heading", async () => {
-    mockFetchSuccess();
-    renderWithRouter(<Events />, { route: "/" });
-    expect(await screen.findByRole("heading", { name: /events/i })).toBeInTheDocument();
+// Mock the API used by the component
+vi.mock("../api", () => ({
+  apiFetch: vi.fn(),
+}));
+
+const { apiFetch } = await import("../api");
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe("<Events /> rendering", () => {
+  test("shows 'No events found' when API returns an empty array", async () => {
+    apiFetch.mockResolvedValueOnce([]);
+
+    renderWithRouter(<Events />);
+
+    const empty = await screen.findByTestId("no-events");
+    expect(empty).toHaveTextContent(/no events found/i);
   });
 
-  test("shows entrant counts", async () => {
-    mockFetchSuccess([
+  test("renders table with default 'published' filter selected", async () => {
+    apiFetch.mockResolvedValueOnce([
       {
         id: 1,
-        name: "Hero Cup",
-        date: "2025-09-12",
-        status: "drafting",
-        entrants: Array(3).fill({ id: 1, name: "Hero" }),
+        name: "Hero Con",
+        date: "2025-10-10",
+        status: "published",
+        entrants: [],
       },
       {
         id: 2,
-        name: "Villain Showdown",
-        date: "2025-09-13",
-        entrants: Array(5).fill({ id: 2, name: "Villain" }),
+        name: "Villain Expo",
+        date: "2025-10-11",
+        status: "completed",
+        entrants: [],
       },
     ]);
-    renderWithRouter(<Events />, { route: "/" });
-    expect(await screen.findByText(/3 entrants/i)).toBeInTheDocument();
-    expect(await screen.findByText(/5 entrants/i)).toBeInTheDocument();
+
+    renderWithRouter(<Events />);
+
+    // Wait for the events table to appear
+    const table = await screen.findByTestId("events-table");
+    expect(table).toBeInTheDocument();
+
+    // Verify only published events render
+    const heroEvent = await screen.findByTestId("event-name-1");
+    expect(heroEvent).toHaveTextContent("Hero Con");
+
+    const villainEvent = screen.queryByTestId("event-name-2");
+    expect(villainEvent).not.toBeInTheDocument();
+
+    // ✅ Verify the <Select> filter value is "published"
+    const select = screen.getByTestId("status-filter");
+    expect(select.querySelector("input")?.value).toBe("published");
+
+    // Ensure "No events" message is not shown
+    expect(screen.queryByTestId("no-events")).not.toBeInTheDocument();
   });
 
-  test("submits new event", async () => {
-    mockFetchSuccess([]); // initial GET
-    mockFetchSuccess({
-      id: 3,
-      name: "Test Event",
-      date: "2025-09-20",
-      status: "drafting",
-      entrant_count: 0,
-    }); // POST
-    mockFetchSuccess([
-      {
-        id: 3,
-        name: "Test Event",
-        date: "2025-09-20",
-        status: "drafting",
-        entrant_count: 0,
-      },
-    ]); // reload
+  // Promise-driven tests (safe async handling)
+  describe("<Events /> (promise-driven)", () => {
+    beforeEach(() => {
+      vi.resetAllMocks();
+    });
 
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.type(screen.getByLabelText(/name/i), "Test Event");
-    await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
+    test("shows loading state during fetch", async () => {
+      let resolvePromise;
+      api.apiFetch.mockReturnValue(new Promise((res) => (resolvePromise = res)));
 
-    expect(await screen.findByText(/0 entrants/i)).toBeInTheDocument();
-  });
-});
+      renderWithRouter(<Events />);
 
-describe("Events - edge cases", () => {
-  test("shows placeholder when no events exist", async () => {
-    global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
-    renderWithRouter(<Events />, { route: "/" });
-    expect(await screen.findByText(/no events yet/i)).toBeInTheDocument();
-  });
+      // Spinner shows first
+      expect(await screen.findByTestId("loading-events")).toBeInTheDocument();
 
-  test("prevents event creation with missing fields", async () => {
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
-    expect(screen.getByRole("form")).toBeInTheDocument();
-  });
+      // Resolve API
+      resolvePromise?.([
+        {
+          id: 1,
+          name: "Hero Con",
+          date: "2025-10-10",
+          status: "published",
+          entrants: [],
+        },
+      ]);
 
-  test("shows error message when create event fails", async () => {
-    global.fetch
-      // first GET: return empty list
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      // POST: simulate failure
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: "Failed to create event" }),
+      // Wait for table
+      await waitFor(() => {
+        expect(screen.getByTestId("events-table")).toBeInTheDocument();
       });
+    });
 
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.type(screen.getByLabelText(/event name/i), "Broken Event");
-    await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
+    test("renders events after successful fetch (default filter = published)", async () => {
+      apiFetch.mockResolvedValueOnce([
+        {
+          id: 1,
+          name: "Hero Con",
+          date: "2025-10-10",
+          status: "published",
+          entrants: [],
+        },
+        {
+          id: 2,
+          name: "Villain Expo",
+          date: "2025-10-11",
+          status: "completed",
+          entrants: [],
+        },
+      ]);
 
-    // should render the error message
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to create event/i
-    );
+      renderWithRouter(<Events />);
+
+      // Wait for the table to render
+      const table = await screen.findByTestId("events-table");
+      expect(table).toBeInTheDocument();
+
+      // First event (published) should render
+      const heroEvent = await screen.findByTestId("event-name-1");
+      expect(heroEvent).toHaveTextContent("Hero Con");
+
+      // Second event (completed) should be hidden with the default "published" filter
+      expect(screen.queryByTestId("event-name-2")).not.toBeInTheDocument();
+
+      // Assert the Select's hidden input value is "published"
+      const select = screen.getByTestId("status-filter");
+      expect(select.querySelector("input")?.value).toBe("published");
+
+      // No empty state
+      expect(screen.queryByTestId("no-events")).not.toBeInTheDocument();
+    });
+
+    test("shows error message when API fails", async () => {
+      api.apiFetch.mockRejectedValueOnce(new Error("Server exploded"));
+
+      renderWithRouter(<Events />);
+
+      const error = await screen.findByTestId("error-alert");
+      expect(error).toHaveTextContent(/failed to fetch events/i);
+    });
   });
 });

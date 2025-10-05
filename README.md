@@ -11,20 +11,26 @@ Built with **Flask (backend)**, **React + Vite (frontend)**, and **Postgres** fo
 - **Unified Test & DB Runner** --> Smart script auto-detects Docker vs. Pipenv
 - **JWT Auth Integration** --> Secure login, logout, and session refresh
 
----
+Following Project 1 ([Hero vs Villain Showdown](https://github.com/nrathbone-turing/hero-vs-villain-rps-showdown))  
+and Project 2 ([Hero Tournament Manager](https://github.com/nrathbone-turing/hero-tournament-manager)),  
+this project extends the theme into the **player experience**.
 
-## Screenshots
+Instead of simulating one-off battles (Project 1) or focusing on event setup by admins (Project 2),  
+this app gives participants their own interface:
+- Users can register for events, select a hero, and track their progress through matches
+- Heroes are chosen strategically, based on powerstats, usage rates, or win rates
+- Analytics give players visibility into hero popularity and performance across events
 
-_Coming soon — include Analytics dashboard preview, event detail, and registration flow screenshots._
-- Analytics
-- Event Detail
-- Registration flow
+This creates a distinct but connected trilogy:
+- **Project 1:** Rock–Paper–Scissors hero duels via the [SuperHero API](https://superheroapi.com/)  
+- **Project 2:** Tournament CRUD system for admins  
+- **Project 3 (this app):** Player dashboards + hero analytics
 
 ---
 
 ## Tech Stack
 - **Backend:** Flask, Flask-Migrate, Flask-SQLAlchemy, Flask-JWT-Extended
-- **Frontend:** React, Vite, MUI (Material UI)
+- **Frontend:** React, Vite, MUI (Material UI), Recharts
 - **Database:** Postgres 15 (via Docker)
 - **Dev Tools:** Docker Compose, Black, Flake8, Pytest, Pipenv
 
@@ -33,7 +39,7 @@ _Coming soon — include Analytics dashboard preview, event detail, and registra
 ## Getting Started
 
 You can run Hero League Hub in two modes:
-1. **Local Development** --> Uses Pipenv and your host machine’s Postgres
+1. **Local Development** --> Uses Pipenv + host Postgres
 2. **Docker Compose** --> Spins up backend, frontend, and Postgres automatically
 
 ### Local (Recommended for Backend Development)
@@ -83,25 +89,63 @@ The `backend/scripts/run-helper.js` script automatically detects your environmen
 | Mode | Detection | Behavior |
 |------|------------|-----------|
 | **LOCAL (Pipenv)** | Detected via `PIPENV_ACTIVE` or `RUN_MODE=local` | Runs all commands with `pipenv run` directly on your host machine (requires local Postgres) |
-| **DOCKER** | Default when not inside Pipenv or `RUN_MODE=docker` | Spins up `db` + `backend` containers, waits for Postgres health, ensures test DB exists, then runs commands inside the backend container |
+| **DOCKER** | Default when not inside Pipenv or `RUN_MODE=docker` | Runs commands inside backend container and ensures DB health |
 
 **Highlights:**
-- Runs migrations automatically before tests
-- Creates test DB (`heroleague_test`) if missing
-- Passes through CLI args (e.g., `npm run test:backend -- -k heroes`)
-- Standardized syntax for both modes — no manual switching required!
-- Logs the detected environment so you always know where it’s running
+- Auto-runs migrations before tests
+- Auto-creates test DB (`heroleague_test`)
+- Passes CLI args (e.g., `npm run test:backend -- -k heroes`)
+- Logs detected environment at runtime
 
 **Example Output:**
 ```bash
 # Local (inside pipenv shell)
 npm run test:backend
-# 🧠 Detects LOCAL --> pipenv run pytest -q --disable-warnings backend/tests
+# 🧠 Detects LOCAL --> pipenv run pytest -q backend/tests
 
 # Docker (outside pipenv)
 npm run test:backend
-# 🐳 Detects DOCKER --> docker compose exec backend pipenv run pytest -q --disable-warnings backend/tests
+# 🐳 Detects DOCKER --> docker compose exec backend pipenv run pytest -q backend/tests
 ```
+
+---
+
+### Default Users (for development & testing)
+These accounts are automatically seeded when you run `npm run db:seed` or `npm run db:reset`; you can use these to explore the dashboard and registration flow without creating a new account.
+
+**Admin User**
+- Email: `admin@example.com`
+- Password: `admin`
+
+**Demo Player**
+- Email: `demo@example.com`
+- Password: `password123`
+
+---
+
+### Optional: Add Match Data for Demo User
+By default, reseeding the database clears demo data (persistence separation not yet implemented).
+If you’d like to preview the Event Details tab (with real matches), you can manually create a sample match for the demo user via `curl`
+
+```bash
+# Example: create a match for the demo user (entrant_id = 106)
+# Replace <JWT> with your demo user's token and $OPPONENT_ID with another entrant's ID.
+
+curl -X POST http://localhost:5500/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT>" \
+  -d '{
+    "round": 3,
+    "scores": "2-1",
+    "entrant1_id": 106,
+    "entrant2_id": $OPPONENT_ID,
+    "winner_id": 106,
+    "event_id": 2
+  }'
+```
+*Note*: You can get the JWT by logging in as the demo user in the browser and checking Application --> Local Storage --> token in DevTools. 
+
+From there, replace `<JWT>` above with that token value and `$OPPONENT_ID` with another seeded user's id from the same event and click the refresh icon on the left card to see your stats.
 
 ---
 
@@ -111,41 +155,29 @@ npm run test:backend
 npm run db:init         # Initialize migrations
 npm run db:migrate      # Create new migration file
 npm run db:upgrade      # Apply migrations (main + test DBs)
-npm run db:seed         # Seed events, heroes, users, entrants, matches
-npm run db:reset        # Drop, recreate, and reseed from scratch
+npm run db:seed         # Seed sample data
+npm run db:reset        # Drop, recreate, reseed
 ```
-These use the **same helper** for automatic environment detection.
+All use the same helper script with auto environment detection and y
 You can also call the CLI directly if needed:
 ```bash
 pipenv run flask --app backend/manage.py seed-db
 ```
 
-### Command Behavior Summary
-| Command | Local (Pipenv) Behavior | Docker Behavior |
-|----------|-------------------------|------------------|
-| **`db:init`** | Initializes Alembic migrations in `/backend/migrations` | Runs the same command inside the backend container |
-| **`db:migrate`** | Creates a new migration file using Flask-Migrate | Same behavior inside the backend container |
-| **`db:upgrade`** | Applies migrations to both main and test databases | Waits for DB health, then applies migrations inside container |
-| **`db:seed`** | Runs `backend/manage.py seed-db` to populate all tables | Executes the same seeding process within the backend container |
-| **`db:reset`** | Drops, recreates, and reseeds all tables (local Postgres) | Performs full schema reset inside container using helper script |
-| **`test:backend`** | Runs pytest locally via `pipenv run` | Executes pytest inside backend container with auto DB setup |
-| **`test:frontend`** | Runs Vitest + RTL suite for React components | Runs identical frontend test suite using Node in host environment |
-| **`test:full`** | Full rebuild --> migrate --> seed --> run both suites | Performs same workflow in Dockerized environment |
-
 ### New Combined Scripts
 To simplify full-stack workflows, these scripts automatically detect your environment (Docker or local Pipenv) and handle rebuilds, migrations, seeding, and testing accordingly.
 ```bash
-npm test                # Runs backend + frontend tests (auto Docker/local detection)
-npm run docker:rebuild  # Stop, rebuild, and restart all containers
-npm run test:full       # Full rebuild --> migrate --> seed --> run backend + frontend tests
+npm test                # Run backend + frontend tests
+npm run docker:rebuild  # Stop, rebuild, restart all containers
+npm run test:full       # Full rebuild --> migrate --> seed --> run tests
 npm run dev:all         # Rebuild containers and start frontend dev server
 ```
 
 #### Notes:
-- All scripts run from the project root
-- `test:full` ensures a clean database before running both suites
-- `dev:all` is ideal for quick restarts during active development
-- Logs environment detection at runtime (`LOCAL` 🧠 or `DOCKER` 🐳)
+- Run all scripts from the project root
+- `test:full` resets DBs before testing
+- `dev:all` is ideal for live development
+- Console logs show environment (`LOCAL` 🧠 or `DOCKER` 🐳)
 
 ---
 
@@ -162,59 +194,111 @@ npm test
 ```
 
 ### Notes
-- Backend tests use Pytest + fixtures (`backend/tests/conftest.py`)
-- Frontend uses Vitest + React Testing Library (`frontend/src/__tests__/`)
-- The helper auto-creates and upgrades the test DB before running
-- All tests can be run identically from inside or outside Docker
+- **Backend**: Pytest + fixtures (backend/tests/conftest.py)
+- **Frontend**: Vitest + RTL (frontend/src/__tests__/)
+- Auto-upgrades + seeds test DB before running
+
+--
+
+## Event Registration Flow
+- **Frontend**: User selects a hero + event
+- **Backend**: `/api/entrants/register` creates entrant tied to the logged-in user
+- **Database**: Writes entry to `entrants` table
+
+Validation Logic:
+- Only published events visible
+- Prevents duplicate registration
+- Updates dashboard dynamically after registration
 
 ---
 
-## Event Registration Flow
-- **Frontend** --> User selects a hero and event
-- **Backend** --> `/api/entrants/register` creates an entrant tied to the logged-in user
-- **Database** --> Entry saved in `entrants` table
+## Feature Flow Summary (With Screenshots)
 
-Validation Logic:
-- Only published events appear
-- Prevents duplicate user registrations
-- Auto-updates entrant dashboards after registration
+Below are the key user flows in **Hero League Hub**, showing how players can log in, browse events, select heroes, register, and view their progress — all from a unified dashboard.
+
+---
+
+### Authentication & Onboarding
+Players begin by creating an account or logging in.
+
+![Signup page](./frontend/public/screenshots/Signup%20page.png)
+![Login page](./frontend/public/screenshots/Login%20page.png)
+
+---
+
+### Events Overview & Registration Flow
+Users can browse completed and published events, filter by status, and register a hero for participation.
+
+![Filtered Events by Status](./frontend/public/screenshots/Filtered%20Events%20by%20Status.png)
+![Default Sort Events page & Register button](./frontend/public/screenshots/Default%20Sort%20Events%20page%20+%20Register.png)
+![Event Registration form](./frontend/public/screenshots/Event%20Registration%20form%20event%20and%20hero%20selected.png)
+![Hero dropdown filter](./frontend/public/screenshots/Event%20Registration%20form%20hero%20select%20dropdown%20filter%20keyword%20search.png)
+
+---
+
+### Hero Search & Selection
+Players can search or filter heroes from the external API, preview stats, and confirm selection to replace an existing entrant record.
+
+![Hero search results](./frontend/public/screenshots/Heroes%20search%20results%20filtering%20based%20on%20external%20API%20pull.png)
+![Hero modal - character image](./frontend/public/screenshots/Heroes%20search%20dialog%20modal%201.png)
+![Hero modal - character details](./frontend/public/screenshots/Heroes%20search%20dialog%20modal%202.png)
+![Overwrite hero confirmation](./frontend/public/screenshots/Choose%20another%20hero%20overwrite%20current%20hero%20if%20already%20registered.png)
+
+---
+
+### Event Details
+Displays current event registration, entrant stats, and live updates as matches progress.
+
+![Event details registered no matches](./frontend/public/screenshots/EventDetails%20page%20registered%20no%20matches.png)
+![Event details with matches](./frontend/public/screenshots/EventDetails%20page%20registered%20with%20matches.png)
+![Event details show 'Dropped' after withdrawing](./frontend/public/screenshots/EventDetails%20page%20withdraw%20with%20matches%20become%20dropped.png)
+
+---
+
+### User Dashboard
+Central hub for players to manage their hero choice, view registration status, and make updates to existing selections.
+
+![Dashboard hero + event](./frontend/public/screenshots/User%20dashboard%20hero%20chosen%20and%20event%20registered.png)
+![Dashboard updated](./frontend/public/screenshots/User%20Dashboard%20updated%20after%20registering%20for%20event%20and%20choosing%20hero.png)
+![Cancel registration alert](./frontend/public/screenshots/Cancel%20registration%20button%20with%20alert%20confirmation.png)
+
+---
+
+### Analytics & Insights
+Shows aggregated hero data like usage, win rates, and participation across events.
+
+![Hero usage chart](./frontend/public/screenshots/Analytics%20hero%20usage%20tab%20pie%20chart.png)
+![Hero win rates chart](./frontend/public/screenshots/Analytics%20hero%20win%20rates%20vertical%20bar%20chart.png)
+![Hero participation chart](./frontend/public/screenshots/Analytics%20hero%20participation%20vertical%20bar%20chart.png)
 
 ---
 
 ## API Endpoints
 ### Auth
 - `POST /api/signup` --> Create a new user account  
-- `POST /api/login` --> Authenticate and receive/return JWT  
-- `DELETE /api/logout` --> Revoke token and clear session (adds to blocklist)
+- `POST /api/login` --> Authenticate and receive JWT  
+- `DELETE /api/logout` --> Revoke token and clear session  
 
 ### Events
-- `GET /api/events` --> List all events (sorted by date/status)
-- `POST /api/events` --> Create a new event *(admin only)*
-- `PUT /api/events/:id` --> Update event details or status  *(admin only)*
-- `DELETE /api/events/:id` --> Delete an event *(admin only)*
+- `GET /api/events` --> List all events (with status + date)
+- `GET /api/events/:id` --> Retrieve detailed event info (entrants, matches)
 
 ### Entrants
-- `POST /api/entrants/register` --> Register a user + hero for an event  
-- `DELETE /api/entrants/unregister/:event_id` --> Remove entrant from event  
-- `GET /api/entrants?event_id=X&user_id=Y` --> Filter entrants by user/event  
-- `PUT /api/entrants/:id` --> Update entrant info *(admin only)*  
-- `DELETE /api/entrants/:id` --> Hard/soft delete entrant *(admin only)*  
+- `POST /api/entrants/register` --> Register a logged-in user + hero for an event  
+- `DELETE /api/entrants/unregister/:event_id` --> Withdraw entrant from event  
+- `GET /api/entrants?event_id=X&user_id=Y` --> Fetch entrant details for a user/event  
 
 ### Matches
-- `GET /api/matches?event_id=X` --> List all matches for an event  
-- `POST /api/matches` --> Create new match *(admin only)*  
-- `PUT /api/matches/:id` --> Update score/winner *(admin only)*  
-- `DELETE /api/matches/:id` --> Delete match *(admin only)*  
+- `GET /api/matches?event_id=X` --> List all matches for a given event  
 
 ### Analytics
-- `/api/analytics/usage` --> Participation stats  
-- `/api/analytics/results` --> Match outcomes  
-- `/api/analytics/heroes` --> Hero usage + win rates
+- `GET /api/analytics/usage` --> Hero participation and event distribution  
+- `GET /api/analytics/results` --> Aggregate win/loss outcomes  
+- `GET /api/analytics/heroes` --> Hero usage + win rate summaries
 
 ---
 
 ## Data Models
-
 **User**
 - `id` --> Integer (Primary key)
 - `username` --> String (Unique display name)
@@ -261,81 +345,94 @@ Validation Logic:
   - One event --> many matches
   - One entrant --> many matches
 
+### Entity Relationship Diagram (ERD)
+This diagram illustrates the relationships between users, heroes, events, entrants, and matches within Hero League Hub.  
+Entrants act as the central join table — linking each user’s chosen hero to a specific event and allowing match results and analytics to be tied together seamlessly.
+
+![Hero League Hub – Entity Relationship Diagram (ERD)](./frontend/public/Hero%20League%20Hub%20ERD.jpeg)
+
+Full-sized diagram available on [Lucidchart](https://lucid.app/lucidchart/1ee204f1-6aae-423c-8d5d-29721f41a476/edit?view_items=LDKVFQbEoa1b&invitationId=inv_ce5ba8a7-bf7a-4af5-be3c-aa86228c2a80)
+
 ---
 
 ## Project Structure
-```
+```bash
 .
-├── backend
-│   ├── app/
-│   │   ├── __init__.py             # App factory and extension setup
-│   │   ├── blocklist.py            # JWT blocklist handling
-│   │   ├── config.py               # Dynamic Docker/local config detection
-│   │   ├── extensions.py           # SQLAlchemy, Migrate, JWT initialization
-│   │   ├── models/
-│   │   │   ├── analytics_utils.py  # Aggregation helpers for analytics endpoints
-│   │   │   └── models.py           # Core ORM models: User, Hero, Event, Entrant, Match
-│   │   └── routes/
-│   │       ├── analytics.py        # /api/analytics endpoints
-│   │       ├── auth.py             # Auth routes
-│   │       ├── entrants.py         # Entrant registration logic
-│   │       ├── events.py           # Event CRUD
-│   │       ├── heroes.py           # Hero API + search
-│   │       └── matches.py          # Match CRUD + scoring
-│   ├── manage.py                   # Unified Flask CLI (migrate, seed, reset)
-│   ├── scripts/
-│   │   ├── initdb/01-create-test-db.sql  # Auto-creates test DB in Docker
-│   │   ├── run-helper.js           # Smart runner: auto-detects Docker vs Pipenv
-│   │   └── seed_db.py              # Truncates + seeds all tables
-│   ├── seeds/                      # JSON datasets (events, heroes, users, entrants, matches)
-│   ├── tests/                      # Pytest backend suite
-│   ├── migrations/                 # Alembic migrations
-│   ├── requirements.txt            # Backend dependencies
-│   ├── Dockerfile.backend          # Backend container config
-│   └── wsgi.py                     # Production entrypoint
-├── frontend
-│   ├── src/
-│   │   ├── components/             # React pages + dashboards
-│   │   ├── context/                # AuthContext for login/session
-│   │   ├── __tests__/              # Vitest + RTL test suite
-│   │   ├── api.js                  # Fetch utilities
-│   │   ├── setupTests.js           # Global Vitest/RTL setup
-│   │   ├── test-utils.jsx          # Router + AuthContext test helpers
-│   │   └── main.jsx                # Entry point
-│   ├── vite.config.js              # Dev proxy + build config
-│   ├── package.json                # Frontend scripts/deps
-│   ├── Dockerfile.frontend         # Frontend container config
-│   └── public/                     # Static assets
-├── docker-compose.yml              # Full-stack orchestration
-├── package.json                    # Unified npm scripts
-├── pytest.ini                      # Pytest config
-├── Pipfile / Pipfile.lock          # Pipenv environment
-├── LICENSE                         # MIT license
-└── README.md                       # Documentation (this file)
+├── backend/                         # Flask backend
+│   ├── app/                         # Core application package
+│   │   ├── __init__.py              # Flask app factory + extension initialization
+│   │   ├── blocklist.py             # JWT token blocklist for revoked tokens
+│   │   ├── config.py                # Environment-aware configuration (Docker/local)
+│   │   ├── extensions.py            # SQLAlchemy, Migrate, and JWT setup
+│   │   ├── models/                  # ORM models (User, Hero, Event, Entrant, Match)
+│   │   └── routes/                  # REST API route blueprints
+│   ├── Dockerfile.backend           # Backend container definition
+│   ├── manage.py                    # Flask CLI entry (migrate, seed, reset)
+│   ├── requirements.txt             # Backend dependency list
+│   ├── scripts/                     # Helper scripts and SQL setup
+│   │   ├── initdb/                  # Database initialization SQL scripts
+│   │   ├── run-helper.js            # Smart runner: detects Docker vs Pipenv
+│   │   └── seed_db.py               # Seeds sample data into tables
+│   ├── seeds/                       # JSON data for seeding local dev
+│   ├── tests/                       # Backend pytest suite
+│   └── wsgi.py                      # Production entrypoint
+│
+├── frontend/                        # React frontend
+│   ├── public/                      # Static assets
+│   │   ├── screenshots/             # App screenshots for documentation
+│   │   └── vite.svg                 # Default Vite logo
+│   ├── src/                         # Source code
+│   │   ├── __tests__/               # Vitest + React Testing Library tests
+│   │   ├── components/              # React components and pages
+│   │   ├── context/                 # Global AuthContext provider
+│   │   ├── utils/                   # Shared helpers (filters, formatters)
+│   │   ├── api.js                   # API wrapper for fetch calls
+│   │   ├── setupTests.js            # Global test setup (mocks, JSDOM)
+│   │   ├── test-utils.jsx           # Render helpers for testing with Router/Auth
+│   │   ├── main.jsx                 # React entry point
+│   │   ├── App.jsx / App.css        # Root component and global styling
+│   │   └── index.css                # Theme + layout styling
+│   ├── vite.config.js               # Dev/build configuration
+│   ├── eslint.config.js             # ESLint setup for frontend
+│   ├── index.html                   # Root HTML template
+│   ├── package.json                 # Frontend scripts/dependencies
+│   └── package-lock.json
+│
+├── docker-compose.yml               # Multi-container orchestration (backend, db, frontend)
+├── Dockerfile.frontend              # Frontend container definition
+│
+├── Pipfile / Pipfile.lock           # Pipenv environment + dependencies
+├── pyproject.toml                   # Formatting/linting tools (Black, Flake8)
+├── pytest.ini                       # Pytest configuration
+├── LICENSE                          # MIT license
+├── package.json                     # Unified npm scripts (root-level commands)
+└── README.md                        # Documentation (this file)
 ```
 
 ---
 
 ## Known Issues
-- Hero images from [external API](https://superheroapi.com/index.html) may fail intermittently
+- External hero images occasionally fail
 - Some analytics still mock data
-- Some admin controls and routes/endpoints visible on user-facing pages
-- Seed resets all data (no persistence separation yet)
-- Minor UI flicker when switching Analytics tabs
+- Some admin routes visible on user-facing pages
+- Seed resets data (no persistence separation yet)
+- Minor UI flicker on Analytics tab switch
 - Frontend tests rely on `vi.fn` mocks for fetch requests
-- `MUI Select` components require test mocking for Vitest
-- Withdraw button from EventDetails page not wired up to soft or hard delete entrant
-- Still need to add fallback image for broken hero URLs
-- Add Dashboard link to Navbar (only when authenticated)
-- Update route guards (ProtectedRoute) to ensure the dashboard and analytics tabs are behind auth redirects and events and heroes are not
-- move Heroes page sorting logic to backend for consistent ordering across pages
+- Withdraw button not wired to entrant deletion
+- Add fallback image for missing heroes
+- Need dashboard link in navbar
+- Move hero search table's sorting logic to backend
+
+---
 
 ## Future Improvements
-- Bracket visualization for events
-- Expanded analytics (per-user stats, matchup trends)
-- Separate persistent vs. demo seed databases
-- Improved error handling + loading UX
-- Full test coverage of analytics + auth edge cases
+- Bracket visualization
+- Per-user + matchup analytics
+- Persistent vs. demo DB separation
+- Improved error + loading UX
+- Full analytics/auth test coverage
+- Utilize alias field for hero metadata
+- Add `created_at` and `updated_at` audit fields to models
 
 ---
 

@@ -3,6 +3,7 @@
 // Notes:
 // - Adds avatar, total W-L record, and opponent win % summary on the left panel.
 // - Removes auto-refresh interval; adds manual refresh icon button beside Withdraw.
+// - Includes data-testid attributes for testing stability.
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate, Link as RouterLink, useNavigate } from "react-router-dom";
@@ -72,7 +73,7 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <Container sx={{ mt: 6, textAlign: "center" }}>
+      <Container sx={{ mt: 6, textAlign: "center" }} data-testid="event-detail-loading">
         <Typography variant="h6" gutterBottom>
           Loading event...
         </Typography>
@@ -83,7 +84,7 @@ export default function EventDetail() {
 
   if (error) {
     return (
-      <Container sx={{ mt: 6, textAlign: "center" }}>
+      <Container sx={{ mt: 6, textAlign: "center" }} data-testid="event-detail-error">
         <Typography variant="h6" color="error" role="alert">
           {error}
         </Typography>
@@ -115,8 +116,7 @@ export default function EventDetail() {
     const oppMatches = event.matches?.filter(
       (x) => x.entrant1_id === opponent.id || x.entrant2_id === opponent.id
     );
-    const oppWins =
-      oppMatches?.filter((x) => x.winner_id === opponent.id).length || 0;
+    const oppWins = oppMatches?.filter((x) => x.winner_id === opponent.id).length || 0;
     const oppLosses =
       oppMatches?.filter(
         (x) =>
@@ -170,7 +170,7 @@ export default function EventDetail() {
   };
 
   return (
-    <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
+    <Container maxWidth={false} sx={{ mt: 4, px: 2 }} data-testid="event-detail">
       {/* Header */}
       <Box display="flex" alignItems="center" gap={2} sx={{ mb: 3 }}>
         <Button component={RouterLink} to="/events" variant="outlined">
@@ -179,10 +179,11 @@ export default function EventDetail() {
         <Typography variant="subtitle1" color="text.secondary">
           Event Details
         </Typography>
-        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold" }} data-testid="event-header">
           {event.name} — {event.date}
         </Typography>
         <Typography
+          data-testid="event-status"
           sx={{
             textTransform: "uppercase",
             ml: 2,
@@ -191,10 +192,10 @@ export default function EventDetail() {
               event.status === "published"
                 ? "success.main"
                 : event.status === "completed"
-                ? "info.main"
-                : event.status === "cancelled"
-                ? "error.main"
-                : "text.secondary",
+                  ? "info.main"
+                  : event.status === "cancelled"
+                    ? "error.main"
+                    : "text.secondary",
           }}
         >
           {event.status}
@@ -206,6 +207,7 @@ export default function EventDetail() {
         {/* Left panel */}
         <Grid item xs={12} md={2.5}>
           <Paper
+            data-testid="left-panel"
             sx={{
               p: 2,
               height: 575,
@@ -239,7 +241,7 @@ export default function EventDetail() {
                   You’re registered for this event!
                 </Typography>
 
-                <Typography variant="body1" fontWeight="bold">
+                <Typography variant="body1" fontWeight="bold" data-testid="record">
                   Record: {wins}-{losses}
                 </Typography>
 
@@ -269,42 +271,6 @@ export default function EventDetail() {
                   Avg Opponent Win %: {avgOpponentWinRate}
                 </Typography>
 
-                {myMatches?.length > 0 && (
-                  <Box sx={{ mt: 2, width: "100%" }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Recent Opponents
-                    </Typography>
-                    {myMatches
-                      .slice(-3)
-                      .reverse()
-                      .map((m) => {
-                        const opponent =
-                          m.entrant1_id === myEntrant?.id ? m.entrant2 : m.entrant1;
-                        if (!opponent) return null;
-                        return (
-                          <Typography
-                            key={m.id}
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ fontSize: 13 }}
-                          >
-                            {opponent.name} ({m.scores}){" "}
-                            {m.winner_id === myEntrant?.id ? "✅" : "❌"}
-                          </Typography>
-                        );
-                      })}
-                  </Box>
-                )}
-
-                <Typography
-                  variant="caption"
-                  color="text.disabled"
-                  sx={{ mt: "auto", fontStyle: "italic" }}
-                >
-                  “Victory favors the prepared.”
-                </Typography>
-
-                {/* Withdraw + Refresh Row */}
                 <Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
                   <Button variant="outlined" color="secondary">
                     Withdraw
@@ -315,6 +281,7 @@ export default function EventDetail() {
                       color="primary"
                       size="small"
                       aria-label="refresh"
+                      data-testid="refresh-btn"
                     >
                       <RefreshIcon />
                     </IconButton>
@@ -357,7 +324,10 @@ export default function EventDetail() {
             <Typography variant="h6" gutterBottom>
               Entrants
             </Typography>
-            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}>
+            <Box
+              sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
+              data-testid="entrants-table"
+            >
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -381,9 +351,13 @@ export default function EventDetail() {
                   {sortedEntrants?.map((entrant) => (
                     <TableRow key={entrant.id}>
                       <TableCell>{entrant.id}</TableCell>
-                      <TableCell>{entrant.dropped ? "Dropped" : entrant.name || "-"}</TableCell>
                       <TableCell>
-                        {entrant.dropped ? "-" : entrant.hero?.name || entrant.alias || "-"}
+                        {entrant.dropped ? "Dropped" : entrant.name || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {entrant.dropped
+                          ? "-"
+                          : entrant.hero?.name || entrant.alias || "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -399,24 +373,29 @@ export default function EventDetail() {
             <Typography variant="h6" gutterBottom>
               Matches
             </Typography>
-            <Box sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}>
+            <Box
+              sx={{ flex: 1, overflowY: "auto", maxHeight: 500 }}
+              data-testid="matches-table"
+            >
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    {["id", "round", "entrant1", "entrant2", "scores", "winner"].map((col) => (
-                      <TableCell
-                        key={col}
-                        sortDirection={matchOrderBy === col ? matchOrder : false}
-                      >
-                        <TableSortLabel
-                          active={matchOrderBy === col}
-                          direction={matchOrderBy === col ? matchOrder : "asc"}
-                          onClick={() => handleMatchSort(col)}
+                    {["id", "round", "entrant1", "entrant2", "scores", "winner"].map(
+                      (col) => (
+                        <TableCell
+                          key={col}
+                          sortDirection={matchOrderBy === col ? matchOrder : false}
                         >
-                          {col.charAt(0).toUpperCase() + col.slice(1)}
-                        </TableSortLabel>
-                      </TableCell>
-                    ))}
+                          <TableSortLabel
+                            active={matchOrderBy === col}
+                            direction={matchOrderBy === col ? matchOrder : "asc"}
+                            onClick={() => handleMatchSort(col)}
+                          >
+                            {col.charAt(0).toUpperCase() + col.slice(1)}
+                          </TableSortLabel>
+                        </TableCell>
+                      )
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -425,10 +404,14 @@ export default function EventDetail() {
                       <TableCell>{m.id}</TableCell>
                       <TableCell>{m.round}</TableCell>
                       <TableCell>
-                        {m.entrant1 ? `${m.entrant1.name} (${m.entrant1.hero?.name})` : "-"}
+                        {m.entrant1
+                          ? `${m.entrant1.name} (${m.entrant1.hero?.name})`
+                          : "-"}
                       </TableCell>
                       <TableCell>
-                        {m.entrant2 ? `${m.entrant2.name} (${m.entrant2.hero?.name})` : "-"}
+                        {m.entrant2
+                          ? `${m.entrant2.name} (${m.entrant2.hero?.name})`
+                          : "-"}
                       </TableCell>
                       <TableCell>{m.scores}</TableCell>
                       <TableCell>

@@ -124,7 +124,11 @@ export default function Heroes() {
 
       if (parsedEntrant) {
         const eventName = parsedEntrant.event?.name || "your current event";
-        if (!window.confirm(`You are registered for ${eventName}. Replace your hero with ${hero.name}?`)) {
+        if (
+          !window.confirm(
+            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
+          )
+        ) {
           return;
         }
         parsedEntrant.hero = hero;
@@ -140,13 +144,18 @@ export default function Heroes() {
     }
   }
 
-  const formatAliases = (aliases) => (Array.isArray(aliases) ? aliases.join(", ") : aliases || "-");
+  const formatAliases = (aliases) =>
+    Array.isArray(aliases) ? aliases.join(", ") : aliases || "-";
 
   const formatLabel = (key) =>
-    key.replace(/_/g, " ").replace(/-/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\b\w/g, (c) => c.toUpperCase());
+    key
+      .replace(/_/g, " ")
+      .replace(/-/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
-    <Container sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }} data-testid="heroes-container">
       <Typography
         variant="h4"
         align="center"
@@ -157,7 +166,12 @@ export default function Heroes() {
       </Typography>
 
       {/* Placeholder layout and filters */}
-      <Grid container justifyContent="space-between" sx={{ mb: 2 }}>
+      <Grid
+        container
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+        data-testid="heroes-filter-grid"
+      >
         <Grid item xs={12} sm={4} md={3}>
           <Box
             sx={{
@@ -185,16 +199,23 @@ export default function Heroes() {
           xs={12}
           sm={4}
           md={6}
-          sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 2,
+          }}
+          data-testid="search-filter-container"
         >
           <TextField
             label="Search Heroes"
             aria-label="search heroes"
+            data-testid="search-heroes-input"
             value={search}
             onChange={handleSearchChange}
             size="small"
           />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 150 }} data-testid="alignment-form">
             <InputLabel id="alignment-filter-label">Alignment</InputLabel>
             <Select
               labelId="alignment-filter-label"
@@ -202,12 +223,23 @@ export default function Heroes() {
               value={alignmentFilter}
               onChange={(e) => setAlignmentFilter(e.target.value)}
               data-testid="alignment-filter"
+              aria-label="alignment filter"
             >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="hero">Hero</MenuItem>
-              <MenuItem value="villain">Villain</MenuItem>
-              <MenuItem value="antihero">Antihero</MenuItem>
-              <MenuItem value="unknown">Unknown</MenuItem>
+              <MenuItem value="all" data-testid="filter-all">
+                All
+              </MenuItem>
+              <MenuItem value="hero" data-testid="filter-hero">
+                Hero
+              </MenuItem>
+              <MenuItem value="villain" data-testid="filter-villain">
+                Villain
+              </MenuItem>
+              <MenuItem value="antihero" data-testid="filter-antihero">
+                Antihero
+              </MenuItem>
+              <MenuItem value="unknown" data-testid="filter-unknown">
+                Unknown
+              </MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -236,35 +268,49 @@ export default function Heroes() {
       </Grid>
 
       {loading && (
-        <Box textAlign="center" mt={2}>
-          <CircularProgress />
-          <Typography>Loading heroes...</Typography>
+        <Box textAlign="center" mt={2} data-testid="loading-state">
+          <CircularProgress data-testid="loading-spinner" />
+          <Typography data-testid="loading-text">Loading heroes...</Typography>
         </Box>
       )}
 
       {error && (
-        <Typography color="error" role="alert" align="center" sx={{ mt: 2 }}>
+        <Typography
+          color="error"
+          role="alert"
+          align="center"
+          sx={{ mt: 2 }}
+          data-testid="error-alert"
+        >
           {error}
         </Typography>
       )}
 
-      {!loading && !error && heroes.length === 0 && (search || alignmentFilter !== "all") && (
-        <Typography align="center" sx={{ mt: 2 }}>
-          No heroes found
-        </Typography>
-      )}
+      {!loading &&
+        !error &&
+        heroes.length === 0 &&
+        (search || alignmentFilter !== "all") && (
+          <Typography align="center" sx={{ mt: 2 }} data-testid="no-heroes-text">
+            No heroes found
+          </Typography>
+        )}
 
       {heroes.length > 0 && (
-        <Box>
-          <Table size="small" data-testid="heroes-table">
-            <TableHead>
+        <Box data-testid="heroes-results-section">
+          <Table size="small" data-testid="heroes-table" aria-label="heroes table">
+            <TableHead data-testid="heroes-table-head">
               <TableRow>
                 {["id", "name", "full_name", "alias", "alignment"].map((col) => (
-                  <TableCell key={col} sortDirection={orderBy === col ? order : false}>
+                  <TableCell
+                    key={col}
+                    data-testid={`header-${col}`}
+                    sortDirection={orderBy === col ? order : false}
+                  >
                     <TableSortLabel
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
+                      data-testid={`sort-${col}`}
                     >
                       {formatLabel(col)}
                     </TableSortLabel>
@@ -272,7 +318,7 @@ export default function Heroes() {
                 ))}
               </TableRow>
             </TableHead>
-            <TableBody>
+            <TableBody data-testid="heroes-table-body">
               {sortedHeroes.map((hero) => (
                 <TableRow
                   key={hero.id}
@@ -280,12 +326,21 @@ export default function Heroes() {
                   onClick={() => setSelectedHero(hero)}
                   sx={{ cursor: "pointer" }}
                   data-testid={`hero-row-${hero.id}`}
+                  aria-label={`hero-row-${hero.id}`}
                 >
-                  <TableCell>{hero.id}</TableCell>
-                  <TableCell>{hero.name}</TableCell>
-                  <TableCell>{hero.full_name || "-"}</TableCell>
-                  <TableCell>{formatAliases(hero.alias)}</TableCell>
-                  <TableCell>{hero.alignment || "-"}</TableCell>
+                  <TableCell data-testid={`hero-id-${hero.id}`}>{hero.id}</TableCell>
+                  <TableCell data-testid={`hero-name-${hero.id}`}>
+                    {hero.name}
+                  </TableCell>
+                  <TableCell data-testid={`hero-fullname-${hero.id}`}>
+                    {hero.full_name || "-"}
+                  </TableCell>
+                  <TableCell data-testid={`hero-alias-${hero.id}`}>
+                    {formatAliases(hero.alias)}
+                  </TableCell>
+                  <TableCell data-testid={`hero-alignment-${hero.id}`}>
+                    {hero.alignment || "-"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -302,6 +357,11 @@ export default function Heroes() {
               setPage(0);
             }}
             rowsPerPageOptions={[25, 50, 100]}
+            labelDisplayedRows={({ from, to, count }) => (
+              <span data-testid="pagination-info" aria-label="pagination info">
+                {`${from}-${to} of ${count}`}
+              </span>
+            )}
           />
         </Box>
       )}
@@ -313,11 +373,12 @@ export default function Heroes() {
         maxWidth="sm"
         fullWidth
         data-testid="hero-dialog"
+        aria-label="hero details dialog"
       >
         <DialogTitle data-testid="hero-dialog-title">{selectedHero?.name}</DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers data-testid="hero-dialog-content">
           {dialogImgSrc(selectedHero) ? (
-            <Box textAlign="center" mb={2}>
+            <Box textAlign="center" mb={2} data-testid="hero-image-box">
               <img
                 src={dialogImgSrc(selectedHero)}
                 alt={selectedHero?.name}
@@ -330,22 +391,31 @@ export default function Heroes() {
               />
             </Box>
           ) : (
-            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography
+              align="center"
+              color="text.secondary"
+              sx={{ mb: 2 }}
+              data-testid="no-hero-image"
+            >
               No image available
             </Typography>
           )}
 
-          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
+          <Typography
+            align="center"
+            sx={{ fontWeight: "bold", mb: 1 }}
+            data-testid="hero-alignment-text"
+          >
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
           {selectedHero?.powerstats && (
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ mb: 2 }} data-testid="hero-powerstats">
               <Typography variant="subtitle1" gutterBottom>
                 Powerstats
               </Typography>
               {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
-                <Typography key={stat}>
+                <Typography key={stat} data-testid={`stat-${stat}`}>
                   <strong>{formatLabel(stat)}:</strong> {val}
                 </Typography>
               ))}
@@ -353,13 +423,16 @@ export default function Heroes() {
           )}
 
           {selectedHero?.biography && (
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Accordion data-testid="bio-accordion">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="bio-summary"
+              >
                 <Typography variant="subtitle1">Biography</Typography>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails data-testid="bio-details">
                 {Object.entries(selectedHero.biography).map(([key, val]) => (
-                  <Typography key={key}>
+                  <Typography key={key} data-testid={`bio-${key}`}>
                     <strong>{formatLabel(key)}:</strong>{" "}
                     {key.toLowerCase().includes("alias")
                       ? formatAliases(val)
@@ -371,13 +444,16 @@ export default function Heroes() {
           )}
 
           {selectedHero?.appearance && (
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Accordion data-testid="appearance-accordion">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="appearance-summary"
+              >
                 <Typography variant="subtitle1">Appearance</Typography>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails data-testid="appearance-details">
                 {Object.entries(selectedHero.appearance).map(([key, val]) => (
-                  <Typography key={key}>
+                  <Typography key={key} data-testid={`appearance-${key}`}>
                     <strong>{formatLabel(key)}:</strong>{" "}
                     {Array.isArray(val) ? val.join(", ") : val || "-"}
                   </Typography>
@@ -387,13 +463,16 @@ export default function Heroes() {
           )}
 
           {selectedHero?.work && (
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Accordion data-testid="work-accordion">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="work-summary"
+              >
                 <Typography variant="subtitle1">Work</Typography>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails data-testid="work-details">
                 {Object.entries(selectedHero.work).map(([key, val]) => (
-                  <Typography key={key}>
+                  <Typography key={key} data-testid={`work-${key}`}>
                     <strong>{formatLabel(key)}:</strong> {val || "-"}
                   </Typography>
                 ))}
@@ -402,13 +481,16 @@ export default function Heroes() {
           )}
 
           {selectedHero?.connections && (
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Accordion data-testid="connections-accordion">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="connections-summary"
+              >
                 <Typography variant="subtitle1">Connections</Typography>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails data-testid="connections-details">
                 {Object.entries(selectedHero.connections).map(([key, val]) => (
-                  <Typography key={key}>
+                  <Typography key={key} data-testid={`connections-${key}`}>
                     <strong>{formatLabel(key)}:</strong> {val || "-"}
                   </Typography>
                 ))}
@@ -416,11 +498,13 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Box sx={{ mt: 3, textAlign: "center" }} data-testid="choose-hero-section">
             <Button
               variant="contained"
               color="primary"
               onClick={() => handleChooseHero(selectedHero)}
+              data-testid="choose-hero-btn"
+              aria-label="choose hero"
             >
               Choose Hero
             </Button>

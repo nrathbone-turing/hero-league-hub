@@ -63,8 +63,8 @@ def get_events():
             .group_by(Event.id)
             .order_by(
                 desc(Event.date),  # newest first
-                STATUS_ORDER,      # published → drafting → completed → cancelled
-                asc(Event.name),   # alphabetical
+                STATUS_ORDER,  # published → drafting → completed → cancelled
+                asc(Event.name),  # alphabetical
             )
             .all()
         )
