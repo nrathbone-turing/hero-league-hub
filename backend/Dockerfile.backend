@@ -30,6 +30,9 @@ RUN pip install --no-cache-dir pipenv && \
 # Copy backend code
 COPY backend /app/backend
 
+# Link migrations folder to top-level /app for Flask-Migrate
+RUN ln -s /app/backend/migrations /app/migrations
+
 # Expose Flask port
 EXPOSE 5500
 
