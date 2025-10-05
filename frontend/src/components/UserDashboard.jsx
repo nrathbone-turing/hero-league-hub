@@ -1,10 +1,8 @@
 // File: frontend/src/components/UserDashboard.jsx
-// Purpose: Participant dashboard.
+// Purpose: Participant dashboard with hero and event details.
 // Notes:
-// - Persists chosenHero across sessions, even if user unregisters.
-// - Cancels registration but does NOT wipe chosenHero unless matches exist.
-// - Syncs with backend first to prevent stale localStorage after reseeding.
-// - Renders hero powerstats and event details when available.
+// - Adds "Remove Hero" option
+// - Makes event name clickable to navigate to event detail page
 
 import { useAuth } from "../context/AuthContext";
 import { deleteEntrant, apiFetch } from "../api";
@@ -42,7 +40,6 @@ export default function UserDashboard() {
       }
     }
 
-    // fallback: just hero
     const storedHero = heroKey ? localStorage.getItem(heroKey) : null;
     if (storedHero) {
       try {
@@ -62,7 +59,6 @@ export default function UserDashboard() {
         setEntrant(backendEntrant);
         if (backendEntrant.hero) setChosenHero(backendEntrant.hero);
 
-        // keep localStorage in sync
         localStorage.setItem(`entrant_${user.id}`, JSON.stringify(backendEntrant));
         if (backendEntrant.hero) {
           localStorage.setItem(
@@ -71,7 +67,6 @@ export default function UserDashboard() {
           );
         }
       } else {
-        // No backend entrant → clear stale storage
         setEntrant(null);
         localStorage.removeItem(`entrant_${user.id}`);
       }
@@ -82,13 +77,9 @@ export default function UserDashboard() {
 
   useEffect(() => {
     syncFromStorage();
-
-    // Delay backend sync slightly to avoid race with localStorage
     const timeout = setTimeout(() => syncWithBackend(), 150);
-
     const handler = () => syncFromStorage();
     window.addEventListener("storage", handler);
-
     return () => {
       window.removeEventListener("storage", handler);
       clearTimeout(timeout);
@@ -104,10 +95,8 @@ export default function UserDashboard() {
 
     try {
       await deleteEntrant(entrant.id);
-
       localStorage.removeItem(`entrant_${user.id}`);
 
-      // Only clear hero if entrant had matches
       if (entrant.matches && entrant.matches.length > 0) {
         localStorage.removeItem(`chosenHero_${user.id}`);
         setChosenHero(null);
@@ -118,6 +107,12 @@ export default function UserDashboard() {
       console.error("Failed to unregister", err);
       alert("❌ Failed to cancel registration");
     }
+  }
+
+  function handleRemoveHero() {
+    if (!window.confirm("Remove your chosen hero?")) return;
+    localStorage.removeItem(`chosenHero_${user.id}`);
+    setChosenHero(null);
   }
 
   return (
@@ -136,7 +131,6 @@ export default function UserDashboard() {
                   variant="h6"
                   align="center"
                   sx={{ fontWeight: "bold", mb: 2 }}
-                  data-testid="hero-alignment"
                 >
                   {chosenHero.alignment?.toUpperCase() || "UNKNOWN"}
                 </Typography>
@@ -145,7 +139,6 @@ export default function UserDashboard() {
                     <img
                       src={chosenHero.proxy_image}
                       alt={chosenHero.name}
-                      data-testid="hero-image"
                       style={{
                         maxWidth: "100%",
                         borderRadius: "8px",
@@ -154,23 +147,17 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography
-                  variant="h5"
-                  align="center"
-                  gutterBottom
-                  data-testid="hero-name"
-                >
+                <Typography variant="h5" align="center" gutterBottom>
                   {chosenHero.name}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="hero-full-name">
+                <Typography align="center" gutterBottom>
                   {chosenHero.full_name || "-"}
                 </Typography>
-                <Typography data-testid="hero-alias">
+                <Typography align="center">
                   <strong>Alias:</strong> {chosenHero.alias || "-"}
                 </Typography>
 
-                {/* Powerstats block */}
-                <Box sx={{ mt: 2 }} data-testid="hero-powerstats">
+                <Box sx={{ mt: 2 }}>
                   {chosenHero.powerstats &&
                     Object.entries(chosenHero.powerstats).map(([key, value]) => (
                       <Typography key={key} align="center">
@@ -184,22 +171,24 @@ export default function UserDashboard() {
                     variant="outlined"
                     color="secondary"
                     onClick={() => navigate("/heroes")}
-                    data-testid="choose-another-hero"
+                    sx={{ mr: 2 }}
                   >
                     Choose Another Hero
+                  </Button>
+                  <Button variant="outlined" color="error" onClick={handleRemoveHero}>
+                    Remove Hero
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }} data-testid="hero-card-empty">
+            <Card sx={{ p: 2 }}>
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t selected your hero yet.</Typography>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/heroes")}
-                  data-testid="choose-hero-btn"
                 >
                   Choose Hero
                 </Button>
@@ -211,7 +200,7 @@ export default function UserDashboard() {
         {/* Event card */}
         <Grid item xs={12} md={6}>
           {entrant ? (
-            <Card sx={{ p: 2 }} data-testid="event-card">
+            <Card sx={{ p: 2 }}>
               <CardContent>
                 <Typography
                   variant="h6"
@@ -224,25 +213,32 @@ export default function UserDashboard() {
                   variant="h5"
                   align="center"
                   gutterBottom
-                  data-testid="event-name"
+                  sx={{
+                    cursor: "pointer",
+                    color: "primary.main",
+                    "&:hover": { textDecoration: "underline" },
+                  }}
+                  onClick={() =>
+                    entrant.event?.id && navigate(`/events/${entrant.event.id}`)
+                  }
                 >
                   {entrant.event?.name || "Event"}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="event-date">
+                <Typography align="center" gutterBottom>
                   {entrant.event?.date || "TBA"}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="event-status">
+                <Typography align="center" gutterBottom>
                   Status: {entrant.event?.status || "-"}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="event-entrants">
+                <Typography align="center" gutterBottom>
                   Entrants: {entrant.event?.entrant_count ?? "-"}
                 </Typography>
+
                 <Box textAlign="center" my={2}>
                   {entrant.hero?.proxy_image && (
                     <img
                       src={entrant.hero.proxy_image}
                       alt={entrant.hero.name}
-                      data-testid="event-hero-image"
                       style={{
                         maxWidth: "200px",
                         borderRadius: "8px",
@@ -251,17 +247,13 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography variant="h6" align="center" data-testid="event-hero-name">
+                <Typography variant="h6" align="center">
                   {entrant.hero?.name}
                 </Typography>
-                <Typography
-                  align="center"
-                  gutterBottom
-                  data-testid="event-hero-full-name"
-                >
+                <Typography align="center" gutterBottom>
                   {entrant.hero?.full_name || "-"}
                 </Typography>
-                <Typography align="center" gutterBottom data-testid="event-hero-alias">
+                <Typography align="center" gutterBottom>
                   Alias: {entrant.hero?.alias || "-"}
                 </Typography>
                 <Box sx={{ mt: 3, textAlign: "center" }}>
@@ -270,7 +262,6 @@ export default function UserDashboard() {
                     color="secondary"
                     onClick={() => navigate("/register-event")}
                     sx={{ mr: 2 }}
-                    data-testid="change-registration-btn"
                   >
                     Change Registration
                   </Button>
@@ -278,7 +269,6 @@ export default function UserDashboard() {
                     variant="outlined"
                     color="error"
                     onClick={handleCancelRegistration}
-                    data-testid="cancel-registration-btn"
                   >
                     Cancel Registration
                   </Button>
@@ -286,14 +276,13 @@ export default function UserDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }} data-testid="event-card-empty">
+            <Card sx={{ p: 2 }}>
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t registered for an event yet.</Typography>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/register-event")}
-                  data-testid="register-event-btn"
                 >
                   Register for Event
                 </Button>
