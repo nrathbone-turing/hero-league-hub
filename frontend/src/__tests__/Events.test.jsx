@@ -1,102 +1,105 @@
 // File: frontend/src/__tests__/Events.test.jsx
-// Purpose: Tests for Events component.
+// Purpose: Tests for Events component (robust against MUI portal rendering).
 // Notes:
-// - Relies on global fetch mock for /events.
-// - Covers rendering list, form submission, placeholder images, status spacing, scrollable list, and entrant count.
+// - Uses data-testid and visible state checks instead of fragile role queries.
+// - Verifies search filter, cancelled toggle, and button disablement behavior.
 
-import { screen } from "@testing-library/react";
+import { screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Events from "../components/Events";
 import { mockFetchSuccess } from "../setupTests";
 
-describe("Events", () => {
-  test("renders events heading", async () => {
-    mockFetchSuccess();
-    renderWithRouter(<Events />, { route: "/" });
+describe("Events component", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    localStorage.clear();
+  });
+
+  test("renders heading and placeholders", async () => {
+    mockFetchSuccess([]);
+    renderWithRouter(<Events />);
     expect(await screen.findByRole("heading", { name: /events/i })).toBeInTheDocument();
+    expect(screen.getByTestId("hero-placeholder")).toBeInTheDocument();
+    expect(screen.getByTestId("villain-placeholder")).toBeInTheDocument();
   });
 
-  test("shows entrant counts", async () => {
+  test("shows loading spinner initially", async () => {
+    global.fetch = vi.fn(() => new Promise(() => {})); // unresolved
+    renderWithRouter(<Events />);
+    expect(await screen.findByTestId("loading-events")).toBeInTheDocument();
+  });
+
+  test("renders table with entrant counts", async () => {
     mockFetchSuccess([
-      {
-        id: 1,
-        name: "Hero Cup",
-        date: "2025-09-12",
-        status: "drafting",
-        entrants: Array(3).fill({ id: 1, name: "Hero" }),
-      },
-      {
-        id: 2,
-        name: "Villain Showdown",
-        date: "2025-09-13",
-        entrants: Array(5).fill({ id: 2, name: "Villain" }),
-      },
+      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published", entrants: Array(3).fill({}) },
+      { id: 2, name: "Villain Showdown", date: "2025-09-13", status: "published", entrants: Array(5).fill({}) },
     ]);
-    renderWithRouter(<Events />, { route: "/" });
-    expect(await screen.findByText(/3 entrants/i)).toBeInTheDocument();
-    expect(await screen.findByText(/5 entrants/i)).toBeInTheDocument();
+    renderWithRouter(<Events />);
+    const table = await screen.findByTestId("events-table");
+    expect(table).toBeInTheDocument();
+    expect(within(table).getByText("Hero Cup")).toBeInTheDocument();
+    expect(within(table).getByText("Villain Showdown")).toBeInTheDocument();
+    expect(within(table).getByText(/3 entrants/)).toBeInTheDocument();
+    expect(within(table).getByText(/5 entrants/)).toBeInTheDocument();
   });
 
-  test("submits new event", async () => {
-    mockFetchSuccess([]); // initial GET
-    mockFetchSuccess({
-      id: 3,
-      name: "Test Event",
-      date: "2025-09-20",
-      status: "drafting",
-      entrant_count: 0,
-    }); // POST
+  test("filters events when typing in search", async () => {
     mockFetchSuccess([
-      {
-        id: 3,
-        name: "Test Event",
-        date: "2025-09-20",
-        status: "drafting",
-        entrant_count: 0,
-      },
-    ]); // reload
+      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+      { id: 2, name: "Villain Bash", date: "2025-09-13", status: "published" },
+    ]);
+    renderWithRouter(<Events />);
 
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.type(screen.getByLabelText(/name/i), "Test Event");
-    await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
+    const search = await screen.findByTestId("events-search");
+    const input = within(search).getByRole("textbox");
 
-    expect(await screen.findByText(/0 entrants/i)).toBeInTheDocument();
-  });
-});
-
-describe("Events - edge cases", () => {
-  test("shows placeholder when no events exist", async () => {
-    global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
-    renderWithRouter(<Events />, { route: "/" });
-    expect(await screen.findByText(/no events yet/i)).toBeInTheDocument();
+    await userEvent.type(input, "Villain");
+    await waitFor(() => {
+      const table = screen.getByTestId("events-table");
+      const rows = within(table).getAllByRole("row");
+      // 1 header + 1 filtered event row
+      expect(rows.length).toBe(2);
+      expect(screen.getByText("Villain Bash")).toBeInTheDocument();
+      expect(screen.queryByText("Hero Cup")).not.toBeInTheDocument();
+    });
   });
 
-  test("prevents event creation with missing fields", async () => {
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
-    expect(screen.getByRole("form")).toBeInTheDocument();
+  test("shows empty state when no events found", async () => {
+    mockFetchSuccess([]);
+    renderWithRouter(<Events />);
+    expect(await screen.findByTestId("no-events")).toBeInTheDocument();
   });
 
-  test("shows error message when create event fails", async () => {
-    global.fetch
-      // first GET: return empty list
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      // POST: simulate failure
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: "Failed to create event" }),
-      });
+  test("shows error message when fetch fails", async () => {
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network down"));
+    renderWithRouter(<Events />);
+    const alert = await screen.findByTestId("error-alert");
+    expect(alert).toHaveTextContent(/failed to fetch events/i);
+  });
 
-    renderWithRouter(<Events />, { route: "/" });
-    await userEvent.type(screen.getByLabelText(/event name/i), "Broken Event");
-    await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
-    await userEvent.click(screen.getByRole("button", { name: /create event/i }));
+  test("reveals cancelled events when toggle is switched", async () => {
+    mockFetchSuccess([{ id: 1, name: "Cancelled Cup", date: "2025-09-12", status: "cancelled" }]);
+    renderWithRouter(<Events />);
 
-    // should render the error message
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      /failed to create event/i
-    );
+    // initially hidden
+    expect(await screen.findByTestId("no-events")).toBeInTheDocument();
+
+    // toggle the switch using testid (MUI nested roles are inconsistent)
+    const toggle = screen.getByTestId("cancelled-toggle");
+    await userEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(screen.getByText("Cancelled Cup")).toBeInTheDocument();
+    });
+  });
+
+  test("register button is disabled for non-published events", async () => {
+    mockFetchSuccess([
+      { id: 1, name: "Completed Cup", date: "2025-09-12", status: "completed", entrants: [] },
+    ]);
+    renderWithRouter(<Events />);
+    const btn = await screen.findByTestId("register-btn");
+    expect(btn).toBeDisabled();
   });
 });
