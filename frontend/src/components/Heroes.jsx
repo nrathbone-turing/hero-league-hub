@@ -1,8 +1,9 @@
 // File: frontend/src/components/Heroes.jsx
-// Purpose: Dynamic hero pool browser with search, pagination, and sortable columns.
+// Purpose: Dynamic hero pool browser with debounced search, alignment filter, and symmetrical placeholder layout.
 // Notes:
-// - Namespaced localStorage by user id.
-// - Stable test selectors via data-testid on table, dialog, and fields.
+// - Adds dropdown filter for alignment (All, Hero, Villain).
+// - Debounces API calls to reduce load on typing.
+// - Layout matches Events.jsx placeholder grid style.
 
 import { useState, useEffect } from "react";
 import {
@@ -25,6 +26,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { apiFetch } from "../api";
@@ -37,6 +43,7 @@ export default function Heroes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [alignmentFilter, setAlignmentFilter] = useState("all");
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -52,18 +59,24 @@ export default function Heroes() {
 
   const navigate = useNavigate();
 
-  async function fetchHeroes(query = "", pageNum = 0, perPage = 25) {
-    if (!query) {
-      setHeroes([]);
-      setError(null);
-      setTotal(0);
-      return;
-    }
+  // --- Debounced Fetch ---
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchHeroes(search, page, rowsPerPage, alignmentFilter);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [search, page, rowsPerPage, alignmentFilter]);
+
+  async function fetchHeroes(query, pageNum, perPage, alignFilter) {
     setLoading(true);
     try {
-      const data = await apiFetch(
-        `/heroes?search=${encodeURIComponent(query)}&page=${pageNum + 1}&per_page=${perPage}`
-      );
+      const url = new URL(`/heroes`, window.location.origin);
+      if (query.trim()) url.searchParams.set("search", query);
+      url.searchParams.set("page", pageNum + 1);
+      url.searchParams.set("per_page", perPage);
+      if (alignFilter !== "all") url.searchParams.set("alignment", alignFilter);
+
+      const data = await apiFetch(url.pathname + "?" + url.searchParams.toString());
       setHeroes(data.results || []);
       setTotal(data.total || 0);
       setError(null);
@@ -75,10 +88,6 @@ export default function Heroes() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    fetchHeroes(search, page, rowsPerPage);
-  }, [search, page, rowsPerPage]);
 
   function handleSearchChange(e) {
     setSearch(e.target.value);
@@ -104,13 +113,7 @@ export default function Heroes() {
 
   const sortedHeroes = sortData(heroes, orderBy, order);
 
-  // Compute dialog image src:
-  const dialogImgSrc = (h) => {
-    if (!h) return null;
-    if (h.proxy_image) return h.proxy_image;
-    if (h.image) return h.image;
-    return null;
-  };
+  const dialogImgSrc = (h) => h?.proxy_image || h?.image || null;
 
   async function handleChooseHero(hero) {
     try {
@@ -121,11 +124,7 @@ export default function Heroes() {
 
       if (parsedEntrant) {
         const eventName = parsedEntrant.event?.name || "your current event";
-        if (
-          !window.confirm(
-            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
-          )
-        ) {
+        if (!window.confirm(`You are registered for ${eventName}. Replace your hero with ${hero.name}?`)) {
           return;
         }
         parsedEntrant.hero = hero;
@@ -141,18 +140,10 @@ export default function Heroes() {
     }
   }
 
-  // Format helpers
-  const formatAliases = (aliases) => {
-    if (!aliases) return "-";
-    return Array.isArray(aliases) ? aliases.join(", ") : aliases;
-  };
+  const formatAliases = (aliases) => (Array.isArray(aliases) ? aliases.join(", ") : aliases || "-");
 
   const formatLabel = (key) =>
-    key
-      .replace(/_/g, " ")
-      .replace(/-/g, " ")
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    key.replace(/_/g, " ").replace(/-/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -165,14 +156,84 @@ export default function Heroes() {
         Heroes
       </Typography>
 
-      <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
-        <TextField
-          label="Search Heroes"
-          aria-label="search heroes"
-          value={search}
-          onChange={handleSearchChange}
-        />
-      </Box>
+      {/* Placeholder layout and filters */}
+      <Grid container justifyContent="space-between" sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={4} md={3}>
+          <Box
+            sx={{
+              bgcolor: "#e0e0e0",
+              borderRadius: 2,
+              height: 180,
+              width: 180,
+              mx: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.8rem",
+              fontWeight: "bold",
+              boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
+            }}
+            aria-label="hero placeholder"
+            data-testid="hero-placeholder"
+          >
+            Hero
+          </Box>
+        </Grid>
+
+        <Grid
+          item
+          xs={12}
+          sm={4}
+          md={6}
+          sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}
+        >
+          <TextField
+            label="Search Heroes"
+            aria-label="search heroes"
+            value={search}
+            onChange={handleSearchChange}
+            size="small"
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="alignment-filter-label">Alignment</InputLabel>
+            <Select
+              labelId="alignment-filter-label"
+              label="Alignment"
+              value={alignmentFilter}
+              onChange={(e) => setAlignmentFilter(e.target.value)}
+              data-testid="alignment-filter"
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="hero">Hero</MenuItem>
+              <MenuItem value="villain">Villain</MenuItem>
+              <MenuItem value="antihero">Antihero</MenuItem>
+              <MenuItem value="unknown">Unknown</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={4} md={3}>
+          <Box
+            sx={{
+              bgcolor: "#e0e0e0",
+              borderRadius: 2,
+              height: 180,
+              width: 180,
+              mx: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.8rem",
+              fontWeight: "bold",
+              boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
+            }}
+            aria-label="villain placeholder"
+            data-testid="villain-placeholder"
+          >
+            Villain
+          </Box>
+        </Grid>
+      </Grid>
 
       {loading && (
         <Box textAlign="center" mt={2}>
@@ -187,7 +248,7 @@ export default function Heroes() {
         </Typography>
       )}
 
-      {!loading && !error && heroes.length === 0 && search && (
+      {!loading && !error && heroes.length === 0 && (search || alignmentFilter !== "all") && (
         <Typography align="center" sx={{ mt: 2 }}>
           No heroes found
         </Typography>
@@ -269,41 +330,30 @@ export default function Heroes() {
               />
             </Box>
           ) : (
-            <Typography
-              align="center"
-              color="text.secondary"
-              sx={{ mb: 2 }}
-              data-testid="no-image-text"
-            >
+            <Typography align="center" color="text.secondary" sx={{ mb: 2 }}>
               No image available
             </Typography>
           )}
 
-          <Typography
-            align="center"
-            sx={{ fontWeight: "bold", mb: 1 }}
-            data-testid="hero-alignment"
-          >
+          <Typography align="center" sx={{ fontWeight: "bold", mb: 1 }}>
             {selectedHero?.alignment?.toUpperCase() || "UNKNOWN"}
           </Typography>
 
-          {/* Powerstats */}
           {selectedHero?.powerstats && (
-            <Box sx={{ mb: 2 }} data-testid="hero-powerstats">
+            <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Powerstats
               </Typography>
               {Object.entries(selectedHero.powerstats).map(([stat, val]) => (
-                <Typography key={stat} data-testid={`powerstat-${stat}`}>
+                <Typography key={stat}>
                   <strong>{formatLabel(stat)}:</strong> {val}
                 </Typography>
               ))}
             </Box>
           )}
 
-          {/* Biography */}
           {selectedHero?.biography && (
-            <Accordion data-testid="hero-biography">
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Biography</Typography>
               </AccordionSummary>
@@ -320,9 +370,8 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Appearance */}
           {selectedHero?.appearance && (
-            <Accordion data-testid="hero-appearance">
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Appearance</Typography>
               </AccordionSummary>
@@ -337,9 +386,8 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Work */}
           {selectedHero?.work && (
-            <Accordion data-testid="hero-work">
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Work</Typography>
               </AccordionSummary>
@@ -353,9 +401,8 @@ export default function Heroes() {
             </Accordion>
           )}
 
-          {/* Connections */}
           {selectedHero?.connections && (
-            <Accordion data-testid="hero-connections">
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="subtitle1">Connections</Typography>
               </AccordionSummary>
@@ -374,7 +421,6 @@ export default function Heroes() {
               variant="contained"
               color="primary"
               onClick={() => handleChooseHero(selectedHero)}
-              data-testid="choose-hero-btn"
             >
               Choose Hero
             </Button>
