@@ -2,6 +2,7 @@
 // Purpose: Participant dashboard with hero and event details.
 // Notes:
 // - Adds "Remove Hero" option
+// - Includes test IDs for stable Jest/RTL testing
 // - Makes event name clickable to navigate to event detail page
 
 import { useAuth } from "../context/AuthContext";
@@ -147,7 +148,12 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography variant="h5" align="center" gutterBottom>
+                <Typography
+                  data-testid="hero-name"
+                  variant="h5"
+                  align="center"
+                  gutterBottom
+                >
                   {chosenHero.name}
                 </Typography>
                 <Typography align="center" gutterBottom>
@@ -168,6 +174,7 @@ export default function UserDashboard() {
 
                 <Box sx={{ mt: 3, textAlign: "center" }}>
                   <Button
+                    data-testid="choose-another-hero"
                     variant="outlined"
                     color="secondary"
                     onClick={() => navigate("/heroes")}
@@ -175,17 +182,22 @@ export default function UserDashboard() {
                   >
                     Choose Another Hero
                   </Button>
-                  <Button variant="outlined" color="error" onClick={handleRemoveHero}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleRemoveHero}
+                  >
                     Remove Hero
                   </Button>
                 </Box>
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="hero-card-empty">
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t selected your hero yet.</Typography>
                 <Button
+                  data-testid="choose-hero-btn"
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/heroes")}
@@ -200,7 +212,7 @@ export default function UserDashboard() {
         {/* Event card */}
         <Grid item xs={12} md={6}>
           {entrant ? (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="event-card">
               <CardContent>
                 <Typography
                   variant="h6"
@@ -210,6 +222,7 @@ export default function UserDashboard() {
                   Registered Event
                 </Typography>
                 <Typography
+                  data-testid="event-name"
                   variant="h5"
                   align="center"
                   gutterBottom
@@ -224,13 +237,25 @@ export default function UserDashboard() {
                 >
                   {entrant.event?.name || "Event"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography
+                  data-testid="event-date"
+                  align="center"
+                  gutterBottom
+                >
                   {entrant.event?.date || "TBA"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography
+                  data-testid="event-status"
+                  align="center"
+                  gutterBottom
+                >
                   Status: {entrant.event?.status || "-"}
                 </Typography>
-                <Typography align="center" gutterBottom>
+                <Typography
+                  data-testid="event-entrants"
+                  align="center"
+                  gutterBottom
+                >
                   Entrants: {entrant.event?.entrant_count ?? "-"}
                 </Typography>
 
@@ -247,7 +272,11 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography variant="h6" align="center">
+                <Typography
+                  data-testid="event-hero-name"
+                  variant="h6"
+                  align="center"
+                >
                   {entrant.hero?.name}
                 </Typography>
                 <Typography align="center" gutterBottom>
@@ -266,6 +295,7 @@ export default function UserDashboard() {
                     Change Registration
                   </Button>
                   <Button
+                    data-testid="cancel-registration-btn"
                     variant="outlined"
                     color="error"
                     onClick={handleCancelRegistration}
@@ -276,10 +306,11 @@ export default function UserDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <Card sx={{ p: 2 }}>
+            <Card sx={{ p: 2 }} data-testid="event-card-empty">
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography>You haven’t registered for an event yet.</Typography>
                 <Button
+                  data-testid="register-event-btn"
                   variant="contained"
                   color="primary"
                   onClick={() => navigate("/register-event")}
