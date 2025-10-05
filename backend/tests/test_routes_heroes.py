@@ -82,9 +82,17 @@ def test_search_heroes(client, monkeypatch):
 
 
 def test_search_heroes_missing_query(client):
+    """When no search query is provided, should return local DB heroes with pagination metadata."""
     resp = client.get("/api/heroes")
-    assert resp.status_code == 400
-    assert "error" in resp.get_json()
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    # Expect a paginated object, not a plain list
+    assert isinstance(data, dict)
+    assert "results" in data
+    assert isinstance(data["results"], list)
+    assert "page" in data
+    assert "total" in data
 
 
 def test_search_heroes_external_api_error(client, monkeypatch):
