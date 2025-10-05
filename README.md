@@ -16,6 +16,9 @@ Built with **Flask (backend)**, **React + Vite (frontend)**, and **Postgres** fo
 ## Screenshots
 
 _Coming soon — include Analytics dashboard preview, event detail, and registration flow screenshots._
+- Analytics
+- Event Detail
+- Registration flow
 
 ---
 
