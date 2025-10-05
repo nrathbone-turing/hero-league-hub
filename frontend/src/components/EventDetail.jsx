@@ -2,7 +2,7 @@
 // Purpose: Player-facing event detail view with registration, entrants, and matches.
 // Notes:
 // - Adds avatar, total W-L record, and opponent win % summary on the left panel.
-// - Layout, routing, and sorting remain unchanged.
+// - Removes auto-refresh interval; adds manual refresh icon button beside Withdraw.
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate, Link as RouterLink, useNavigate } from "react-router-dom";
@@ -21,7 +21,10 @@ import {
   TableBody,
   TableSortLabel,
   Avatar,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../api";
 
@@ -41,6 +44,7 @@ export default function EventDetail() {
   const [matchOrderBy, setMatchOrderBy] = useState("id");
   const [matchOrder, setMatchOrder] = useState("asc");
 
+  // --- Fetch Event Data ---
   const fetchEvent = useCallback(async () => {
     try {
       setLoading(true);
@@ -61,11 +65,6 @@ export default function EventDetail() {
 
   useEffect(() => {
     fetchEvent();
-  }, [fetchEvent]);
-
-  useEffect(() => {
-    const interval = setInterval(() => fetchEvent(), 5000);
-    return () => clearInterval(interval);
   }, [fetchEvent]);
 
   if (redirect404) return <Navigate to="/404" replace />;
@@ -101,7 +100,6 @@ export default function EventDetail() {
     (m) => m.entrant1_id === myEntrant?.id || m.entrant2_id === myEntrant?.id
   );
 
-  // Compute wins / losses
   const wins = myMatches?.filter((m) => m.winner_id === myEntrant?.id).length || 0;
   const losses =
     myMatches?.filter(
@@ -111,10 +109,8 @@ export default function EventDetail() {
         (m.entrant1_id === myEntrant?.id || m.entrant2_id === myEntrant?.id)
     ).length || 0;
 
-  // Compute average opponent win %
   const opponentWinRates = myMatches?.map((m) => {
-    const opponent =
-      m.entrant1_id === myEntrant?.id ? m.entrant2 : m.entrant1;
+    const opponent = m.entrant1_id === myEntrant?.id ? m.entrant2 : m.entrant1;
     if (!opponent || opponent.dropped) return null;
     const oppMatches = event.matches?.filter(
       (x) => x.entrant1_id === opponent.id || x.entrant2_id === opponent.id
@@ -209,152 +205,151 @@ export default function EventDetail() {
       <Grid container spacing={2} sx={{ flexWrap: { xs: "wrap", md: "nowrap" } }}>
         {/* Left panel */}
         <Grid item xs={12} md={2.5}>
-<Paper
-  sx={{
-    p: 2,
-    height: 575,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    textAlign: "center",
-    gap: 1.5,
-  }}
->
-  {isRegistered ? (
-    <>
-      {/* Hero Avatar */}
-      <Avatar
-        variant="square"
-        src={myEntrant?.hero?.image_url || ""}
-        sx={{
-          width: 140,
-          height: 140,
-          mt: 1,
-          mb: 1,
-          borderRadius: 2,
-          boxShadow: 2,
-          bgcolor: "grey.200",
-        }}
-      >
-        🛡️
-      </Avatar>
-
-      {/* Player Info */}
-      <Typography variant="h6" gutterBottom>
-        You’re registered for this event!
-      </Typography>
-
-      <Typography variant="body1" fontWeight="bold">
-        Record: {wins}-{losses}
-      </Typography>
-
-      {/* Progress Bar for Win% */}
-      <Box sx={{ width: "70%", mt: 1, mb: 1 }}>
-        <Box
-          sx={{
-            height: 10,
-            bgcolor: "grey.300",
-            borderRadius: 1,
-            overflow: "hidden",
-          }}
-        >
-          <Box
+          <Paper
             sx={{
-              height: "100%",
-              width: `${(wins / (wins + losses || 1)) * 100}%`,
-              bgcolor: wins > losses ? "success.main" : "warning.main",
+              p: 2,
+              height: 575,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              textAlign: "center",
+              gap: 1.5,
             }}
-          />
-        </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-        >{`${((wins / (wins + losses || 1)) * 100).toFixed(0)}% Win Rate`}</Typography>
-      </Box>
-
-      {/* Opponent Stats */}
-      <Typography variant="body2" color="text.secondary">
-        Avg Opponent Win %: {avgOpponentWinRate}
-      </Typography>
-
-      {/* Recent Opponents */}
-      {myMatches?.length > 0 && (
-        <Box sx={{ mt: 2, width: "100%" }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Recent Opponents
-          </Typography>
-          {myMatches
-            .slice(-3)
-            .reverse()
-            .map((m) => {
-              const opponent =
-                m.entrant1_id === myEntrant?.id ? m.entrant2 : m.entrant1;
-              if (!opponent) return null;
-              return (
-                <Typography
-                  key={m.id}
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: 13 }}
+          >
+            {isRegistered ? (
+              <>
+                <Avatar
+                  variant="square"
+                  src={myEntrant?.hero?.image_url || ""}
+                  sx={{
+                    width: 140,
+                    height: 140,
+                    mt: 1,
+                    mb: 1,
+                    borderRadius: 2,
+                    boxShadow: 2,
+                    bgcolor: "grey.200",
+                  }}
                 >
-                  {opponent.name} ({m.scores}){" "}
-                  {m.winner_id === myEntrant?.id ? "✅" : "❌"}
+                  🛡️
+                </Avatar>
+
+                <Typography variant="h6" gutterBottom>
+                  You’re registered for this event!
                 </Typography>
-              );
-            })}
-        </Box>
-      )}
 
-      {/* Flavor Text */}
-      <Typography
-        variant="caption"
-        color="text.disabled"
-        sx={{ mt: "auto", fontStyle: "italic" }}
-      >
-        “Victory favors the prepared.”
-      </Typography>
+                <Typography variant="body1" fontWeight="bold">
+                  Record: {wins}-{losses}
+                </Typography>
 
-      {/* Withdraw Button */}
-      <Button
-        variant="outlined"
-        color="secondary"
-        sx={{ mt: 2 }}
-        onClick={() => {
-          // TODO: implement withdraw
-        }}
-      >
-        Withdraw
-      </Button>
-    </>
-  ) : (
-    <>
-      <Avatar
-        variant="square"
-        sx={{
-          width: 140,
-          height: 140,
-          mb: 2,
-          bgcolor: "grey.200",
-          borderRadius: 2,
-        }}
-      >
-        ❔
-      </Avatar>
-      <Typography variant="h6" gutterBottom>
-        You’re not registered for this event.
-      </Typography>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleRegister}
-        data-testid="register-now-btn"
-      >
-        Register Now
-      </Button>
-    </>
-  )}
-</Paper>        </Grid>
+                <Box sx={{ width: "70%", mt: 1, mb: 1 }}>
+                  <Box
+                    sx={{
+                      height: 10,
+                      bgcolor: "grey.300",
+                      borderRadius: 1,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        height: "100%",
+                        width: `${(wins / (wins + losses || 1)) * 100}%`,
+                        bgcolor: wins > losses ? "success.main" : "warning.main",
+                      }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    {`${((wins / (wins + losses || 1)) * 100).toFixed(0)}% Win Rate`}
+                  </Typography>
+                </Box>
+
+                <Typography variant="body2" color="text.secondary">
+                  Avg Opponent Win %: {avgOpponentWinRate}
+                </Typography>
+
+                {myMatches?.length > 0 && (
+                  <Box sx={{ mt: 2, width: "100%" }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Recent Opponents
+                    </Typography>
+                    {myMatches
+                      .slice(-3)
+                      .reverse()
+                      .map((m) => {
+                        const opponent =
+                          m.entrant1_id === myEntrant?.id ? m.entrant2 : m.entrant1;
+                        if (!opponent) return null;
+                        return (
+                          <Typography
+                            key={m.id}
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ fontSize: 13 }}
+                          >
+                            {opponent.name} ({m.scores}){" "}
+                            {m.winner_id === myEntrant?.id ? "✅" : "❌"}
+                          </Typography>
+                        );
+                      })}
+                  </Box>
+                )}
+
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={{ mt: "auto", fontStyle: "italic" }}
+                >
+                  “Victory favors the prepared.”
+                </Typography>
+
+                {/* Withdraw + Refresh Row */}
+                <Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
+                  <Button variant="outlined" color="secondary">
+                    Withdraw
+                  </Button>
+                  <Tooltip title="Refresh Event Data">
+                    <IconButton
+                      onClick={fetchEvent}
+                      color="primary"
+                      size="small"
+                      aria-label="refresh"
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </>
+            ) : (
+              <>
+                <Avatar
+                  variant="square"
+                  sx={{
+                    width: 140,
+                    height: 140,
+                    mb: 2,
+                    bgcolor: "grey.200",
+                    borderRadius: 2,
+                  }}
+                >
+                  ❔
+                </Avatar>
+                <Typography variant="h6" gutterBottom>
+                  You’re not registered for this event.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleRegister}
+                  data-testid="register-now-btn"
+                >
+                  Register Now
+                </Button>
+              </>
+            )}
+          </Paper>
+        </Grid>
 
         {/* Entrants Table */}
         <Grid item xs={12} md={3.5}>
