@@ -11,6 +11,16 @@ Built with **Flask (backend)**, **React + Vite (frontend)**, and **Postgres** fo
 - **Unified Test & DB Runner** --> Smart script auto-detects Docker vs. Pipenv
 - **JWT Auth Integration** --> Secure login, logout, and session refresh
 
+Following Project 1 (Hero vs Villain Showdown) and Project 2 (Hero Tournament Manager), this project extends the theme into the player experience. Instead of simulating one-off battles (Project 1) or focusing on event setup by admins (Project 2), this app gives participants their own interface:
+- Users can register for events, select a hero, and see their progress through matches
+- Heroes are chosen strategically, based on powerstats, usage rates, or historical win rates
+- Analytics give players visibility into hero popularity and performance trends across events
+
+This creates a distinct but connected third project:
+- Project 1: Head-to-head Rock-Paper-Scissors battles using the SuperHero API
+- Project 2: Full-stack CRUD app for tournament organizers to manage events, entrants, and matches
+- Project 3: Multi-user dashboards for participants with hero selection, bracket tracking, and analytics
+
 ---
 
 ## Screenshots
