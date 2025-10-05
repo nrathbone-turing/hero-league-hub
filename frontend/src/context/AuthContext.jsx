@@ -7,6 +7,11 @@
 // - Skips token validation automatically during tests (NODE_ENV=test).
 // - Safe use of useNavigate (only called inside component, not top-level).
 
+// - React Fast Refresh may warn about "multiple React exports" since this file
+//   defines both a component (AuthProvider) and a hook (useAuth). Safe to ignore but
+//   if hot reload issues arise later, I can split useAuth into its own file.
+
+// eslint-disable-next-line react-refresh/only-export-components
 import React, {
   createContext,
   useContext,
@@ -64,7 +69,7 @@ export default function AuthProvider({ children }) {
       logout(true); // auto redirect on failure
       return false;
     }
-  }, [token]);
+  }, [token, logout]);
 
   // run token validation once on mount (skip in tests)
   useEffect(() => {

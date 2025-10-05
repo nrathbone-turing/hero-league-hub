@@ -6,7 +6,6 @@
 //            (2) Published data → table renders & filters correctly.
 
 import { screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Events from "../components/Events";
 import * as api from "../api";
@@ -34,8 +33,20 @@ describe("<Events /> rendering", () => {
 
   test("renders table with default 'published' filter selected", async () => {
     apiFetch.mockResolvedValueOnce([
-      { id: 1, name: "Hero Con", date: "2025-10-10", status: "published", entrants: [] },
-      { id: 2, name: "Villain Expo", date: "2025-10-11", status: "completed", entrants: [] },
+      {
+        id: 1,
+        name: "Hero Con",
+        date: "2025-10-10",
+        status: "published",
+        entrants: [],
+      },
+      {
+        id: 2,
+        name: "Villain Expo",
+        date: "2025-10-11",
+        status: "completed",
+        entrants: [],
+      },
     ]);
 
     renderWithRouter(<Events />);
@@ -76,7 +87,13 @@ describe("<Events /> rendering", () => {
 
       // Resolve API
       resolvePromise?.([
-        { id: 1, name: "Hero Con", date: "2025-10-10", status: "published", entrants: [] },
+        {
+          id: 1,
+          name: "Hero Con",
+          date: "2025-10-10",
+          status: "published",
+          entrants: [],
+        },
       ]);
 
       // Wait for table
@@ -85,34 +102,46 @@ describe("<Events /> rendering", () => {
       });
     });
 
-  test("renders events after successful fetch (default filter = published)", async () => {
-    apiFetch.mockResolvedValueOnce([
-      { id: 1, name: "Hero Con", date: "2025-10-10", status: "published", entrants: [] },
-      { id: 2, name: "Villain Expo", date: "2025-10-11", status: "completed", entrants: [] },
-    ]);
+    test("renders events after successful fetch (default filter = published)", async () => {
+      apiFetch.mockResolvedValueOnce([
+        {
+          id: 1,
+          name: "Hero Con",
+          date: "2025-10-10",
+          status: "published",
+          entrants: [],
+        },
+        {
+          id: 2,
+          name: "Villain Expo",
+          date: "2025-10-11",
+          status: "completed",
+          entrants: [],
+        },
+      ]);
 
-    renderWithRouter(<Events />);
+      renderWithRouter(<Events />);
 
-    // Wait for the table to render
-    const table = await screen.findByTestId("events-table");
-    expect(table).toBeInTheDocument();
+      // Wait for the table to render
+      const table = await screen.findByTestId("events-table");
+      expect(table).toBeInTheDocument();
 
-    // First event (published) should render
-    const heroEvent = await screen.findByTestId("event-name-1");
-    expect(heroEvent).toHaveTextContent("Hero Con");
+      // First event (published) should render
+      const heroEvent = await screen.findByTestId("event-name-1");
+      expect(heroEvent).toHaveTextContent("Hero Con");
 
-    // Second event (completed) should be hidden with the default "published" filter
-    expect(screen.queryByTestId("event-name-2")).not.toBeInTheDocument();
+      // Second event (completed) should be hidden with the default "published" filter
+      expect(screen.queryByTestId("event-name-2")).not.toBeInTheDocument();
 
-    // Assert the Select's hidden input value is "published"
-    const select = screen.getByTestId("status-filter");
-    expect(select.querySelector("input")?.value).toBe("published");
+      // Assert the Select's hidden input value is "published"
+      const select = screen.getByTestId("status-filter");
+      expect(select.querySelector("input")?.value).toBe("published");
 
-    // No empty state
-    expect(screen.queryByTestId("no-events")).not.toBeInTheDocument();
-  });
+      // No empty state
+      expect(screen.queryByTestId("no-events")).not.toBeInTheDocument();
+    });
 
-  test("shows error message when API fails", async () => {
+    test("shows error message when API fails", async () => {
       api.apiFetch.mockRejectedValueOnce(new Error("Server exploded"));
 
       renderWithRouter(<Events />);
@@ -121,8 +150,4 @@ describe("<Events /> rendering", () => {
       expect(error).toHaveTextContent(/failed to fetch events/i);
     });
   });
-
-
-
-
 });

@@ -68,9 +68,7 @@ export default function Analytics() {
         const [heroes, results, usage] = await Promise.all([
           heroesRes.ok ? heroesRes.json() : { heroes: fallbackData.heroes },
           resultsRes.ok ? resultsRes.json() : { events: [] },
-          usageRes.ok
-            ? usageRes.json()
-            : { participation: fallbackData.participation },
+          usageRes.ok ? usageRes.json() : { participation: fallbackData.participation },
         ]);
 
         const normalizedHeroes =
@@ -94,6 +92,7 @@ export default function Analytics() {
     }
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -134,11 +133,7 @@ export default function Analytics() {
 
       {/* HERO USAGE TAB */}
       {tab === 0 && (
-        <Box
-          aria-label="Hero Usage Chart"
-          data-testid="chart-usage"
-          textAlign="center"
-        >
+        <Box aria-label="Hero Usage Chart" data-testid="chart-usage" textAlign="center">
           <Typography variant="h6" gutterBottom>
             Hero Usage Distribution
           </Typography>

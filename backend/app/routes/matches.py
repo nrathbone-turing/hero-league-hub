@@ -28,7 +28,10 @@ def create_match():
         round_num = data.get("round")
 
         if not event_id or not entrant1_id or not entrant2_id:
-            return jsonify(error="event_id, entrant1_id, and entrant2_id are required"), 400
+            return (
+                jsonify(error="event_id, entrant1_id, and entrant2_id are required"),
+                400,
+            )
 
         if winner_id and winner_id not in [entrant1_id, entrant2_id]:
             return jsonify(error="Winner id must match one of the entrants"), 400

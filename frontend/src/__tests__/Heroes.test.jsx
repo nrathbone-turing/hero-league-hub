@@ -10,7 +10,6 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import Heroes from "../components/Heroes";
-import * as api from "../api";
 
 // Local vi mock to isolate behavior and avoid race conditions
 vi.mock("../api", () => ({
@@ -57,9 +56,7 @@ describe("<Heroes /> rendering", () => {
     // Resolve data
     resolvePromise?.({ results: [{ id: 1, name: "Batman" }], total: 1 });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("heroes-table")).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByTestId("heroes-table")).toBeInTheDocument());
     expect(await screen.findByTestId("hero-name-1")).toHaveTextContent("Batman");
   });
 
@@ -140,7 +137,9 @@ describe("<Heroes /> pagination", () => {
     const input = screen.getByTestId("search-heroes-input");
     await userEvent.type(input, "Test", { allAtOnce: true });
 
-    await waitFor(() => expect(screen.getByTestId("hero-name-1")).toHaveTextContent("Superman"));
+    await waitFor(() =>
+      expect(screen.getByTestId("hero-name-1")).toHaveTextContent("Superman")
+    );
 
     // Click pagination next page button
     const nextButton = screen.getByRole("button", { name: /go to next page/i });

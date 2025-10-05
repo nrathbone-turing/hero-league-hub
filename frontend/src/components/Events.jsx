@@ -60,8 +60,6 @@ export default function Events() {
     fetchEvents();
   }, []);
 
-  if (redirect500) return <Navigate to="/500" replace />;
-
   // ---- Derived filtered/sorted events ----
   const sortedEvents = useMemo(
     () =>
@@ -82,6 +80,8 @@ export default function Events() {
     setOrderBy(col);
   };
 
+  if (redirect500) return <Navigate to="/500" replace />;
+
   // ---- Render ----
   return (
     <Container maxWidth="lg" sx={{ mt: 6 }} data-testid="events-page">
@@ -90,7 +90,13 @@ export default function Events() {
       </Typography>
 
       {/* Filters */}
-      <Grid container spacing={2} justifyContent="center" alignItems="center" sx={{ mb: 3 }}>
+      <Grid
+        container
+        spacing={2}
+        justifyContent="center"
+        alignItems="center"
+        sx={{ mb: 3 }}
+      >
         <Grid item xs={12} sm={4} md={3}>
           <TextField
             label="Search by name"
@@ -145,7 +151,10 @@ export default function Events() {
 
       {/* Event Table */}
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }} data-testid="loading-events">
+        <Box
+          sx={{ display: "flex", justifyContent: "center", mt: 4 }}
+          data-testid="loading-events"
+        >
           <CircularProgress />
         </Box>
       ) : error ? (
@@ -192,13 +201,22 @@ export default function Events() {
                   >
                     {event.name}
                   </TableCell>
-                  <TableCell data-testid={`event-date-${event.id}`} aria-label={`Event date ${event.date}`}>
+                  <TableCell
+                    data-testid={`event-date-${event.id}`}
+                    aria-label={`Event date ${event.date}`}
+                  >
                     {event.date || "TBA"}
                   </TableCell>
-                  <TableCell data-testid={`event-status-${event.id}`} aria-label={`Event status ${event.status}`}>
+                  <TableCell
+                    data-testid={`event-status-${event.id}`}
+                    aria-label={`Event status ${event.status}`}
+                  >
                     {event.status}
                   </TableCell>
-                  <TableCell data-testid={`event-entrants-${event.id}`} aria-label={`Entrants count`}>
+                  <TableCell
+                    data-testid={`event-entrants-${event.id}`}
+                    aria-label={`Entrants count`}
+                  >
                     {event.entrants?.length ?? 0}
                   </TableCell>
                   <TableCell align="center">

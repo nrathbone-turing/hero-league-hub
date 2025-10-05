@@ -16,9 +16,7 @@ def get_hero_win_rates():
         db.session.query(
             func.coalesce(Hero.name, "Unknown Hero").label("hero_name"),
             func.count(Entrant.id).label("usage_count"),
-            func.sum(
-                case((Match.winner_id == Entrant.id, 1), else_=0)
-            ).label("wins"),
+            func.sum(case((Match.winner_id == Entrant.id, 1), else_=0)).label("wins"),
         )
         .select_from(Entrant)
         .outerjoin(Hero, Entrant.hero_id == Hero.id)

@@ -129,11 +129,7 @@ export default function EventRegistration() {
   }
 
   return (
-    <Container
-      sx={{ mt: 4 }}
-      maxWidth="sm"
-      data-testid="event-registration"
-    >
+    <Container sx={{ mt: 4 }} maxWidth="sm" data-testid="event-registration">
       <Typography variant="h4" gutterBottom>
         Register for an Event
       </Typography>
@@ -243,7 +239,12 @@ export default function EventRegistration() {
 
         {/* Submit */}
         <Box sx={{ mt: 3, textAlign: "center" }}>
-          <Button type="submit" variant="contained" color="primary" data-testid="submit-btn">
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            data-testid="submit-btn"
+          >
             Register
           </Button>
         </Box>

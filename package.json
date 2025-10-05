@@ -4,9 +4,17 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:backend": "docker compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
-    "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
+    "lint:backend": "node backend/scripts/run-helper.js lint:backend",
+    "lint:frontend": "node backend/scripts/run-helper.js lint:frontend",
+    "lint": "node backend/scripts/run-helper.js lint",
+
+    "format:backend": "node backend/scripts/run-helper.js format:backend",
+    "format:frontend": "node backend/scripts/run-helper.js format:frontend",
+    "format": "node backend/scripts/run-helper.js format",
+
     "fix:backend": "npm run format:backend && npm run lint:backend",
+    "fix:frontend": "npm run format:frontend && npm run lint:frontend",
+    "fix": "npm run format && npm run lint",
 
     "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
@@ -20,7 +28,7 @@
     "db:seed": "node backend/scripts/run-helper.js db:seed",
     "db:reset": "node backend/scripts/run-helper.js db:reset",
     "db:refresh": "npm run db:reset",
-    
+
     "start:frontend": "npm --prefix frontend run dev",
     "start:backend": "pipenv run python backend/wsgi.py",
     "dev:all": "npm run docker:rebuild && npm run start:frontend",

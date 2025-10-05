@@ -124,7 +124,11 @@ export default function Heroes() {
 
       if (parsedEntrant) {
         const eventName = parsedEntrant.event?.name || "your current event";
-        if (!window.confirm(`You are registered for ${eventName}. Replace your hero with ${hero.name}?`)) {
+        if (
+          !window.confirm(
+            `You are registered for ${eventName}. Replace your hero with ${hero.name}?`
+          )
+        ) {
           return;
         }
         parsedEntrant.hero = hero;
@@ -140,10 +144,15 @@ export default function Heroes() {
     }
   }
 
-  const formatAliases = (aliases) => (Array.isArray(aliases) ? aliases.join(", ") : aliases || "-");
+  const formatAliases = (aliases) =>
+    Array.isArray(aliases) ? aliases.join(", ") : aliases || "-";
 
   const formatLabel = (key) =>
-    key.replace(/_/g, " ").replace(/-/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\b\w/g, (c) => c.toUpperCase());
+    key
+      .replace(/_/g, " ")
+      .replace(/-/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <Container sx={{ mt: 4 }} data-testid="heroes-container">
@@ -157,7 +166,12 @@ export default function Heroes() {
       </Typography>
 
       {/* Placeholder layout and filters */}
-      <Grid container justifyContent="space-between" sx={{ mb: 2 }} data-testid="heroes-filter-grid">
+      <Grid
+        container
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+        data-testid="heroes-filter-grid"
+      >
         <Grid item xs={12} sm={4} md={3}>
           <Box
             sx={{
@@ -185,7 +199,12 @@ export default function Heroes() {
           xs={12}
           sm={4}
           md={6}
-          sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 2 }}
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 2,
+          }}
           data-testid="search-filter-container"
         >
           <TextField
@@ -206,11 +225,21 @@ export default function Heroes() {
               data-testid="alignment-filter"
               aria-label="alignment filter"
             >
-              <MenuItem value="all" data-testid="filter-all">All</MenuItem>
-              <MenuItem value="hero" data-testid="filter-hero">Hero</MenuItem>
-              <MenuItem value="villain" data-testid="filter-villain">Villain</MenuItem>
-              <MenuItem value="antihero" data-testid="filter-antihero">Antihero</MenuItem>
-              <MenuItem value="unknown" data-testid="filter-unknown">Unknown</MenuItem>
+              <MenuItem value="all" data-testid="filter-all">
+                All
+              </MenuItem>
+              <MenuItem value="hero" data-testid="filter-hero">
+                Hero
+              </MenuItem>
+              <MenuItem value="villain" data-testid="filter-villain">
+                Villain
+              </MenuItem>
+              <MenuItem value="antihero" data-testid="filter-antihero">
+                Antihero
+              </MenuItem>
+              <MenuItem value="unknown" data-testid="filter-unknown">
+                Unknown
+              </MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -246,16 +275,25 @@ export default function Heroes() {
       )}
 
       {error && (
-        <Typography color="error" role="alert" align="center" sx={{ mt: 2 }} data-testid="error-alert">
+        <Typography
+          color="error"
+          role="alert"
+          align="center"
+          sx={{ mt: 2 }}
+          data-testid="error-alert"
+        >
           {error}
         </Typography>
       )}
 
-      {!loading && !error && heroes.length === 0 && (search || alignmentFilter !== "all") && (
-        <Typography align="center" sx={{ mt: 2 }} data-testid="no-heroes-text">
-          No heroes found
-        </Typography>
-      )}
+      {!loading &&
+        !error &&
+        heroes.length === 0 &&
+        (search || alignmentFilter !== "all") && (
+          <Typography align="center" sx={{ mt: 2 }} data-testid="no-heroes-text">
+            No heroes found
+          </Typography>
+        )}
 
       {heroes.length > 0 && (
         <Box data-testid="heroes-results-section">
@@ -263,7 +301,11 @@ export default function Heroes() {
             <TableHead data-testid="heroes-table-head">
               <TableRow>
                 {["id", "name", "full_name", "alias", "alignment"].map((col) => (
-                  <TableCell key={col} data-testid={`header-${col}`} sortDirection={orderBy === col ? order : false}>
+                  <TableCell
+                    key={col}
+                    data-testid={`header-${col}`}
+                    sortDirection={orderBy === col ? order : false}
+                  >
                     <TableSortLabel
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
@@ -287,10 +329,18 @@ export default function Heroes() {
                   aria-label={`hero-row-${hero.id}`}
                 >
                   <TableCell data-testid={`hero-id-${hero.id}`}>{hero.id}</TableCell>
-                  <TableCell data-testid={`hero-name-${hero.id}`}>{hero.name}</TableCell>
-                  <TableCell data-testid={`hero-fullname-${hero.id}`}>{hero.full_name || "-"}</TableCell>
-                  <TableCell data-testid={`hero-alias-${hero.id}`}>{formatAliases(hero.alias)}</TableCell>
-                  <TableCell data-testid={`hero-alignment-${hero.id}`}>{hero.alignment || "-"}</TableCell>
+                  <TableCell data-testid={`hero-name-${hero.id}`}>
+                    {hero.name}
+                  </TableCell>
+                  <TableCell data-testid={`hero-fullname-${hero.id}`}>
+                    {hero.full_name || "-"}
+                  </TableCell>
+                  <TableCell data-testid={`hero-alias-${hero.id}`}>
+                    {formatAliases(hero.alias)}
+                  </TableCell>
+                  <TableCell data-testid={`hero-alignment-${hero.id}`}>
+                    {hero.alignment || "-"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -374,7 +424,10 @@ export default function Heroes() {
 
           {selectedHero?.biography && (
             <Accordion data-testid="bio-accordion">
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="bio-summary">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="bio-summary"
+              >
                 <Typography variant="subtitle1">Biography</Typography>
               </AccordionSummary>
               <AccordionDetails data-testid="bio-details">
@@ -392,7 +445,10 @@ export default function Heroes() {
 
           {selectedHero?.appearance && (
             <Accordion data-testid="appearance-accordion">
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="appearance-summary">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="appearance-summary"
+              >
                 <Typography variant="subtitle1">Appearance</Typography>
               </AccordionSummary>
               <AccordionDetails data-testid="appearance-details">
@@ -408,7 +464,10 @@ export default function Heroes() {
 
           {selectedHero?.work && (
             <Accordion data-testid="work-accordion">
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="work-summary">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="work-summary"
+              >
                 <Typography variant="subtitle1">Work</Typography>
               </AccordionSummary>
               <AccordionDetails data-testid="work-details">
@@ -423,7 +482,10 @@ export default function Heroes() {
 
           {selectedHero?.connections && (
             <Accordion data-testid="connections-accordion">
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} data-testid="connections-summary">
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                data-testid="connections-summary"
+              >
                 <Typography variant="subtitle1">Connections</Typography>
               </AccordionSummary>
               <AccordionDetails data-testid="connections-details">

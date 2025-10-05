@@ -64,9 +64,7 @@ class Event(db.Model):
             data["entrants"] = [
                 e.to_dict(include_user=True, include_hero=True) for e in self.entrants
             ]
-            data["matches"] = [
-                m.to_dict(include_entrants=True) for m in self.matches
-            ]
+            data["matches"] = [m.to_dict(include_entrants=True) for m in self.matches]
         return data
 
 

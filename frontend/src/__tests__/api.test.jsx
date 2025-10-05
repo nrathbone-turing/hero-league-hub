@@ -31,9 +31,7 @@ describe("apiFetch", () => {
   });
 
   test("returns true for 204 responses", async () => {
-    global.fetch.mockResolvedValueOnce(
-      new Response(null, { status: 204 })
-    );
+    global.fetch.mockResolvedValueOnce(new Response(null, { status: 204 }));
 
     const result = await apiFetch("/events/1", { method: "DELETE" });
     expect(result).toBe(true);
@@ -46,7 +44,10 @@ describe("apiFetch", () => {
   test("throws an error when response is not ok", async () => {
     const errorBody = { error: "boom" };
     global.fetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(errorBody), { status: 500, statusText: "Server Error" })
+      new Response(JSON.stringify(errorBody), {
+        status: 500,
+        statusText: "Server Error",
+      })
     );
 
     await expect(apiFetch("/events")).rejects.toThrow("boom");
@@ -55,9 +56,7 @@ describe("apiFetch", () => {
 
 describe("deleteEntrant", () => {
   beforeEach(() => {
-    global.fetch = vi.fn().mockResolvedValue(
-      new Response(null, { status: 204 })
-    );
+    global.fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
   });
 
   test("calls apiFetch with DELETE and correct URL", async () => {

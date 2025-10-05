@@ -5,7 +5,6 @@
 // - Reflects new player/entrant layout with Register + Withdraw buttons.
 
 import { screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
 import EventDetail from "../components/EventDetail";
 import { mockFetchSuccess } from "../setupTests";
@@ -156,7 +155,9 @@ describe("<EventDetail /> edge cases & redirects", () => {
   });
 
   test("redirects to /500 on server error", async () => {
-    global.fetch = vi.fn().mockRejectedValueOnce(new Error("500 Internal Server Error"));
+    global.fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("500 Internal Server Error"));
     renderWithRouter(
       <>
         <App />

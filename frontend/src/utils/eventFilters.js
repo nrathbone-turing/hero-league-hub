@@ -21,7 +21,10 @@
 // - Cancelled events are excluded unless explicitly included.
 // - Designed for unit testing without any DOM or API dependencies.
 
-export function filterAndSortEvents(events, { user, searchTerm, statusFilter, includeCancelled, orderBy, order }) {
+export function filterAndSortEvents(
+  events,
+  { user, searchTerm, statusFilter, includeCancelled, orderBy, order }
+) {
   const filtered = (events || [])
     .filter((e) => {
       if (!user?.is_admin && e.status === "drafting") return false;
@@ -29,9 +32,7 @@ export function filterAndSortEvents(events, { user, searchTerm, statusFilter, in
       if (statusFilter !== "all" && e.status !== statusFilter) return false;
       return true;
     })
-    .filter((e) =>
-      e.name?.toLowerCase().includes((searchTerm || "").toLowerCase())
-    );
+    .filter((e) => e.name?.toLowerCase().includes((searchTerm || "").toLowerCase()));
 
   const sorted = [...filtered].sort((a, b) => {
     const valA = a[orderBy] ?? "";

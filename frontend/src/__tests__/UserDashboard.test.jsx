@@ -94,10 +94,16 @@ describe("UserDashboard", () => {
     const eventCard = await screen.findByTestId("event-card");
     expect(within(eventCard).getByTestId("event-name")).toHaveTextContent("Hero Cup");
     expect(within(eventCard).getByTestId("event-date")).toHaveTextContent("2025-09-12");
-    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent("published");
+    expect(within(eventCard).getByTestId("event-status")).toHaveTextContent(
+      "published"
+    );
     expect(within(eventCard).getByTestId("event-entrants")).toHaveTextContent("16");
-    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent("Superman");
-    expect(within(eventCard).getByTestId("cancel-registration-btn")).toBeInTheDocument();
+    expect(within(eventCard).getByTestId("event-hero-name")).toHaveTextContent(
+      "Superman"
+    );
+    expect(
+      within(eventCard).getByTestId("cancel-registration-btn")
+    ).toBeInTheDocument();
   });
 
   test("cancel registration clears entrant and reverts UI", async () => {

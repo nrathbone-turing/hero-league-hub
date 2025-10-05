@@ -17,7 +17,7 @@ import {
   Grid,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export default function UserDashboard() {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ export default function UserDashboard() {
   const [chosenHero, setChosenHero] = useState(null);
   const [entrant, setEntrant] = useState(null);
 
-  function syncFromStorage() {
+  const syncFromStorage = useCallback(() => {
     const entrantKey = `entrant_${user?.id}`;
     const heroKey = `chosenHero_${user?.id}`;
 
@@ -49,9 +49,9 @@ export default function UserDashboard() {
         setChosenHero(null);
       }
     }
-  }
+  }, [user?.id]);
 
-  async function syncWithBackend() {
+  const syncWithBackend = useCallback(async () => {
     if (!user?.id) return;
     try {
       const entrants = await apiFetch(`/entrants?user_id=${user.id}`);
@@ -74,7 +74,7 @@ export default function UserDashboard() {
     } catch (err) {
       console.error("❌ Failed to sync with backend entrants", err);
     }
-  }
+  }, [user?.id]);
 
   useEffect(() => {
     syncFromStorage();
@@ -85,7 +85,7 @@ export default function UserDashboard() {
       window.removeEventListener("storage", handler);
       clearTimeout(timeout);
     };
-  }, [user?.id]);
+  }, [user?.id, syncFromStorage, syncWithBackend]);
 
   async function handleCancelRegistration() {
     if (!entrant?.id) {
@@ -182,11 +182,7 @@ export default function UserDashboard() {
                   >
                     Choose Another Hero
                   </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleRemoveHero}
-                  >
+                  <Button variant="outlined" color="error" onClick={handleRemoveHero}>
                     Remove Hero
                   </Button>
                 </Box>
@@ -237,25 +233,13 @@ export default function UserDashboard() {
                 >
                   {entrant.event?.name || "Event"}
                 </Typography>
-                <Typography
-                  data-testid="event-date"
-                  align="center"
-                  gutterBottom
-                >
+                <Typography data-testid="event-date" align="center" gutterBottom>
                   {entrant.event?.date || "TBA"}
                 </Typography>
-                <Typography
-                  data-testid="event-status"
-                  align="center"
-                  gutterBottom
-                >
+                <Typography data-testid="event-status" align="center" gutterBottom>
                   Status: {entrant.event?.status || "-"}
                 </Typography>
-                <Typography
-                  data-testid="event-entrants"
-                  align="center"
-                  gutterBottom
-                >
+                <Typography data-testid="event-entrants" align="center" gutterBottom>
                   Entrants: {entrant.event?.entrant_count ?? "-"}
                 </Typography>
 
@@ -272,11 +256,7 @@ export default function UserDashboard() {
                     />
                   )}
                 </Box>
-                <Typography
-                  data-testid="event-hero-name"
-                  variant="h6"
-                  align="center"
-                >
+                <Typography data-testid="event-hero-name" variant="h6" align="center">
                   {entrant.hero?.name}
                 </Typography>
                 <Typography align="center" gutterBottom>

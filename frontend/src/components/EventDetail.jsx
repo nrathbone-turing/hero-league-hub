@@ -116,8 +116,7 @@ export default function EventDetail() {
     const oppMatches = event.matches?.filter(
       (x) => x.entrant1_id === opponent.id || x.entrant2_id === opponent.id
     );
-    const oppWins =
-      oppMatches?.filter((x) => x.winner_id === opponent.id).length || 0;
+    const oppWins = oppMatches?.filter((x) => x.winner_id === opponent.id).length || 0;
     const oppLosses =
       oppMatches?.filter(
         (x) =>
@@ -171,11 +170,7 @@ export default function EventDetail() {
   };
 
   return (
-    <Container
-      maxWidth={false}
-      sx={{ mt: 4, px: 2 }}
-      data-testid="event-detail"
-    >
+    <Container maxWidth={false} sx={{ mt: 4, px: 2 }} data-testid="event-detail">
       {/* Header */}
       <Box display="flex" alignItems="center" gap={2} sx={{ mb: 3 }}>
         <Button component={RouterLink} to="/events" variant="outlined">
@@ -197,10 +192,10 @@ export default function EventDetail() {
               event.status === "published"
                 ? "success.main"
                 : event.status === "completed"
-                ? "info.main"
-                : event.status === "cancelled"
-                ? "error.main"
-                : "text.secondary",
+                  ? "info.main"
+                  : event.status === "cancelled"
+                    ? "error.main"
+                    : "text.secondary",
           }}
         >
           {event.status}
@@ -356,9 +351,13 @@ export default function EventDetail() {
                   {sortedEntrants?.map((entrant) => (
                     <TableRow key={entrant.id}>
                       <TableCell>{entrant.id}</TableCell>
-                      <TableCell>{entrant.dropped ? "Dropped" : entrant.name || "-"}</TableCell>
                       <TableCell>
-                        {entrant.dropped ? "-" : entrant.hero?.name || entrant.alias || "-"}
+                        {entrant.dropped ? "Dropped" : entrant.name || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {entrant.dropped
+                          ? "-"
+                          : entrant.hero?.name || entrant.alias || "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -381,20 +380,22 @@ export default function EventDetail() {
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    {["id", "round", "entrant1", "entrant2", "scores", "winner"].map((col) => (
-                      <TableCell
-                        key={col}
-                        sortDirection={matchOrderBy === col ? matchOrder : false}
-                      >
-                        <TableSortLabel
-                          active={matchOrderBy === col}
-                          direction={matchOrderBy === col ? matchOrder : "asc"}
-                          onClick={() => handleMatchSort(col)}
+                    {["id", "round", "entrant1", "entrant2", "scores", "winner"].map(
+                      (col) => (
+                        <TableCell
+                          key={col}
+                          sortDirection={matchOrderBy === col ? matchOrder : false}
                         >
-                          {col.charAt(0).toUpperCase() + col.slice(1)}
-                        </TableSortLabel>
-                      </TableCell>
-                    ))}
+                          <TableSortLabel
+                            active={matchOrderBy === col}
+                            direction={matchOrderBy === col ? matchOrder : "asc"}
+                            onClick={() => handleMatchSort(col)}
+                          >
+                            {col.charAt(0).toUpperCase() + col.slice(1)}
+                          </TableSortLabel>
+                        </TableCell>
+                      )
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -403,10 +404,14 @@ export default function EventDetail() {
                       <TableCell>{m.id}</TableCell>
                       <TableCell>{m.round}</TableCell>
                       <TableCell>
-                        {m.entrant1 ? `${m.entrant1.name} (${m.entrant1.hero?.name})` : "-"}
+                        {m.entrant1
+                          ? `${m.entrant1.name} (${m.entrant1.hero?.name})`
+                          : "-"}
                       </TableCell>
                       <TableCell>
-                        {m.entrant2 ? `${m.entrant2.name} (${m.entrant2.hero?.name})` : "-"}
+                        {m.entrant2
+                          ? `${m.entrant2.name} (${m.entrant2.hero?.name})`
+                          : "-"}
                       </TableCell>
                       <TableCell>{m.scores}</TableCell>
                       <TableCell>
