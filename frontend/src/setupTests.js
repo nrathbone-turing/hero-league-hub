@@ -1,9 +1,12 @@
 // File: frontend/src/setupTests.js
-// Global test setup for Vitest:
-// - Adds matchers from @testing-library/jest-dom
-// - Provides fetch mocks (including /protected, /events, /entrants, and /api/analytics/*)
-// - Adds helpers for entrants
-// - Swallows noisy console logs/warnings/errors during tests
+// Purpose: Global test setup for Vitest and React Testing Library.
+// Includes:
+// - jest-dom matchers
+// - consistent global fetch mocks (for /events, /entrants, /protected, /api/analytics/*)
+// - helpers for mocking success/failure states
+// - dynamic /events response support for multiple renders
+// - jsdom fixes for MUI Switch click bubbling
+// - suppression of noisy console output during tests
 
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
@@ -11,7 +14,22 @@ import { vi } from "vitest";
 // Use Vite-style env variable
 process.env.VITE_API_URL = "http://localhost:3001";
 
-// Default fetch mock: include analytics + /protected + /events success
+// -----------------------------
+// Dynamic /events response setup
+// -----------------------------
+let defaultEventsResponse = [];
+
+/**
+ * Updates the default mock response for `/events` requests.
+ * Persists across renders (helps with React StrictMode double-fetch).
+ */
+export function setMockEventsResponse(data) {
+  defaultEventsResponse = data;
+}
+
+// -----------------------------
+// Global fetch mock
+// -----------------------------
 beforeEach(() => {
   global.fetch = vi.fn((url) => {
     // Protected route
@@ -22,11 +40,11 @@ beforeEach(() => {
       });
     }
 
-    // Events
+    // Events (dynamic mock)
     if (url.includes("/events")) {
       return Promise.resolve({
         ok: true,
-        json: async () => [],
+        json: async () => defaultEventsResponse,
       });
     }
 
@@ -88,6 +106,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  defaultEventsResponse = []; // reset between tests
 });
 
 // ----------------
@@ -95,22 +114,29 @@ afterEach(() => {
 // ----------------
 
 export const mockEventsList = [
-  { id: 1, name: "Hero Cup", date: "2025-09-12", status: "open" },
-  { id: 2, name: "Villain Showdown", date: "2025-09-13", status: "closed" },
+  { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
+  { id: 2, name: "Villain Showdown", date: "2025-09-13", status: "cancelled" },
+  { id: 3, name: "Shadow Games", date: "2025-09-14", status: "completed" },
 ];
 
+/**
+ * Overrides fetch mock with a successful `/events` response.
+ * Automatically syncs with dynamic defaultEventsResponse.
+ */
 export function mockFetchSuccess(data = mockEventsList) {
+  setMockEventsResponse(data);
   global.fetch.mockResolvedValueOnce({ ok: true, json: async () => data });
 }
 
+/**
+ * Overrides fetch mock with a failure state for `/events`.
+ */
 export function mockFetchFailure(error = { error: "API Error" }) {
   global.fetch.mockResolvedValueOnce({ ok: false, json: async () => error });
 }
 
 /**
  * Mocks a successful entrant fetch from /entrants
- * Example:
- * mockFetchEntrant({ id: 101, user: { username: "player1" } });
  */
 export function mockFetchEntrant(overrides = {}) {
   const defaultEntrant = {
@@ -146,10 +172,19 @@ export function mockFetchEntrant(overrides = {}) {
   return entrant;
 }
 
-// ----------------
-// Console Swallows
-// ----------------
+// -----------------------------
+// jsdom & MUI Event Fixes
+// -----------------------------
 
+// Fix MUI Switch click bubbling in jsdom (ensures userEvent.click works)
+window.HTMLElement.prototype.click = function () {
+  const event = new MouseEvent("click", { bubbles: true });
+  this.dispatchEvent(event);
+};
+
+// -----------------------------
+// Console Noise Suppression
+// -----------------------------
 const originalError = console.error;
 const originalWarn = console.warn;
 const originalLog = console.log;
@@ -180,3 +215,38 @@ afterAll(() => {
   console.warn = originalWarn;
   console.log = originalLog;
 });
+
+// ----------------
+// Event Fixtures
+// ----------------
+
+export const mockEventListMixed = [
+  {
+    id: 1,
+    name: "Hero Cup",
+    date: "2025-09-12",
+    status: "published",
+    entrants: Array(3).fill({}),
+  },
+  {
+    id: 2,
+    name: "Villain Showdown",
+    date: "2025-09-13",
+    status: "completed",
+    entrants: Array(5).fill({}),
+  },
+  {
+    id: 3,
+    name: "Cancelled Cup",
+    date: "2025-09-14",
+    status: "cancelled",
+    entrants: Array(2).fill({}),
+  },
+  {
+    id: 4,
+    name: "Draft Event",
+    date: "2025-09-15",
+    status: "drafting",
+    entrants: [],
+  },
+];
