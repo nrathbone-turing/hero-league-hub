@@ -1,48 +1,40 @@
 // File: frontend/src/components/EventDetail.jsx
-// Purpose: Detailed view of a single event with entrants, matches, and status controls.
+// Purpose: Player-facing event detail view with registration, entrants, and matches.
 // Notes:
-// - Entrants table shows User.username (fallback) and Hero.name (alias).
-// - Added aria-labels and data-testids to improve test reliability with MUI.
-// - Preserves existing behavior, sorting, and layout.
+// - Non-admins see a "Register Now" panel if not registered.
+// - Entrants display entrant.name consistently.
+// - Adjusted grid widths to prevent overlap and maintain balanced layout.
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Navigate, Link as RouterLink } from "react-router-dom";
+import { useParams, Navigate, Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   Container,
   Typography,
   Box,
   Paper,
   Button,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
   CircularProgress,
   Grid,
-  Tabs,
-  Tab,
   Table,
   TableHead,
   TableRow,
   TableCell,
   TableBody,
-  TextField,
   TableSortLabel,
 } from "@mui/material";
-import EntrantDashboard from "./EntrantDashboard";
-import MatchDashboard from "./MatchDashboard";
+import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../api";
 
 export default function EventDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [redirect500, setRedirect500] = useState(false);
   const [redirect404, setRedirect404] = useState(false);
-
-  const [tab, setTab] = useState(0);
-  const [removeId, setRemoveId] = useState("");
+  const [redirect500, setRedirect500] = useState(false);
 
   const [entrantOrderBy, setEntrantOrderBy] = useState("id");
   const [entrantOrder, setEntrantOrder] = useState("asc");
@@ -68,45 +60,15 @@ export default function EventDetail() {
     fetchEvent();
   }, [fetchEvent]);
 
-  async function handleRemoveEntrant(e, idOverride) {
-    e?.preventDefault();
-    const fallbackId = event?.entrants?.at(-1)?.id;
-    const targetId = idOverride || removeId || fallbackId;
-    if (!targetId) return setError("Failed to remove entrant");
-
-    try {
-      await apiFetch(`/entrants/${targetId}`, { method: "DELETE" });
-      setRemoveId("");
-      fetchEvent();
-    } catch {
-      setError("Failed to remove entrant");
-    }
-  }
-
-  async function handleStatusChange(e) {
-    if (!event) return;
-    const newStatus = e.target.value;
-    const prevStatus = event.status;
-    try {
-      await apiFetch(`/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      await fetchEvent();
-    } catch {
-      setError("Failed to update status");
-      setEvent({ ...event, status: prevStatus });
-    }
-  }
-
   if (redirect404) return <Navigate to="/404" replace />;
   if (redirect500) return <Navigate to="/500" replace />;
 
   if (loading) {
     return (
-      <Container>
-        <Typography variant="h6">Loading event...</Typography>
+      <Container sx={{ mt: 6, textAlign: "center" }}>
+        <Typography variant="h6" gutterBottom>
+          Loading event...
+        </Typography>
         <CircularProgress />
       </Container>
     );
@@ -114,21 +76,30 @@ export default function EventDetail() {
 
   if (error) {
     return (
-      <Container>
-        <Typography variant="h6">Error</Typography>
-        <Typography role="alert">{error}</Typography>
+      <Container sx={{ mt: 6, textAlign: "center" }}>
+        <Typography variant="h6" color="error" role="alert">
+          {error}
+        </Typography>
       </Container>
     );
   }
 
   if (!event) return <Navigate to="/404" replace />;
 
+  const isRegistered = event.entrants?.some(
+    (e) => e.user_id === user?.id && !e.dropped
+  );
+
+  const handleRegister = async () => {
+    navigate("/register-event");
+  };
+
   const sortData = (array, orderBy, order) => {
     return [...(array || [])].sort((a, b) => {
       let valA, valB;
       if (["entrant1", "entrant2", "winner"].includes(orderBy)) {
-        valA = a[orderBy]?.user?.username || a[`${orderBy}_id`] || "";
-        valB = b[orderBy]?.user?.username || b[`${orderBy}_id`] || "";
+        valA = a[orderBy]?.name || "";
+        valB = b[orderBy]?.name || "";
       } else {
         valA = a[orderBy] ?? "";
         valB = b[orderBy] ?? "";
@@ -158,7 +129,7 @@ export default function EventDetail() {
     <Container maxWidth={false} sx={{ mt: 4, px: 2 }}>
       {/* Header */}
       <Box display="flex" alignItems="center" gap={2} sx={{ mb: 3 }}>
-        <Button component={RouterLink} to="/" variant="outlined">
+        <Button component={RouterLink} to="/events" variant="outlined">
           Back to Events
         </Button>
         <Typography variant="subtitle1" color="text.secondary">
@@ -167,88 +138,78 @@ export default function EventDetail() {
         <Typography variant="h5" sx={{ fontWeight: "bold" }}>
           {event.name} — {event.date}
         </Typography>
-        <FormControl size="small">
-          <InputLabel id="status-label">Status</InputLabel>
-          <Select
-            labelId="status-label"
-            id="status-select"
-            label="Status"
-            value={event.status || ""}
-            onChange={handleStatusChange}
-            inputProps={{ "data-testid": "status-select" }}
-          >
-            <MenuItem value="drafting">Drafting</MenuItem>
-            <MenuItem value="published">Published</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-          </Select>
-        </FormControl>
+        <Typography
+          sx={{
+            textTransform: "uppercase",
+            ml: 2,
+            fontWeight: 600,
+            color:
+              event.status === "published"
+                ? "success.main"
+                : event.status === "completed"
+                ? "info.main"
+                : event.status === "cancelled"
+                ? "error.main"
+                : "text.secondary",
+          }}
+        >
+          {event.status}
+        </Typography>
       </Box>
 
       <Grid container spacing={2} sx={{ flexWrap: { xs: "wrap", md: "nowrap" } }}>
-        {/* Left panel */}
-        <Grid xs={12} md={3} sx={{ display: "flex" }}>
+        {/* Left panel - registration info */}
+        <Grid item xs={12} md={2.5}>
           <Paper
             sx={{
-              flex: 1,
               p: 2,
               height: 575,
               display: "flex",
               flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              textAlign: "center",
             }}
           >
-            <Tabs value={tab} onChange={(e, v) => setTab(v)} centered>
-              <Tab label="Add Entrant" />
-              <Tab label="Add Match" />
-            </Tabs>
-            <Box
-              sx={{
-                mt: 2,
-                flex: 1,
-                overflow: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
-              {tab === 0 ? (
-                <>
-                  <EntrantDashboard eventId={id} onEntrantAdded={fetchEvent} />
-                  <Box
-                    component="form"
-                    onSubmit={handleRemoveEntrant}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 2,
-                      mt: "auto",
-                    }}
-                  >
-                    <Typography variant="h6" gutterBottom>
-                      Remove Entrant
-                    </Typography>
-                    <TextField
-                      label="Entrant ID"
-                      type="number"
-                      value={removeId}
-                      onChange={(e) => setRemoveId(e.target.value)}
-                      required
-                      size="small"
-                    />
-                    <Button type="submit" variant="contained" color="error">
-                      Remove Entrant
-                    </Button>
-                  </Box>
-                </>
-              ) : (
-                <MatchDashboard eventId={id} onMatchAdded={fetchEvent} />
-              )}
-            </Box>
+            {isRegistered ? (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  You’re registered for this event!
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Good luck, hero!
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  sx={{ mt: 2 }}
+                  onClick={() => {
+                    // withdraw logic placeholder
+                  }}
+                >
+                  Withdraw
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  You’re not registered for this event.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleRegister}
+                  data-testid="register-now-btn"
+                >
+                  Register Now
+                </Button>
+              </>
+            )}
           </Paper>
         </Grid>
 
         {/* Entrants table */}
-        <Grid xs={12} md={3} sx={{ display: "flex" }}>
+        <Grid item xs={12} md={3.5} sx={{ display: "flex" }}>
           <Paper
             sx={{
               flex: 1,
@@ -277,15 +238,11 @@ export default function EventDetail() {
                     {["id", "name", "alias"].map((col) => (
                       <TableCell
                         key={col}
-                        sortDirection={
-                          entrantOrderBy === col ? entrantOrder : false
-                        }
+                        sortDirection={entrantOrderBy === col ? entrantOrder : false}
                       >
                         <TableSortLabel
                           active={entrantOrderBy === col}
-                          direction={
-                            entrantOrderBy === col ? entrantOrder : "asc"
-                          }
+                          direction={entrantOrderBy === col ? entrantOrder : "asc"}
                           onClick={() => handleEntrantSort(col)}
                         >
                           {col.charAt(0).toUpperCase() + col.slice(1)}
@@ -296,22 +253,13 @@ export default function EventDetail() {
                 </TableHead>
                 <TableBody>
                   {sortedEntrants?.map((entrant) => (
-                    <TableRow
-                      key={entrant.id}
-                      data-testid={`entrant-row-${entrant.id}`}
-                    >
+                    <TableRow key={entrant.id} data-testid={`entrant-row-${entrant.id}`}>
                       <TableCell>{entrant.id}</TableCell>
                       <TableCell>
-                        {entrant.dropped
-                          ? "Dropped"
-                          : entrant.user?.username ||
-                            entrant.name ||
-                            "-"}
+                        {entrant.dropped ? "Dropped" : entrant.name || "-"}
                       </TableCell>
                       <TableCell>
-                        {entrant.dropped
-                          ? "-"
-                          : entrant.hero?.name || entrant.alias || "-"}
+                        {entrant.dropped ? "-" : entrant.hero?.name || entrant.alias || "-"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -322,7 +270,7 @@ export default function EventDetail() {
         </Grid>
 
         {/* Matches table */}
-        <Grid xs={12} md={6} sx={{ display: "flex" }}>
+        <Grid item xs={12} md={6} sx={{ display: "flex" }}>
           <Paper
             sx={{
               flex: 1,
@@ -348,39 +296,27 @@ export default function EventDetail() {
               >
                 <TableHead>
                   <TableRow>
-                    {[
-                      "id",
-                      "round",
-                      "entrant1",
-                      "entrant2",
-                      "scores",
-                      "winner",
-                    ].map((col) => (
-                      <TableCell
-                        key={col}
-                        sortDirection={
-                          matchOrderBy === col ? matchOrder : false
-                        }
-                      >
-                        <TableSortLabel
-                          active={matchOrderBy === col}
-                          direction={
-                            matchOrderBy === col ? matchOrder : "asc"
-                          }
-                          onClick={() => handleMatchSort(col)}
+                    {["id", "round", "entrant1", "entrant2", "scores", "winner"].map(
+                      (col) => (
+                        <TableCell
+                          key={col}
+                          sortDirection={matchOrderBy === col ? matchOrder : false}
                         >
-                          {col.charAt(0).toUpperCase() + col.slice(1)}
-                        </TableSortLabel>
-                      </TableCell>
-                    ))}
+                          <TableSortLabel
+                            active={matchOrderBy === col}
+                            direction={matchOrderBy === col ? matchOrder : "asc"}
+                            onClick={() => handleMatchSort(col)}
+                          >
+                            {col.charAt(0).toUpperCase() + col.slice(1)}
+                          </TableSortLabel>
+                        </TableCell>
+                      )
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {sortedMatches?.map((m) => (
-                    <TableRow
-                      key={m.id}
-                      data-testid={`match-row-${m.id}`}
-                    >
+                    <TableRow key={m.id} data-testid={`match-row-${m.id}`}>
                       <TableCell>{m.id}</TableCell>
                       <TableCell>{m.round}</TableCell>
                       <TableCell>
