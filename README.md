@@ -320,6 +320,8 @@ Shows aggregated hero data like usage, win rates, and participation across event
   - One entrant --> many matches
 
 ### Entity Relationship Diagram (ERD)
+This diagram illustrates the relationships between users, heroes, events, entrants, and matches within Hero League Hub.  
+Entrants act as the central join table — linking each user’s chosen hero to a specific event and allowing match results and analytics to be tied together seamlessly.
 
 ![Hero League Hub – Entity Relationship Diagram (ERD)](./frontend/public/Hero%20League%20Hub%20ERD.jpeg)
 
