@@ -8,6 +8,15 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Ensure jsdom globals exist when running tests directly
+if (typeof window === "undefined" || !global.localStorage) {
+  const { JSDOM } = await import("jsdom");
+  const dom = new JSDOM("<!doctype html><html><body></body></html>");
+  global.window = dom.window;
+  global.document = dom.window.document;
+  global.localStorage = dom.window.localStorage;
+}
+
 // Use Vite-style env variable
 process.env.VITE_API_URL = "http://localhost:3001";
 
