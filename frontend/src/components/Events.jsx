@@ -1,9 +1,9 @@
 // File: frontend/src/components/Events.jsx
 // Purpose: Player-facing event list with filters, hero/villain placeholders, and admin visibility control.
 // Notes:
+// - Adds roles for accessibility and stable test querying.
 // - Non-admins only see published, completed, or cancelled (if toggled).
-// - Drafting events are hidden for non-admin users.
-// - Includes clickable event name and consistent square placeholders.
+// - Drafting events hidden for non-admin users.
 
 import { useEffect, useState, useMemo } from "react";
 import { Link as RouterLink, Navigate } from "react-router-dom";
@@ -45,7 +45,6 @@ export default function Events() {
   const [orderBy, setOrderBy] = useState("date");
   const [order, setOrder] = useState("asc");
 
-  // --- Fetch events ---
   useEffect(() => {
     async function fetchEvents() {
       try {
@@ -64,17 +63,11 @@ export default function Events() {
 
   if (redirect500) return <Navigate to="/500" replace />;
 
-  // --- Derived data ---
   const filteredEvents = useMemo(() => {
     return events
       .filter((e) => {
-        // Hide drafting events for non-admins
         if (!user?.is_admin && e.status === "drafting") return false;
-
-        // Cancelled visibility toggle
         if (!includeCancelled && e.status === "cancelled") return false;
-
-        // Status filter logic
         if (statusFilter === "all") return true;
         return e.status === statusFilter;
       })
@@ -97,15 +90,20 @@ export default function Events() {
     setOrderBy(col);
   };
 
-  // --- Render ---
   return (
-    <Container maxWidth="lg" sx={{ mt: 6 }} data-testid="events-page">
-      <Typography variant="h4" align="center" gutterBottom>
+    <Container
+      maxWidth="lg"
+      sx={{ mt: 6 }}
+      data-testid="events-page"
+      role="main"
+      aria-label="events page"
+    >
+      <Typography variant="h4" align="center" gutterBottom role="heading">
         Events
       </Typography>
 
       {/* Hero / Villain placeholders */}
-      <Grid container justifyContent="space-between" sx={{ mb: 2 }}>
+      <Grid container justifyContent="space-between" sx={{ mb: 2 }} role="region" aria-label="placeholders">
         <Grid item xs={12} sm={4} md={3}>
           <Box
             sx={{
@@ -122,6 +120,7 @@ export default function Events() {
               boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             }}
             aria-label="hero placeholder"
+            role="img"
             data-testid="hero-placeholder"
           >
             Hero
@@ -144,6 +143,7 @@ export default function Events() {
               boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             }}
             aria-label="villain placeholder"
+            role="img"
             data-testid="villain-placeholder"
           >
             Villain
@@ -158,6 +158,8 @@ export default function Events() {
         justifyContent="center"
         alignItems="center"
         sx={{ mb: 3 }}
+        role="search"
+        aria-label="event filters"
       >
         <Grid item xs={12} sm={4} md={3}>
           <TextField
@@ -180,11 +182,13 @@ export default function Events() {
               label="Status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
+              inputProps={{ "aria-label": "status filter" }}
+              role="combobox"
               data-testid="status-filter"
             >
-              <MenuItem value="published">Published</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="all">All</MenuItem>
+              <MenuItem role="option" value="published">Published</MenuItem>
+              <MenuItem role="option" value="completed">Completed</MenuItem>
+              <MenuItem role="option" value="all">All</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -197,7 +201,8 @@ export default function Events() {
             <Switch
               checked={includeCancelled}
               onChange={(e) => setIncludeCancelled(e.target.checked)}
-              inputProps={{ "aria-label": "include cancelled toggle" }}
+              inputProps={{ "aria-label": "include cancelled" }}
+              role="switch"
               data-testid="cancelled-toggle"
             />
           </Box>
@@ -206,39 +211,58 @@ export default function Events() {
 
       {/* Event Table */}
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Box
+          sx={{ display: "flex", justifyContent: "center", mt: 4 }}
+          data-testid="loading-events"
+          role="status"
+          aria-label="loading events"
+        >
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography color="error" align="center">
+        <Typography
+          color="error"
+          align="center"
+          role="alert"
+          data-testid="error-alert"
+        >
           {error}
         </Typography>
       ) : sortedEvents.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: "center" }}>
+        <Paper
+          sx={{ p: 4, textAlign: "center" }}
+          data-testid="no-events"
+          role="status"
+          aria-label="no events found"
+        >
           <Typography>No events found.</Typography>
         </Paper>
       ) : (
-        <Paper sx={{ overflowX: "auto" }} data-testid="events-table">
+        <Paper sx={{ overflowX: "auto" }} data-testid="events-table" role="table" aria-label="events table">
           <Table size="small">
-            <TableHead>
-              <TableRow>
+            <TableHead role="rowgroup">
+              <TableRow role="row">
                 {["name", "date", "status", "entrants"].map((col) => (
-                  <TableCell key={col}>
+                  <TableCell key={col} role="columnheader">
                     <TableSortLabel
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
+                      role="button"
+                      aria-label={`sort by ${col}`}
                     >
                       {col.charAt(0).toUpperCase() + col.slice(1)}
                     </TableSortLabel>
                   </TableCell>
                 ))}
-                <TableCell align="center">Actions</TableCell>
+                <TableCell align="center" role="columnheader">
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
+            <TableBody role="rowgroup">
               {sortedEvents.map((event) => (
-                <TableRow key={event.id} hover>
+                <TableRow key={event.id} hover role="row">
                   <TableCell
                     component={RouterLink}
                     to={`/events/${event.id}`}
@@ -247,12 +271,14 @@ export default function Events() {
                       textDecoration: "underline",
                       fontWeight: 500,
                     }}
+                    role="link"
+                    aria-label={`view details for ${event.name}`}
                     data-testid={`event-name-${event.id}`}
                   >
                     {event.name}
                   </TableCell>
-                  <TableCell>{event.date || "TBA"}</TableCell>
-                  <TableCell>
+                  <TableCell role="cell">{event.date || "TBA"}</TableCell>
+                  <TableCell role="cell">
                     <Typography
                       sx={{
                         fontWeight: 500,
@@ -265,20 +291,24 @@ export default function Events() {
                             ? "error.main"
                             : "text.secondary",
                       }}
+                      role="status"
+                      aria-label={`event status ${event.status}`}
                     >
                       {event.status}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    {event.entrant_count ?? event.entrants?.length ?? 0}
+                  <TableCell role="cell">
+                    {`${event.entrant_count ?? event.entrants?.length ?? 0} entrants`}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center" role="cell">
                     <Button
                       variant="outlined"
                       size="small"
                       component={RouterLink}
                       to={`/events/${event.id}`}
                       sx={{ mr: 1 }}
+                      role="button"
+                      aria-label={`view ${event.name}`}
                       data-testid="view-event-btn"
                     >
                       View
@@ -294,6 +324,8 @@ export default function Events() {
                           ? "/register-event"
                           : undefined
                       }
+                      role="button"
+                      aria-label={`register for ${event.name}`}
                       data-testid="register-btn"
                     >
                       Register
