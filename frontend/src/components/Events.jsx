@@ -1,9 +1,8 @@
 // File: frontend/src/components/Events.jsx
 // Purpose: Player-facing event list using pure filter/sort utilities.
 // Notes:
-// - Imports filterAndSortEvents for logic separation.
-// - Easier to test business logic in isolation and UI rendering separately.
-// - Matches test expectations for data-testid, error/loading/empty states, and disabled register buttons.
+// - Uses aria-labels + data-testid for stable UI tests.
+// - Compatible with jsdom (avoids MUI portal + role issues).
 
 import { useEffect, useState, useMemo } from "react";
 import { Link as RouterLink, Navigate } from "react-router-dom";
@@ -101,6 +100,7 @@ export default function Events() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             data-testid="events-search"
+            aria-label="Search by name"
           />
         </Grid>
 
@@ -113,14 +113,15 @@ export default function Events() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               data-testid="status-filter"
+              aria-label="Status Filter"
             >
-              <MenuItem value="published" data-value="published">
+              <MenuItem value="published" data-testid="status-option-published">
                 Published
               </MenuItem>
-              <MenuItem value="completed" data-value="completed">
+              <MenuItem value="completed" data-testid="status-option-completed">
                 Completed
               </MenuItem>
-              <MenuItem value="all" data-value="all">
+              <MenuItem value="all" data-testid="status-option-all">
                 All
               </MenuItem>
             </Select>
@@ -136,6 +137,7 @@ export default function Events() {
               checked={includeCancelled}
               onChange={(e) => setIncludeCancelled(e.target.checked)}
               data-testid="cancelled-toggle"
+              aria-label="Include Cancelled"
             />
           </Box>
         </Grid>
@@ -156,7 +158,7 @@ export default function Events() {
         </Paper>
       ) : (
         <Paper sx={{ overflowX: "auto" }} data-testid="events-table">
-          <Table size="small" role="table">
+          <Table size="small" aria-label="Events Table">
             <TableHead>
               <TableRow>
                 {["name", "date", "status", "entrants"].map((col) => (
@@ -165,6 +167,7 @@ export default function Events() {
                       active={orderBy === col}
                       direction={orderBy === col ? order : "asc"}
                       onClick={() => handleSort(col)}
+                      aria-label={`Sort by ${col}`}
                     >
                       {col.charAt(0).toUpperCase() + col.slice(1)}
                     </TableSortLabel>
@@ -175,24 +178,36 @@ export default function Events() {
             </TableHead>
             <TableBody>
               {sortedEvents.map((event) => (
-                <TableRow key={event.id} hover>
+                <TableRow key={event.id} hover data-testid={`event-row-${event.id}`}>
                   <TableCell
                     component={RouterLink}
                     to={`/events/${event.id}`}
                     data-testid={`event-name-${event.id}`}
-                    sx={{ color: "primary.main", textDecoration: "underline" }}
+                    aria-label={`Event name ${event.name}`}
+                    sx={{
+                      color: "primary.main",
+                      textDecoration: "underline",
+                      fontWeight: 500,
+                    }}
                   >
                     {event.name}
                   </TableCell>
-                  <TableCell>{event.date || "TBA"}</TableCell>
-                  <TableCell>{event.status}</TableCell>
-                  <TableCell>{event.entrants?.length ?? 0}</TableCell>
+                  <TableCell data-testid={`event-date-${event.id}`} aria-label={`Event date ${event.date}`}>
+                    {event.date || "TBA"}
+                  </TableCell>
+                  <TableCell data-testid={`event-status-${event.id}`} aria-label={`Event status ${event.status}`}>
+                    {event.status}
+                  </TableCell>
+                  <TableCell data-testid={`event-entrants-${event.id}`} aria-label={`Entrants count`}>
+                    {event.entrants?.length ?? 0}
+                  </TableCell>
                   <TableCell align="center">
                     <Button
                       variant="contained"
                       size="small"
                       disabled={event.status !== "published"}
-                      data-testid="register-btn"
+                      data-testid={`register-btn-${event.id}`}
+                      aria-label={`Register for ${event.name}`}
                     >
                       Register
                     </Button>
