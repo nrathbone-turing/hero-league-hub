@@ -1,0 +1,43 @@
+// File: frontend/src/utils/heroFilters.js
+// Purpose: Pure data utilities for filtering, searching, and sorting heroes.
+// Context: Supports <Heroes /> page logic by handling search and table order independently of React or MUI.
+//
+// Parameters:
+// - heroes: Array of hero objects (id, name, full_name, alias, alignment, powerstats, etc.)
+// - options: {
+//     searchTerm: string,
+//     alignmentFilter: "all" | "hero" | "villain" | "antihero" | "unknown",
+//     orderBy: string (usually "name"),
+//     order: "asc" | "desc"
+//   }
+//
+// Returns:
+// - A filtered + sorted array of heroes, without any UI or API dependencies.
+//
+// Notes:
+// - Search checks name, alias, and full_name fields.
+// - Alignment filter applies canonical lowercase comparison.
+// - Designed for isolated unit testing (no network, no DOM).
+
+export function filterAndSortHeroes(heroes, { searchTerm, alignmentFilter, orderBy, order }) {
+  const filtered = (heroes || [])
+    .filter((h) => {
+      const matchesSearch = [h.name, h.full_name, h.alias]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes((searchTerm || "").toLowerCase()));
+      if (!matchesSearch) return false;
+      if (alignmentFilter !== "all" && (h.alignment || "unknown").toLowerCase() !== alignmentFilter)
+        return false;
+      return true;
+    });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const valA = (a[orderBy] ?? "").toString().toLowerCase();
+    const valB = (b[orderBy] ?? "").toString().toLowerCase();
+    if (valA < valB) return order === "asc" ? -1 : 1;
+    if (valA > valB) return order === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  return sorted;
+}

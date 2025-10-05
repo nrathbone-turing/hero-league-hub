@@ -7,6 +7,7 @@
 // - Tests each filter rule and sort order independently of React/MUI.
 // - Verifies data-level correctness (the pure function’s job), not UI rendering.
 
+import { describe, test, expect } from "vitest";
 import { filterAndSortEvents } from "../utils/eventFilters";
 
 const base = [
