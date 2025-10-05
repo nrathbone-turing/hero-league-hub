@@ -69,7 +69,8 @@ export default function AuthProvider({ children }) {
       logout(true); // auto redirect on failure
       return false;
     }
-  }, [token, logout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps  
+  }, [token]);
 
   // run token validation once on mount (skip in tests)
   useEffect(() => {
