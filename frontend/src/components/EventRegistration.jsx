@@ -1,8 +1,9 @@
 // File: frontend/src/components/EventRegistration.jsx
 // Purpose: Register logged-in users for an event with hero selection.
 // Notes:
-// - Always persists entrant + chosenHero in localStorage after registration.
+// - Persists entrant + chosenHero in localStorage after registration.
 // - Updates chosenHero key on hero re-selection so dashboard reflects immediately.
+// - Includes data-testid attributes for stable test queries.
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -14,7 +15,6 @@ import {
   Box,
   CircularProgress,
   Alert,
-  Link,
   Autocomplete,
 } from "@mui/material";
 import { apiFetch } from "../api";
@@ -55,7 +55,7 @@ export default function EventRegistration() {
     })();
   }, []);
 
-  // Load first heroes page on mount
+  // Load heroes on mount
   useEffect(() => {
     (async () => {
       setLoadingHeroes(true);
@@ -81,7 +81,7 @@ export default function EventRegistration() {
     })();
   }, [user?.id]);
 
-  // Server-side search
+  // Server-side hero search
   async function handleHeroSearch(term) {
     latestTerm.current = term;
     if (!term) return;
@@ -116,7 +116,7 @@ export default function EventRegistration() {
         body: JSON.stringify({ ...formData, user_id: user.id }),
       });
 
-      // Always persist entrant and hero
+      // Persist entrant + hero
       localStorage.setItem(`entrant_${user.id}`, JSON.stringify(entrant));
       if (entrant.hero) {
         localStorage.setItem(`chosenHero_${user.id}`, JSON.stringify(entrant.hero));
@@ -129,7 +129,11 @@ export default function EventRegistration() {
   }
 
   return (
-    <Container sx={{ mt: 4 }} maxWidth="sm" data-testid="event-registration">
+    <Container
+      sx={{ mt: 4 }}
+      maxWidth="sm"
+      data-testid="event-registration"
+    >
       <Typography variant="h4" gutterBottom>
         Register for an Event
       </Typography>
@@ -159,7 +163,7 @@ export default function EventRegistration() {
           data-testid="email-field"
         />
 
-        {/* Events */}
+        {/* Event select */}
         {loadingEvents ? (
           <Box textAlign="center" mt={2} data-testid="loading-events">
             <CircularProgress />
@@ -217,6 +221,7 @@ export default function EventRegistration() {
               margin="normal"
               fullWidth
               required
+              data-testid="hero-field"
             />
           )}
           ListboxProps={{ style: { maxHeight: 300, overflow: "auto" } }}
@@ -233,11 +238,12 @@ export default function EventRegistration() {
           margin="normal"
           multiline
           rows={3}
+          data-testid="notes-field"
         />
 
         {/* Submit */}
         <Box sx={{ mt: 3, textAlign: "center" }}>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" data-testid="submit-btn">
             Register
           </Button>
         </Box>
