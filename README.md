@@ -324,6 +324,11 @@ Validation Logic:
 - Minor UI flicker when switching Analytics tabs
 - Frontend tests rely on `vi.fn` mocks for fetch requests
 - `MUI Select` components require test mocking for Vitest
+- Withdraw button from EventDetails page not wired up to soft or hard delete entrant
+- Still need to add fallback image for broken hero URLs
+- Add Dashboard link to Navbar (only when authenticated)
+- Update route guards (ProtectedRoute) to ensure the dashboard and analytics tabs are behind auth redirects and events and heroes are not
+- move Heroes page sorting logic to backend for consistent ordering across pages
 
 ## Future Improvements
 - Bracket visualization for events

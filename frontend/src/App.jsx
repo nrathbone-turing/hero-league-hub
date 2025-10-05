@@ -6,7 +6,7 @@
 // - Redirects based on user.is_admin flag.
 
 import { Routes, Route, Navigate } from "react-router-dom";
-import EventDashboard from "./components/EventDashboard";
+import Events from "./components/Events";
 import EventDetail from "./components/EventDetail";
 import NotFoundPage from "./components/NotFoundPage";
 import ServerErrorPage from "./components/ServerErrorPage";
@@ -67,7 +67,7 @@ function RootRoutes() {
         path="/events"
         element={
           <ProtectedRoute>
-            <EventDashboard />
+            <Events />
           </ProtectedRoute>
         }
       />
