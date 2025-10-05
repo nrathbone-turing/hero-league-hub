@@ -11,7 +11,7 @@
     "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
     "test": "node backend/scripts/run-helper.js test && npm --prefix frontend run test",
-
+    
     "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm test",
 
     "db:init": "node backend/scripts/run-helper.js db:init",
@@ -20,7 +20,7 @@
     "db:seed": "node backend/scripts/run-helper.js db:seed",
     "db:reset": "node backend/scripts/run-helper.js db:reset",
     "db:refresh": "npm run db:reset",
-
+    
     "start:frontend": "npm --prefix frontend run dev",
     "start:backend": "pipenv run python backend/wsgi.py",
     "dev:all": "npm run docker:rebuild && npm run start:frontend",
@@ -36,6 +36,7 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "eslint-plugin-vitest-globals": "^1.5.0",
-    "history": "^5.3.0"
+    "history": "^5.3.0",
+    "jsdom": "^27.0.0"
   }
 }
