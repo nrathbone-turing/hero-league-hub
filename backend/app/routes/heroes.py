@@ -1,9 +1,9 @@
-# backend/app/routes/heroes.py
-# Provides routes for fetching and persisting heroes
+# File: backend/app/routes/heroes.py
+# Provides routes for fetching and persisting heroes.
 # - /api/heroes?search=...&page=...&per_page=...&alignment=...
 # - /api/heroes/<id>
-# - /api/heroes/<id>/image (backend image proxy to avoid hotlink/CORS)
-# - Supports empty search to browse local DB heroes (used by frontend preload)
+# - /api/heroes/<id>/image (backend proxy to avoid CORS)
+# - Empty search → returns local DB heroes (used by frontend preload).
 
 from flask import Blueprint, request, jsonify, Response
 from backend.app.extensions import db
@@ -23,6 +23,7 @@ UA = {
 
 
 def normalize_hero(data):
+    """Normalize external API hero data into our DB schema."""
     raw_alignment = data.get("biography", {}).get("alignment")
     alignment = API_ALIGNMENT_MAP.get(raw_alignment, "unknown")
     hero_id = int(data.get("id") or 0)
@@ -58,8 +59,8 @@ def search_or_browse_heroes():
     try:
         results = []
 
+        # --- Case 1: External API search ---
         if query:
-            # 🔍 Search via SuperHero API
             url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/search/{query}"
             resp = requests.get(url, headers=UA, timeout=10)
             if not resp.ok:
@@ -68,7 +69,7 @@ def search_or_browse_heroes():
             api_results = resp.json().get("results", []) or []
             normalized = [normalize_hero(h) for h in api_results]
 
-            # Upsert to DB
+            # Upsert results into DB
             for h in normalized:
                 try:
                     hero = db.session.get(Hero, h["id"])
@@ -84,37 +85,40 @@ def search_or_browse_heroes():
 
             results = normalized
 
+        # --- Case 2: Local browse ---
         else:
-            # 🗂 Browse from local DB when no search query
             query_obj = Hero.query
             if alignment and alignment != "all":
                 query_obj = query_obj.filter_by(alignment=alignment)
             heroes = query_obj.order_by(Hero.name.asc()).all()
             results = [h.to_dict() for h in heroes]
 
-        # Alignment filter (applies to API search results too)
+        # Apply alignment filter (works for API results too)
         if alignment and alignment != "all":
             results = [h for h in results if h.get("alignment") == alignment]
 
-        # Attach proxy image URL
+        # Add proxy image URLs for all heroes
         for h in results:
             h["proxy_image"] = f"/api/heroes/{h['id']}/image"
 
-        # Paginate
+        # Pagination logic
         total = len(results)
         start = (page - 1) * per_page
         end = start + per_page
         paginated = results[start:end]
 
-        return jsonify(
-            {
-                "results": paginated,
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "total_pages": (total + per_page - 1) // per_page,
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "results": paginated,
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page,
+                }
+            ),
+            200,
+        )
 
     except Exception:
         traceback.print_exc()
@@ -178,6 +182,7 @@ def get_hero_image(hero_id):
         resp = Response(proxied.content, status=200, mimetype=content_type)
         resp.headers["Cache-Control"] = "public, max-age=86400"
         return resp
+
     except Exception as e:
         traceback.print_exc()
         return jsonify(error=f"Failed to fetch hero image: {str(e)}"), 500
