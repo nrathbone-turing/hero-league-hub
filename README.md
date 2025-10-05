@@ -123,6 +123,32 @@ These accounts are automatically seeded when you run `npm run db:seed` or `npm r
 
 ---
 
+### Optional: Add Match Data for Demo User
+By default, reseeding the database clears demo data (persistence separation not yet implemented).
+If you’d like to preview the Event Details tab (with real matches), you can manually create a sample match for the demo user via `curl`
+
+```bash
+# Example: create a match for the demo user (entrant_id = 106)
+# Replace <JWT> with your demo user's token and $OPPONENT_ID with another entrant's ID.
+
+curl -X POST http://localhost:5500/api/matches \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <JWT>" \
+  -d '{
+    "round": 3,
+    "scores": "2-1",
+    "entrant1_id": 106,
+    "entrant2_id": $OPPONENT_ID,
+    "winner_id": 106,
+    "event_id": 2
+  }'
+```
+*Note*: You can get the JWT by logging in as the demo user in the browser and checking Application --> Local Storage --> token in DevTools. 
+
+From there, replace `<JWT>` above with that token value and `$OPPONENT_ID` with another seeded user's id from the same event and click the refresh icon on the left card to see your stats.
+
+---
+
 ## Database Management
 ```bash
 # Database utilities
