@@ -1,5 +1,5 @@
-// File: frontend/src/__tests__/EventDashboard.test.jsx
-// Purpose: Tests for EventDashboard component.
+// File: frontend/src/__tests__/Events.test.jsx
+// Purpose: Tests for Events component.
 // Notes:
 // - Relies on global fetch mock for /events.
 // - Covers rendering list, form submission, placeholder images, status spacing, scrollable list, and entrant count.
@@ -7,13 +7,13 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithRouter } from "../test-utils";
-import EventDashboard from "../components/EventDashboard";
+import Events from "../components/Events";
 import { mockFetchSuccess } from "../setupTests";
 
-describe("EventDashboard", () => {
+describe("Events", () => {
   test("renders events heading", async () => {
     mockFetchSuccess();
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     expect(await screen.findByRole("heading", { name: /events/i })).toBeInTheDocument();
   });
 
@@ -33,7 +33,7 @@ describe("EventDashboard", () => {
         entrants: Array(5).fill({ id: 2, name: "Villain" }),
       },
     ]);
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     expect(await screen.findByText(/3 entrants/i)).toBeInTheDocument();
     expect(await screen.findByText(/5 entrants/i)).toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe("EventDashboard", () => {
       },
     ]); // reload
 
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     await userEvent.type(screen.getByLabelText(/name/i), "Test Event");
     await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
     await userEvent.click(screen.getByRole("button", { name: /create event/i }));
@@ -66,15 +66,15 @@ describe("EventDashboard", () => {
   });
 });
 
-describe("EventDashboard - edge cases", () => {
+describe("Events - edge cases", () => {
   test("shows placeholder when no events exist", async () => {
     global.fetch.mockResolvedValueOnce({ ok: true, json: async () => [] });
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     expect(await screen.findByText(/no events yet/i)).toBeInTheDocument();
   });
 
   test("prevents event creation with missing fields", async () => {
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     await userEvent.click(screen.getByRole("button", { name: /create event/i }));
     expect(screen.getByRole("form")).toBeInTheDocument();
   });
@@ -89,7 +89,7 @@ describe("EventDashboard - edge cases", () => {
         json: async () => ({ error: "Failed to create event" }),
       });
 
-    renderWithRouter(<EventDashboard />, { route: "/" });
+    renderWithRouter(<Events />, { route: "/" });
     await userEvent.type(screen.getByLabelText(/event name/i), "Broken Event");
     await userEvent.type(screen.getByLabelText(/date/i), "2025-09-20");
     await userEvent.click(screen.getByRole("button", { name: /create event/i }));

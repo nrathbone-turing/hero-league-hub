@@ -1,8 +1,9 @@
 # backend/app/routes/heroes.py
 # Provides routes for fetching and persisting heroes
-# - /api/heroes?search=...&page=...&per_page=...
+# - /api/heroes?search=...&page=...&per_page=...&alignment=...
 # - /api/heroes/<id>
 # - /api/heroes/<id>/image (backend image proxy to avoid hotlink/CORS)
+# - Supports empty search to browse local DB heroes (used by frontend preload)
 
 from flask import Blueprint, request, jsonify, Response
 from backend.app.extensions import db
@@ -42,58 +43,79 @@ def normalize_hero(data):
 
 
 @heroes_bp.route("", methods=["GET"])
-def search_heroes():
+def search_or_browse_heroes():
+    """
+    Unified hero search and browse endpoint.
+    - If `search` param is present → queries SuperHero API and upserts results.
+    - If no search → fetches heroes from local DB.
+    - Supports optional `alignment` filtering for both cases.
+    """
     query = request.args.get("search", "").strip()
+    alignment = request.args.get("alignment", "").strip().lower()
     page = max(int(request.args.get("page", 1)), 1)
-    per_page = max(min(int(request.args.get("per_page", 10)), 100), 1)
-
-    if not query:
-        return jsonify(error="Missing search query"), 400
+    per_page = max(min(int(request.args.get("per_page", 25)), 100), 1)
 
     try:
-        url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/search/{query}"
-        resp = requests.get(url, headers=UA, timeout=10)
-        if not resp.ok:
-            return jsonify(error="External API error"), resp.status_code
+        results = []
 
-        api_results = resp.json().get("results", []) or []
-        normalized = [normalize_hero(h) for h in api_results]
+        if query:
+            # 🔍 Search via SuperHero API
+            url = f"https://superheroapi.com/api/{Config.SUPERHERO_API_KEY}/search/{query}"
+            resp = requests.get(url, headers=UA, timeout=10)
+            if not resp.ok:
+                return jsonify(error="External API error"), resp.status_code
 
-        # Upsert heroes
-        for h in normalized:
-            try:
-                hero = db.session.get(Hero, h["id"])
-                if not hero:
-                    db.session.add(Hero(**h))
-                else:
-                    for key, val in h.items():
-                        setattr(hero, key, val)
-            except Exception as e:
-                db.session.rollback()
-                print(f"⚠️ Failed to persist hero {h.get('id')}: {e}")
-        db.session.commit()
+            api_results = resp.json().get("results", []) or []
+            normalized = [normalize_hero(h) for h in api_results]
 
-        # Attach proxy_image for frontend use
-        for h in normalized:
+            # Upsert to DB
+            for h in normalized:
+                try:
+                    hero = db.session.get(Hero, h["id"])
+                    if not hero:
+                        db.session.add(Hero(**h))
+                    else:
+                        for key, val in h.items():
+                            setattr(hero, key, val)
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"⚠️ Failed to persist hero {h.get('id')}: {e}")
+            db.session.commit()
+
+            results = normalized
+
+        else:
+            # 🗂 Browse from local DB when no search query
+            query_obj = Hero.query
+            if alignment and alignment != "all":
+                query_obj = query_obj.filter_by(alignment=alignment)
+            heroes = query_obj.order_by(Hero.name.asc()).all()
+            results = [h.to_dict() for h in heroes]
+
+        # Alignment filter (applies to API search results too)
+        if alignment and alignment != "all":
+            results = [h for h in results if h.get("alignment") == alignment]
+
+        # Attach proxy image URL
+        for h in results:
             h["proxy_image"] = f"/api/heroes/{h['id']}/image"
 
-        total = len(normalized)
+        # Paginate
+        total = len(results)
         start = (page - 1) * per_page
         end = start + per_page
-        paginated = normalized[start:end]
+        paginated = results[start:end]
 
-        return (
-            jsonify(
-                {
-                    "results": paginated,
-                    "page": page,
-                    "per_page": per_page,
-                    "total": total,
-                    "total_pages": (total + per_page - 1) // per_page,
-                }
-            ),
-            200,
-        )
+        return jsonify(
+            {
+                "results": paginated,
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": (total + per_page - 1) // per_page,
+            }
+        ), 200
+
     except Exception:
         traceback.print_exc()
         return jsonify(error="Failed to fetch heroes"), 500
@@ -101,6 +123,7 @@ def search_heroes():
 
 @heroes_bp.route("/<int:hero_id>", methods=["GET"])
 def get_hero(hero_id):
+    """Fetch a specific hero by ID (DB first, fallback to external API)."""
     try:
         hero = db.session.get(Hero, hero_id)
         if not hero:
@@ -116,6 +139,7 @@ def get_hero(hero_id):
         payload = hero.to_dict()
         payload["proxy_image"] = f"/api/heroes/{hero.id}/image"
         return jsonify(payload), 200
+
     except Exception:
         db.session.rollback()
         traceback.print_exc()
@@ -124,6 +148,7 @@ def get_hero(hero_id):
 
 @heroes_bp.route("/<int:hero_id>/image", methods=["GET"])
 def get_hero_image(hero_id):
+    """Proxy hero image to avoid CORS issues."""
     try:
         hero = db.session.get(Hero, hero_id)
         image_url = hero.image if hero and hero.image else None
@@ -146,7 +171,6 @@ def get_hero_image(hero_id):
 
         proxied = requests.get(image_url, headers=UA, timeout=12)
         if proxied.status_code != 200 or not proxied.content:
-            # console log to help debugging when a CDN blocks the request
             print(f"[image-proxy] upstream {proxied.status_code} for {image_url}")
             return jsonify(error="Failed to fetch external image"), 502
 
@@ -157,40 +181,3 @@ def get_hero_image(hero_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify(error=f"Failed to fetch hero image: {str(e)}"), 500
-
-
-@heroes_bp.route("/browse", methods=["GET"])
-def browse_heroes():
-    """
-    Return all heroes stored in DB, with pagination.
-    Used by frontend dropdowns (event registration, etc.).
-    """
-    try:
-        page = max(int(request.args.get("page", 1)), 1)
-        per_page = max(min(int(request.args.get("per_page", 50)), 100), 1)
-
-        query = Hero.query.order_by(Hero.name.asc())
-        total = query.count()
-        heroes = query.offset((page - 1) * per_page).limit(per_page).all()
-
-        results = []
-        for h in heroes:
-            hero_dict = h.to_dict()
-            hero_dict["proxy_image"] = f"/api/heroes/{h.id}/image"
-            results.append(hero_dict)
-
-        return (
-            jsonify(
-                {
-                    "results": results,
-                    "page": page,
-                    "per_page": per_page,
-                    "total": total,
-                    "total_pages": (total + per_page - 1) // per_page,
-                }
-            ),
-            200,
-        )
-    except Exception:
-        traceback.print_exc()
-        return jsonify(error="Failed to browse heroes"), 500

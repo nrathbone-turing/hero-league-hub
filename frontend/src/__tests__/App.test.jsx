@@ -76,7 +76,7 @@ describe("App routing (auth happy path)", () => {
       );
     });
 
-    test("redirects / to EventDashboard", async () => {
+    test("redirects / to Events", async () => {
       mockFetchSuccess([
         {
           id: 1,
@@ -93,7 +93,7 @@ describe("App routing (auth happy path)", () => {
       expect(await screen.findByTestId("event-name")).toHaveTextContent("Hero Cup");
     });
 
-    test("navigates from EventDashboard → EventDetail", async () => {
+    test("navigates from Events → EventDetail", async () => {
       mockFetchSuccess([
         {
           id: 1,
