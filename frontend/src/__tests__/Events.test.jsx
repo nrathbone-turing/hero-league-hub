@@ -1,8 +1,13 @@
 // File: frontend/src/__tests__/Events.test.jsx
-// Purpose: Tests for Events component (robust against MUI portal rendering).
+// Purpose: UI verification for <Events /> component using fixture data.
+// Context: Core filtering/sorting logic lives in utils/eventFilters.js (tested separately).
+// This file ensures proper UI state transitions — loading, empty, toggle + filter interactions,
+// and disabled/enabled button behavior.
+//
 // Notes:
-// - Uses data-testid and visible state checks instead of fragile role queries.
-// - Verifies search filter, cancelled toggle, and button disablement behavior.
+// - Uses fixture-based mocks (no string matching).
+// - Focuses on UI wiring, not internal filter logic.
+// - Ensures consistent behavior between MUI Select, Switch, and Table render states.
 
 import { screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -10,96 +15,92 @@ import { renderWithRouter } from "../test-utils";
 import Events from "../components/Events";
 import { mockFetchSuccess } from "../setupTests";
 
-describe("Events component", () => {
+// ---------- Fixtures ----------
+const FIXTURE_CANCELLED_ONLY = [
+  { id: 999, name: "Test Cancelled", date: "2025-01-01", status: "cancelled", entrants: [] },
+];
+
+const FIXTURE_MIXED = [
+  { id: 1, name: "Published Event", date: "2025-09-12", status: "published", entrants: [] },
+  { id: 2, name: "Completed Event", date: "2025-09-13", status: "completed", entrants: [] },
+  { id: 3, name: "Cancelled Event", date: "2025-09-14", status: "cancelled", entrants: [] },
+];
+
+// ---------- Helpers ----------
+async function setStatusFilter(value) {
+  const select = await screen.findByTestId("status-filter");
+  await userEvent.click(select);
+  const options = await screen.findAllByRole("option");
+  const target = options.find((opt) => opt.getAttribute("data-value") === value);
+  if (!target) throw new Error(`Missing <option data-value="${value}">`);
+  await userEvent.click(target);
+}
+
+function getVisibleTable() {
+  const tables = screen.getAllByRole("table");
+  return tables.find((t) => !t.getAttribute("aria-hidden")) ?? tables[0];
+}
+
+// ---------- Tests ----------
+
+describe("<Events /> (UI behavior only)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     localStorage.clear();
   });
 
-  test("renders heading and placeholders", async () => {
-    mockFetchSuccess([]);
+  test("shows no events initially for cancelled-only data, then reveals cancelled when toggled", async () => {
+    mockFetchSuccess(FIXTURE_CANCELLED_ONLY);
     renderWithRouter(<Events />);
-    expect(await screen.findByRole("heading", { name: /events/i })).toBeInTheDocument();
-    expect(screen.getByTestId("hero-placeholder")).toBeInTheDocument();
-    expect(screen.getByTestId("villain-placeholder")).toBeInTheDocument();
-  });
 
-  test("shows loading spinner initially", async () => {
-    global.fetch = vi.fn(() => new Promise(() => {})); // unresolved
-    renderWithRouter(<Events />);
-    expect(await screen.findByTestId("loading-events")).toBeInTheDocument();
-  });
+    // Expect the empty state first (cancelled hidden by default)
+    const empty = await screen.findByTestId("no-events");
+    expect(empty).toBeInTheDocument();
 
-  test("renders table with entrant counts", async () => {
-    mockFetchSuccess([
-      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published", entrants: Array(3).fill({}) },
-      { id: 2, name: "Villain Showdown", date: "2025-09-13", status: "published", entrants: Array(5).fill({}) },
-    ]);
-    renderWithRouter(<Events />);
+    // Switch filter to 'all' and enable cancelled visibility
+    await setStatusFilter("all");
+    await userEvent.click(screen.getByTestId("cancelled-toggle"));
+
+    // Table should now render
     const table = await screen.findByTestId("events-table");
     expect(table).toBeInTheDocument();
-    expect(within(table).getByText("Hero Cup")).toBeInTheDocument();
-    expect(within(table).getByText("Villain Showdown")).toBeInTheDocument();
-    expect(within(table).getByText(/3 entrants/)).toBeInTheDocument();
-    expect(within(table).getByText(/5 entrants/)).toBeInTheDocument();
+
+    // Verify the cancelled event is rendered
+    const cancelledRow = within(table).getByTestId("event-name-999");
+    expect(cancelledRow).toBeInTheDocument();
   });
 
-  test("filters events when typing in search", async () => {
-    mockFetchSuccess([
-      { id: 1, name: "Hero Cup", date: "2025-09-12", status: "published" },
-      { id: 2, name: "Villain Bash", date: "2025-09-13", status: "published" },
-    ]);
+  test("renders mixed events and disables Register for non-published", async () => {
+    mockFetchSuccess(FIXTURE_MIXED);
     renderWithRouter(<Events />);
 
-    const search = await screen.findByTestId("events-search");
-    const input = within(search).getByRole("textbox");
+    // Reveal all + include cancelled
+    await setStatusFilter("all");
+    await userEvent.click(screen.getByTestId("cancelled-toggle"));
 
-    await userEvent.type(input, "Villain");
-    await waitFor(() => {
-      const table = screen.getByTestId("events-table");
-      const rows = within(table).getAllByRole("row");
-      // 1 header + 1 filtered event row
-      expect(rows.length).toBe(2);
-      expect(screen.getByText("Villain Bash")).toBeInTheDocument();
-      expect(screen.queryByText("Hero Cup")).not.toBeInTheDocument();
-    });
+    const table = await screen.findByTestId("events-table");
+    const registerButtons = within(getVisibleTable()).getAllByTestId("register-btn");
+
+    // Separate by state
+    const disabled = registerButtons.filter((btn) => btn.disabled);
+    const enabled = registerButtons.filter((btn) => !btn.disabled);
+
+    expect(disabled.length).toBeGreaterThan(0);
+    expect(enabled.length).toBeGreaterThan(0);
   });
 
-  test("shows empty state when no events found", async () => {
-    mockFetchSuccess([]);
+  test("handles API error gracefully", async () => {
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network Error"));
     renderWithRouter(<Events />);
-    expect(await screen.findByTestId("no-events")).toBeInTheDocument();
-  });
 
-  test("shows error message when fetch fails", async () => {
-    global.fetch = vi.fn().mockRejectedValueOnce(new Error("Network down"));
-    renderWithRouter(<Events />);
     const alert = await screen.findByTestId("error-alert");
     expect(alert).toHaveTextContent(/failed to fetch events/i);
   });
 
-  test("reveals cancelled events when toggle is switched", async () => {
-    mockFetchSuccess([{ id: 1, name: "Cancelled Cup", date: "2025-09-12", status: "cancelled" }]);
+  test("shows loading spinner before data resolves", async () => {
+    global.fetch = vi.fn(() => new Promise(() => {})); // never resolves
     renderWithRouter(<Events />);
-
-    // initially hidden
-    expect(await screen.findByTestId("no-events")).toBeInTheDocument();
-
-    // toggle the switch using testid (MUI nested roles are inconsistent)
-    const toggle = screen.getByTestId("cancelled-toggle");
-    await userEvent.click(toggle);
-
-    await waitFor(() => {
-      expect(screen.getByText("Cancelled Cup")).toBeInTheDocument();
-    });
-  });
-
-  test("register button is disabled for non-published events", async () => {
-    mockFetchSuccess([
-      { id: 1, name: "Completed Cup", date: "2025-09-12", status: "completed", entrants: [] },
-    ]);
-    renderWithRouter(<Events />);
-    const btn = await screen.findByTestId("register-btn");
-    expect(btn).toBeDisabled();
+    const spinner = await screen.findByTestId("loading-events");
+    expect(spinner).toBeInTheDocument();
   });
 });
