@@ -1,33 +1,40 @@
 {
+  "type": "module",
   "name": "hero-league-hub",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "lint:backend": "docker-compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
-    "format:backend": "docker-compose run --rm -w /app backend black backend/app backend/tests",
+    "lint:backend": "docker compose run --rm -w /app/backend backend flake8 --config=.flake8 app tests",
+    "format:backend": "docker compose run --rm -w /app backend black backend/app backend/tests",
     "fix:backend": "npm run format:backend && npm run lint:backend",
-    "test:backend": "docker-compose run --rm -w /app backend pytest -q --disable-warnings backend/tests",
 
-    "db:init": "docker-compose run --rm backend flask --app backend/manage.py db init",
-    "db:migrate": "docker-compose run --rm backend flask --app backend/manage.py db migrate -m \"Auto migration\"",
-    "db:upgrade": "docker-compose run --rm backend flask --app backend/manage.py db upgrade",
-    "db:clear": "docker-compose run --rm backend python backend/scripts/clear_db.py",
-    "db:seed": "docker-compose run --rm backend python backend/scripts/seed_db.py",
-    "db:reset": "npm run db:clear && npm run db:upgrade && npm run db:seed",
-
-    "lint:frontend": "npm --prefix frontend run lint",
-    "format:frontend": "npm --prefix frontend run format",
-    "fix:frontend": "npm run format:frontend && npm run lint:frontend",
+    "test:backend": "node backend/scripts/run-helper.js backend",
     "test:frontend": "npm --prefix frontend run test",
+    "test": "node backend/scripts/run-helper.js test && npm --prefix frontend run test",
+
+    "test:full": "npm run docker:rebuild && npm run db:upgrade && npm run db:seed && npm test",
+
+    "db:init": "node backend/scripts/run-helper.js db:init",
+    "db:migrate": "node backend/scripts/run-helper.js db:migrate",
+    "db:upgrade": "node backend/scripts/run-helper.js db:upgrade",
+    "db:seed": "node backend/scripts/run-helper.js db:seed",
+    "db:reset": "node backend/scripts/run-helper.js db:reset",
+    "db:refresh": "npm run db:reset",
+
     "start:frontend": "npm --prefix frontend run dev",
-    
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "format": "npm run format:backend && npm run format:frontend",
-    "fix": "npm run fix:backend && npm run fix:frontend",
-    "test": "npm run test:backend && npm run test:frontend",
-    "check": "npm run lint && npm run test"
+    "start:backend": "pipenv run python backend/wsgi.py",
+    "dev:all": "npm run docker:rebuild && npm run start:frontend",
+
+    "docker:rebuild": "docker compose down && docker compose up --build -d",
+
+    "env:test": "cross-env FLASK_ENV=test TEST_DATABASE_URL=postgresql://postgres:postgres@db:5432/heroleague_test",
+    "env:local": "cross-env FLASK_ENV=development DATABASE_URL=postgresql://postgres:postgres@localhost:5432/heroleague",
+
+    "deps:sync": "pipenv requirements > backend/requirements.txt",
+    "deps:update": "pipenv update"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "eslint-plugin-vitest-globals": "^1.5.0",
     "history": "^5.3.0"
   }

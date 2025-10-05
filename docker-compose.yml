@@ -1,23 +1,36 @@
-version: "3.9"
+# File: docker-compose.yml
+# Purpose: Run backend (Flask), frontend (Vite), and Postgres DB.
+# Notes:
+# - Shared network for backend + db.
+# - Includes dev and test Postgres databases.
+# - Uses Pipenv for Python dependency management.
+# - Healthcheck ensures DB is ready before backend starts.
 
 services:
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile.backend
-    command: python -m backend.wsgi
+    command: pipenv run python -m backend.wsgi
     ports:
       - "5500:5500"
     volumes:
       - ./backend:/app/backend
     environment:
+      DOCKER_ENV: "true"
       FLASK_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@db:5432/heroleague
+      TEST_DATABASE_URL: postgresql://postgres:postgres@db:5432/heroleague_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       API_KEY: ${API_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-      FRONTEND_URL: ${FRONTEND_URL}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - hero-league-net
 
   frontend:
     build:
@@ -29,8 +42,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      # passed into Vite at build/run time
       VITE_BACKEND_ORIGIN: http://backend:5500
+    networks:
+      - hero-league-net
 
   db:
     image: postgres:15
@@ -42,7 +56,21 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # Persistent database data
       - postgres_data:/var/lib/postgresql/data
+      # Initialization scripts
+      - ./backend/scripts/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - hero-league-net
 
 volumes:
-  postgres_data:
+  postgres_data: {}
+
+networks:
+  hero-league-net:
+    name: hero-league-net
